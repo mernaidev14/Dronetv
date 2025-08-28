@@ -377,8 +377,6 @@ export default function Blog() {
 
       </div>
 
-
-
       {/* Modal */}
       <AnimatePresence>
         {isModalOpen && selectedPost && (
@@ -411,11 +409,8 @@ export default function Blog() {
                 </button>
                 <div className="absolute top-4 left-4">
                   <span className="px-3 py-1 bg-primary text-primary-foreground text-sm font-medium rounded-full">
-                    <EditableText 
-                      initialText={selectedPost.category}
-                      className="text-sm font-medium text-primary-foreground"
-                      tag="span"
-                    />
+                    <span className="text-sm font-medium text-primary-foreground">{selectedPost.category}</span>
+                    
                   </span>
                 </div>
               </div>
@@ -424,24 +419,14 @@ export default function Blog() {
               <div className="p-8">
                 <div className="flex items-center text-sm text-muted-foreground mb-4">
                   <Calendar className="w-4 h-4 mr-1" />
-                  <EditableText 
-                    initialText={selectedPost.date}
-                    className="text-sm text-muted-foreground mr-6"
-                    tag="span"
-                  />
+                  <span className="text-sm text-muted-foreground mr-6">{selectedPost.date}</span>
+                  
                   <User className="w-4 h-4 mr-1" />
-                  <EditableText 
-                    initialText={selectedPost.author}
-                    className="text-sm text-muted-foreground mr-6"
-                    tag="span"
-                  />
+                  <span className="text-sm text-muted-foreground mr-6">{selectedPost.author}</span>
+                  
                 </div>
-
-                <EditableText 
-                  initialText={selectedPost.title}
-                  className="text-2xl font-bold text-card-foreground mb-6"
-                  tag="h2"
-                />
+                <h2 className="text-2xl font-bold text-card-foreground mb-6">{selectedPost.title}</h2>
+                
 
                 <div
                   className="prose prose-gray max-w-none text-card-foreground"
