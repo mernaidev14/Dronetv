@@ -5,7 +5,7 @@ import { ImageWithFallback } from './figma/ImageWithFallback';
 import { Button } from './ui/button';
 
 export default function Blog() {
-  const [selectedPost, setSelectedPost] = useState(null);
+  const [selectedPost, setSelectedPost] = useState<any | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showAllPosts, setShowAllPosts] = useState(false);
   const [isEditing, setIsEditing] = useState<boolean>(false);
@@ -100,7 +100,7 @@ export default function Blog() {
     }
   ]);
   
-   const [header, setHeader] = useState({
+  const [header, setHeader] = useState({
     badge: "Our Blog",
     title: "Latest Insights & Updates",
     desc: "Stay informed with our expert perspectives on industry trends, best practices, and innovative solutions.",
@@ -108,8 +108,9 @@ export default function Blog() {
 
   const displayedPosts = showAllPosts ? blogPosts : blogPosts.slice(0, 4);
 
-  const openModal = (post) => {
-    setSelectedPost(post);
+  const openModal = (post: any) => {
+    // create a shallow copy so editing the modal doesn't mutate the array until Save
+    setSelectedPost({ ...post });
     setIsModalOpen(true);
     document.body.style.overflow = 'hidden';
   };
@@ -120,9 +121,15 @@ export default function Blog() {
     document.body.style.overflow = 'auto';
   };
 
+  const saveModalChanges = () => {
+    if (!selectedPost) return;
+    setBlogPosts(prev => prev.map(p => (p.id === selectedPost.id ? selectedPost : p)));
+    setIsModalOpen(false);
+    setSelectedPost(null);
+    document.body.style.overflow = 'auto';
+  };
+
   return (
-
-
     <section id="blog" className="py-20 bg-background theme-transition">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
@@ -199,7 +206,7 @@ export default function Blog() {
             accept="image/*"
             className="absolute bottom-2 left-2 text-xs"
             onChange={e => {
-              const file = e.target.files?.[0];
+              const file = (e.target as HTMLInputElement).files?.[0];
               if (file) {
                 const reader = new FileReader();
                 reader.onloadend = () => {
@@ -427,9 +434,19 @@ export default function Blog() {
                 </button>
                 <div className="absolute top-4 left-4">
                   <span className="px-3 py-1 bg-primary text-primary-foreground text-sm font-medium rounded-full">
-                    <span className="text-sm font-medium text-primary-foreground">{selectedPost.category}</span>
-                    
+                    {isEditing ? (
+                      <input
+                        value={selectedPost.category}
+                        onChange={(e) =>
+                          setSelectedPost((s: any) => ({ ...s, category: e.target.value }))
+                        }
+                        className="text-sm font-medium text-primary-foreground bg-transparent border-b"
+                      />
+                    ) : (
+                      <span className="text-sm font-medium text-primary-foreground">{selectedPost.category}</span>
+                    )}
                   </span>
+                  
                 </div>
               </div>
 
@@ -437,22 +454,83 @@ export default function Blog() {
               <div className="p-8">
                 <div className="flex items-center text-sm text-muted-foreground mb-4">
                   <Calendar className="w-4 h-4 mr-1" />
-                  <span className="text-sm text-muted-foreground mr-6">{selectedPost.date}</span>
+                  {isEditing ? (
+                    <input
+                      value={selectedPost.date}
+                      onChange={(e) => setSelectedPost((s: any) => ({ ...s, date: e.target.value }))}
+                      className="text-sm text-muted-foreground mr-6 bg-transparent border-b"
+                    />
+                  ) : (
+                    <span className="text-sm text-muted-foreground mr-6">{selectedPost.date}</span>
+                  )}
                   
                   <User className="w-4 h-4 mr-1" />
-                  <span className="text-sm text-muted-foreground mr-6">{selectedPost.author}</span>
-                  
+                  {isEditing ? (
+                    <input
+                      value={selectedPost.author}
+                      onChange={(e) => setSelectedPost((s: any) => ({ ...s, author: e.target.value }))}
+                      className="text-sm text-muted-foreground mr-6 bg-transparent border-b"
+                    />
+                  ) : (
+                    <span className="text-sm text-muted-foreground mr-6">{selectedPost.author}</span>
+                  )}
                 </div>
-                 <h2 className="text-2xl font-bold text-card-foreground mb-6">{selectedPost.title}</h2>
-                
 
-                <div
-                  className="prose prose-gray max-w-none text-card-foreground"
-                  dangerouslySetInnerHTML={{ __html: selectedPost.content }}
-                />
+                {isEditing ? (
+                  <>
+                    <input
+                      value={selectedPost.title}
+                      onChange={(e) => setSelectedPost((s: any) => ({ ...s, title: e.target.value }))}
+                      className="text-2xl font-bold text-card-foreground mb-4 w-full bg-transparent border-b"
+                    />
+
+                    <textarea
+                      value={selectedPost.content}
+                      onChange={(e) => setSelectedPost((s: any) => ({ ...s, content: e.target.value }))}
+                      className="prose prose-gray max-w-none text-card-foreground w-full h-48 mb-4 border bg-transparent p-2"
+                    />
+
+                    <div className="mb-4">
+                      <label className="block text-sm mb-1">Change Image</label>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          const file = (e.target as HTMLInputElement).files?.[0];
+                          if (file) {
+                            const reader = new FileReader();
+                            reader.onloadend = () => {
+                              setSelectedPost((s: any) => ({ ...s, image: reader.result as string }));
+                            };
+                            reader.readAsDataURL(file);
+                          }
+                        }}
+                        className="text-sm"
+                      />
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <h2 className="text-2xl font-bold text-card-foreground mb-6">{selectedPost.title}</h2>
+                    <div
+                      className="prose prose-gray max-w-none text-card-foreground"
+                      dangerouslySetInnerHTML={{ __html: selectedPost.content }}
+                    />
+                  </>
+                )}
               </div>
 
-              
+              {/* Modal Footer */}
+              <div className="flex items-center justify-end gap-3 p-6 border-t">
+                {isEditing && (
+                  <Button onClick={() => saveModalChanges()} className="bg-green-600 text-white">
+                    Save Changes
+                  </Button>
+                )}
+                <Button variant="secondary" onClick={closeModal}>
+                  {isEditing ? 'Close (Discard)' : 'Close'}
+                </Button>
+              </div>
             </motion.div>
           </motion.div>
         )}
