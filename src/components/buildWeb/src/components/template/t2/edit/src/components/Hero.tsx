@@ -69,7 +69,7 @@ export default function Hero() {
   const floatingVariants = { animate: { y: [-10, 10, -10], transition: { duration: 4, repeat: Infinity, ease: "easeInOut" } } };
 
   return (
-    <section id="home" className="pt-20 mt-17 pb-16 bg-background relative overflow-hidden theme-transition">
+    <section id="home" className="pt-20 mt-[3rem] pb-16 bg-background relative overflow-hidden theme-transition">
       {/* Background decorations */}
       <motion.div className="absolute top-20 right-0 w-72 h-72 bg-primary/5 rounded-full -translate-y-1/2 translate-x-1/2" animate={{ scale: [1, 1.1, 1], rotate: [0, 180, 360] }} transition={{ duration: 20, repeat: Infinity, ease: "linear" }} />
       <motion.div className="absolute bottom-0 left-0 w-96 h-96 bg-primary/3 rounded-full translate-y-1/2 -translate-x-1/2" animate={{ scale: [1, 1.2, 1], rotate: [0, -180, -360] }} transition={{ duration: 25, repeat: Infinity, ease: "linear" }} />
