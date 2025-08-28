@@ -27,7 +27,12 @@ import GalleryGlimpse from './components/GalleryGlimpse';
 import SubApp from './components/webbuilder/src/App';
 import OurPartners from './components/Ourpartners';
 import GalleryPage1 from './components/GalleryPage1'
-
+import Buildweb from './components/buildWeb/src/main';
+import Select from './components/buildWeb/src/components/select-template/select';
+import Template2 from './components/buildWeb/src/components/template/t2/src/main';
+import Form from "./components/buildWeb/src/components/form/src/main";
+import EditTemp2 from "./components/buildWeb/src/components/template/t2/edit/src/main";
+import Templale1 from "./components/buildWeb/src/components/template/t1/src/main";
 const HomePage = () => (
   <>
     <Hero />
@@ -65,6 +70,11 @@ const AppContent = () => {
         <Route path="/product/:id" element={<ProductDetailPage />} />
         <Route path="/service/:id" element={<ServiceDetailPage />} />
         <Route path="/company/*" element={<SubApp />} />
+        <Route path="/buildweb" element={<Select />} />
+        <Route path="/template/t2" element={<Template2 />} />
+        <Route path="/form" element={<Form />} />
+        <Route path="/edit/template/t2" element={<EditTemp2 />} />
+        <Route path="/edit/template/t1" element={<Templale1 />} />
       </Routes>
       {!hideFooter && <Footer />}
       <ScrollingFooter />
