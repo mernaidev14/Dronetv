@@ -248,7 +248,7 @@ function App() {
   if (isComplete) {
     return (setTimeout(() => {
        handleClick()
-    }, 3000)
+    }, 200)
     );
   }
 

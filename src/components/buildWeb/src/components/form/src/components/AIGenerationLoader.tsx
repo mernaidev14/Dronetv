@@ -23,12 +23,12 @@ export const AIGenerationLoader: React.FC<AIGenerationLoaderProps> = ({ onComple
       setProgress((prev) => {
         if (prev >= 100) {
           clearInterval(interval);
-          setTimeout(onComplete, 1000);
+          setTimeout(onComplete, 2000);
           return 100;
         }
         return prev + 2;
       });
-    }, 100);
+    }, 300);
 
     const stepInterval = setInterval(() => {
       setCurrentStep((prev) => {
