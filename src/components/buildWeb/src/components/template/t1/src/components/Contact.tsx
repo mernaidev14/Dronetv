@@ -65,7 +65,7 @@ export default function Contact() {
               </div>
 
               {/* Submit */}
-              <Button className='bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 text-white px-6 py-3 rounded-md font-semibold transition-colors duration-300'>
+              <Button className='bg-[#ffeb3b] hover:bg-[#ffeb3b] dark:bg-indigo-500 dark:hover:bg-indigo-600 text-black px-6 py-3 rounded-md font-semibold transition-colors duration-300'>
                 Sign up now
               </Button>
             </form>

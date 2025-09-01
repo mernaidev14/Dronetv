@@ -1,30 +1,9 @@
 import { motion } from "motion/react";
 import { useState } from "react";
-import { Edit2, Save, Plus, X } from "lucide-react";
+import logo from "../public/images/logos/logo.svg";
 
-export default function EditableHeader() {
+export default function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
-
-  // Editable content state
-  const [content, setContent] = useState({
-    logo: "Innovative Labs",
-    logoColor: "text-red-500",
-    logoDarkColor: "dark:text-yellow-400",
-    signUpText: "Sign Up",
-    signUpBg: "bg-yellow-400",
-    signUpDarkBg: "dark:bg-yellow-500",
-    signUpTextColor: "text-red-500",
-    signUpDarkTextColor: "dark:text-gray-900",
-    navItems: [
-      { id: 1, text: "Home", href: "#home" },
-      { id: 2, text: "About", href: "#about" },
-      { id: 3, text: "Product", href: "#product" },
-      { id: 4, text: "Services", href: "#services" },
-      { id: 5, text: "Testimonials", href: "#testimonials" },
-      { id: 6, text: "Blog", href: "#blog" },
-    ],
-  });
 
   const toggleMobileMenu = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
@@ -34,70 +13,26 @@ export default function EditableHeader() {
     setIsMobileMenuOpen(false);
   };
 
-  const startEditing = () => {
-    setIsEditing(true);
-  };
-
-  const stopEditing = () => {
-    setIsEditing(false);
-    console.log("Header content saved:", content);
-  };
-
-  const updateContent = (field, value) => {
-    setContent((prev) => ({ ...prev, [field]: value }));
-  };
-
-  const updateNavItem = (id, field, value) => {
-    setContent((prev) => ({
-      ...prev,
-      navItems: prev.navItems.map((item) =>
-        item.id === id ? { ...item, [field]: value } : item
-      ),
-    }));
-  };
-
-  const addNavItem = () => {
-    const newId = Math.max(...content.navItems.map((item) => item.id)) + 1;
-    setContent((prev) => ({
-      ...prev,
-      navItems: [
-        ...prev.navItems,
-        { id: newId, text: "New Item", href: "#new" },
-      ],
-    }));
-  };
-
-  const removeNavItem = (id) => {
-    if (content.navItems.length > 1) {
-      setContent((prev) => ({
-        ...prev,
-        navItems: prev.navItems.filter((item) => item.id !== id),
-      }));
-    }
-  };
-
-  // Inline styles for maximum specificity and reliability
-  const headerStyles = {
-    position: "fixed",
-    top: "56px", // Account for existing 56px navbar
+  const headerStyles: React.CSSProperties = {
+    position: "fixed" as const,
+    top: "56px",
     left: "0",
     right: "0",
     width: "100%",
-    zIndex: 900, // Lower than existing navbar
+    zIndex: 2147483647,
     backgroundColor: "white",
     boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
     borderBottom: "1px solid #e5e7eb",
     transition: "all 0.5s ease",
-    minHeight: isEditing ? "120px" : "80px", // Dynamic height based on editing state
   };
 
-  const mobileButtonStyles = {
-    position: "relative",
-    zIndex: 1001,
+  const mobileButtonStyles: React.CSSProperties = {
+    position: "relative" as const,
+    zIndex: 2147483647,
     display: "block",
-    visibility: "visible",
+    visibility: "visible" as const,
     opacity: "1",
-    pointerEvents: "auto",
+    pointerEvents: "auto" as const,
     padding: "0.5rem",
     borderRadius: "0.375rem",
     color: "#374151",
@@ -107,23 +42,22 @@ export default function EditableHeader() {
     transition: "all 0.3s ease",
   };
 
-  const mobileMenuStyles = {
-    position: "fixed",
-    top: isEditing ? "176px" : "136px", // Dynamic top position: 56px + (120px or 80px)
+  const mobileMenuStyles: React.CSSProperties = {
+    position: "fixed" as const,
+    top: "112px",
     left: "0",
     right: "0",
-    zIndex: 899,
+    zIndex: 2147483646,
     backgroundColor: "white",
     borderTop: "1px solid #e5e7eb",
     maxHeight: isMobileMenuOpen ? "384px" : "0",
     opacity: isMobileMenuOpen ? "1" : "0",
-    overflow: "hidden",
+    overflow: "hidden" as const,
     transition: "all 0.3s ease-in-out",
   };
 
   return (
     <>
-      {/* Header */}
       <motion.header
         style={headerStyles}
         className='dark:bg-gray-900 dark:border-gray-700'
@@ -132,176 +66,92 @@ export default function EditableHeader() {
         transition={{ duration: 0.6 }}
       >
         <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'>
-          <div
-            className={`flex items-center justify-between transition-all duration-500 ${
-              isEditing ? "min-h-[120px] py-4" : "h-20"
-            }`}
-          >
-            {/* Logo */}
-            <motion.div
-              className={`text-xl sm:text-2xl font-bold ${content.logoColor} ${content.logoDarkColor} transition-colors duration-300`}
+          <div className='flex items-center justify-between h-16'>
+            {/* Logo + Name */}
+            <motion.a
+              href='#home'
+              className='flex flex-row gap-2 items-center text-xl sm:text-2xl font-bold text-red-500 dark:text-yellow-400 transition-colors duration-300'
               whileHover={{ scale: 1.05 }}
             >
-              {isEditing ? (
-                <input
-                  type='text'
-                  value={content.logo}
-                  onChange={(e) => updateContent("logo", e.target.value)}
-                  className='bg-transparent border-b-2 border-blue-300 outline-none text-xl sm:text-2xl font-bold'
-                  autoFocus
-                />
-              ) : (
-                content.logo
-              )}
-            </motion.div>
+              <motion.img
+                src={logo}
+                alt='Logo'
+                className='h-6 w-6 sm:h-10 sm:w-10 object-contain'
+                // Entrance animation
+                initial={{ opacity: 0, scale: 0.5, y: -20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                transition={{ duration: 0.8, type: "spring", stiffness: 120 }}
+                // Floating effect (infinite)
+                whileInView={{
+                  y: [0, -4, 0],
+                  transition: {
+                    duration: 2,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                  },
+                }}
+                // Interactive hover & tap
+                whileHover={{
+                  rotate: [0, -5, 5, -5, 0],
+                  scale: 1.2,
+                  boxShadow: "0px 0px 15px rgba(255, 215, 0, 0.6)", // gold glow
+                  transition: { duration: 0.5 },
+                }}
+                whileTap={{ scale: 0.9 }}
+              />
+              <span>Innovative Labs</span>
+            </motion.a>
 
             {/* Desktop Navigation */}
-            <nav
-              className={`hidden md:flex items-center transition-all duration-500 ${
-                isEditing ? "space-x-4 flex-wrap" : "space-x-8"
-              }`}
-            >
-              {content.navItems.map((item) => (
-                <div
-                  key={item.id}
-                  className={`relative group ${isEditing ? "mb-2" : ""}`}
-                >
-                  {isEditing ? (
-                    <div className='flex flex-col space-y-1 min-w-[120px]'>
-                      <input
-                        type='text'
-                        value={item.text}
-                        onChange={(e) =>
-                          updateNavItem(item.id, "text", e.target.value)
-                        }
-                        className='bg-white dark:bg-gray-800 border border-blue-300 rounded outline-none text-sm text-center px-2 py-1'
-                      />
-                      <input
-                        type='text'
-                        value={item.href}
-                        onChange={(e) =>
-                          updateNavItem(item.id, "href", e.target.value)
-                        }
-                        className='bg-white dark:bg-gray-800 border border-blue-300 rounded outline-none text-xs text-center text-gray-500 px-2 py-1'
-                        placeholder='URL'
-                      />
-                      {content.navItems.length > 1 && (
-                        <button
-                          onClick={() => removeNavItem(item.id)}
-                          className='absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-xs hover:bg-red-600'
-                          title='Remove item'
-                        >
-                          <X size={10} />
-                        </button>
-                      )}
-                    </div>
-                  ) : (
-                    <a
-                      href={item.href}
-                      className='text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors duration-300'
-                    >
-                      {item.text}
-                    </a>
-                  )}
-                </div>
-              ))}
-
-              {isEditing && (
-                <button
-                  onClick={addNavItem}
-                  className='bg-blue-500 text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-blue-600 mb-2'
-                  title='Add navigation item'
-                >
-                  <Plus size={16} />
-                </button>
-              )}
-
-              {/* Sign Up Button */}
-              <motion.div
+            <nav className='hidden md:flex items-center space-x-8'>
+              <a
+                href='#home'
+                className='text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors duration-300'
+              >
+                Home
+              </a>
+              <a
+                href='#about'
+                className='text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors duration-300'
+              >
+                About
+              </a>
+              <a
+                href='#product'
+                className='text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors duration-300'
+              >
+                Product
+              </a>
+              <a
+                href='#services'
+                className='text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors duration-300'
+              >
+                Services
+              </a>
+              <a
+                href='#testimonials'
+                className='text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors duration-300'
+              >
+                Testimonials
+              </a>
+              <a
+                href='#blog'
+                className='text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors duration-300'
+              >
+                Blog
+              </a>
+              <motion.a
+                href='#contact'
+                className='bg-yellow-400 dark:bg-yellow-500 text-red-500 dark:text-gray-900 px-6 py-2 rounded-full font-medium hover:bg-yellow-500 dark:hover:bg-yellow-400 transition-colors duration-300 inline-block'
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                className={`relative ${isEditing ? "mb-2" : ""}`}
               >
-                {isEditing ? (
-                  <div className='flex flex-col space-y-2 min-w-[140px]'>
-                    <input
-                      type='text'
-                      value={content.signUpText}
-                      onChange={(e) =>
-                        updateContent("signUpText", e.target.value)
-                      }
-                      className='bg-white dark:bg-gray-800 border-2 border-blue-300 outline-none px-3 py-1 rounded text-center text-sm font-medium'
-                      placeholder='Button text'
-                    />
-                    <select
-                      value={content.signUpBg}
-                      onChange={(e) =>
-                        updateContent("signUpBg", e.target.value)
-                      }
-                      className='bg-white dark:bg-gray-800 border border-gray-300 rounded text-xs px-2 py-1'
-                    >
-                      <option value='bg-yellow-400'>Yellow</option>
-                      <option value='bg-blue-400'>Blue</option>
-                      <option value='bg-green-400'>Green</option>
-                      <option value='bg-red-400'>Red</option>
-                      <option value='bg-purple-400'>Purple</option>
-                    </select>
-                  </div>
-                ) : (
-                  <a
-                    href='#contact'
-                    className={`${content.signUpBg} ${content.signUpDarkBg} ${content.signUpTextColor} ${content.signUpDarkTextColor} px-6 py-2 rounded-full font-medium hover:bg-yellow-500 dark:hover:bg-yellow-400 transition-colors duration-300 inline-block`}
-                  >
-                    {content.signUpText}
-                  </a>
-                )}
-              </motion.div>
-
-              {/* Edit Controls */}
-              {!isEditing && (
-                <button
-                  onClick={startEditing}
-                  className='text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors duration-300 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800'
-                  title='Edit Header'
-                >
-                  <Edit2 size={18} />
-                </button>
-              )}
-
-              {isEditing && (
-                <button
-                  onClick={stopEditing}
-                  className='bg-green-500 text-white hover:bg-green-600 transition-colors p-2 rounded-full shadow-lg border-2 border-green-300 mb-2'
-                  title='Save Changes'
-                >
-                  <Save size={18} />
-                </button>
-              )}
+                Sign Up
+              </motion.a>
             </nav>
 
             {/* Mobile menu button */}
             <div className='md:hidden flex items-center space-x-2'>
-              {/* Edit Controls for Mobile */}
-              {!isEditing && (
-                <button
-                  onClick={startEditing}
-                  className='text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800'
-                  title='Edit Header'
-                >
-                  <Edit2 size={18} />
-                </button>
-              )}
-
-              {isEditing && (
-                <button
-                  onClick={stopEditing}
-                  className='bg-green-500 text-white hover:bg-green-600 transition-colors p-2 rounded-full shadow-lg border-2 border-green-300'
-                  title='Save Changes'
-                >
-                  <Save size={18} />
-                </button>
-              )}
-
               <button
                 onClick={toggleMobileMenu}
                 style={mobileButtonStyles}
@@ -345,95 +195,30 @@ export default function EditableHeader() {
 
       {/* Mobile Navigation Menu */}
       <div
-        style={mobileMenuStyles}
+        style={{ ...mobileMenuStyles }}
         className='md:hidden dark:bg-gray-900 dark:border-gray-700'
       >
         <div className='px-4 pt-2 pb-3 space-y-1 sm:px-6'>
-          {content.navItems.map((item) => (
-            <div key={item.id} className='relative'>
-              {isEditing ? (
-                <div className='flex flex-col space-y-2 p-2 border rounded'>
-                  <input
-                    type='text'
-                    value={item.text}
-                    onChange={(e) =>
-                      updateNavItem(item.id, "text", e.target.value)
-                    }
-                    className='bg-transparent border-b border-blue-300 outline-none text-base font-medium'
-                  />
-                  <input
-                    type='text'
-                    value={item.href}
-                    onChange={(e) =>
-                      updateNavItem(item.id, "href", e.target.value)
-                    }
-                    className='bg-transparent border-b border-blue-300 outline-none text-xs text-gray-500'
-                    placeholder='URL'
-                  />
-                  {content.navItems.length > 1 && (
-                    <button
-                      onClick={() => removeNavItem(item.id)}
-                      className='absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs hover:bg-red-600'
-                      title='Remove item'
-                    >
-                      <X size={12} />
-                    </button>
-                  )}
-                </div>
-              ) : (
-                <a
-                  href={item.href}
-                  className='block px-3 py-2 text-base font-medium text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-md transition-colors duration-300'
-                  onClick={closeMobileMenu}
-                >
-                  {item.text}
-                </a>
-              )}
-            </div>
-          ))}
-
-          {isEditing && (
-            <button
-              onClick={addNavItem}
-              className='w-full bg-blue-500 text-white rounded-md py-2 px-4 hover:bg-blue-600 flex items-center justify-center space-x-2'
-              title='Add navigation item'
-            >
-              <Plus size={16} />
-              <span>Add Item</span>
-            </button>
-          )}
-
-          <div className='pt-2'>
-            {isEditing ? (
-              <div className='flex flex-col space-y-2'>
-                <input
-                  type='text'
-                  value={content.signUpText}
-                  onChange={(e) => updateContent("signUpText", e.target.value)}
-                  className='bg-white dark:bg-gray-800 border-2 border-blue-300 outline-none px-4 py-2 rounded-full font-medium text-center'
-                  placeholder='Button text'
-                />
-                <select
-                  value={content.signUpBg}
-                  onChange={(e) => updateContent("signUpBg", e.target.value)}
-                  className='bg-white dark:bg-gray-800 border border-gray-300 rounded px-3 py-1'
-                >
-                  <option value='bg-yellow-400'>Yellow</option>
-                  <option value='bg-blue-400'>Blue</option>
-                  <option value='bg-green-400'>Green</option>
-                  <option value='bg-red-400'>Red</option>
-                  <option value='bg-purple-400'>Purple</option>
-                </select>
-              </div>
-            ) : (
+          {["Home", "About", "Product", "Services", "Testimonials", "Blog"].map(
+            (item) => (
               <a
-                href='#contact'
-                className={`block w-full ${content.signUpBg} ${content.signUpDarkBg} ${content.signUpTextColor} ${content.signUpDarkTextColor} px-6 py-2 rounded-full font-medium hover:bg-yellow-500 dark:hover:bg-yellow-400 transition-colors duration-300 text-center`}
+                key={item}
+                href={`#${item.toLowerCase()}`}
+                className='block px-3 py-2 text-base font-medium text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-md transition-colors duration-300'
                 onClick={closeMobileMenu}
               >
-                {content.signUpText}
+                {item}
               </a>
-            )}
+            )
+          )}
+          <div className='pt-2'>
+            <a
+              href='#contact'
+              className='block w-full bg-yellow-400 dark:bg-yellow-500 text-red-500 dark:text-gray-900 px-6 py-2 rounded-full font-medium hover:bg-yellow-500 dark:hover:bg-yellow-400 transition-colors duration-300 text-center'
+              onClick={closeMobileMenu}
+            >
+              Sign Up
+            </a>
           </div>
         </div>
       </div>

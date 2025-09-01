@@ -6,7 +6,6 @@ import { motion } from "motion/react";
 
 import { Button } from "./ui/button";
 
-
 export default function Testimonials() {
   const [isEditing, setIsEditing] = useState(false);
   const [testimonials, setTestimonials] = useState([
@@ -47,7 +46,8 @@ export default function Testimonials() {
 
   const [headline, setHeadline] = useState({
     title: "What Our Clients Say",
-    description: "Don't just take our word for it. Here's what our satisfied clients have to say about working with us.",
+    description:
+      "Don't just take our word for it. Here's what our satisfied clients have to say about working with us.",
   });
 
   // Handlers for testimonials
@@ -110,16 +110,16 @@ export default function Testimonials() {
 
   return (
     <motion.section
-      className="py-20 bg-background theme-transition"
+      className='py-20 bg-background theme-transition'
       initial={{ opacity: 0 }}
       whileInView={{ opacity: 1 }}
       viewport={{ once: true }}
       transition={{ duration: 0.8 }}
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'>
         {/* Header */}
         <motion.div
-          className="text-center max-w-3xl mx-auto mb-16"
+          className='text-center max-w-3xl mx-auto mb-16'
           initial={{ y: 50, opacity: 0 }}
           whileInView={{ y: 0, opacity: 1 }}
           viewport={{ once: true }}
@@ -129,34 +129,38 @@ export default function Testimonials() {
             <>
               <input
                 value={headline.title}
-                onChange={e => setHeadline(h => ({ ...h, title: e.target.value }))}
-                className="text-3xl md:text-4xl text-foreground mb-4 w-full text-center bg-transparent border-b font-bold"
+                onChange={(e) =>
+                  setHeadline((h) => ({ ...h, title: e.target.value }))
+                }
+                className='text-3xl md:text-4xl text-foreground mb-4 w-full text-center bg-transparent border-b font-bold'
               />
               <textarea
                 value={headline.description}
-                onChange={e => setHeadline(h => ({ ...h, description: e.target.value }))}
-                className="text-lg text-muted-foreground w-full text-center bg-transparent border-b"
+                onChange={(e) =>
+                  setHeadline((h) => ({ ...h, description: e.target.value }))
+                }
+                className='text-lg text-muted-foreground w-full text-center bg-transparent border-b'
                 rows={2}
               />
             </>
           ) : (
             <>
-              <h2 className="text-3xl md:text-4xl text-foreground mb-4">
-               {headline.title}
+              <h2 className='text-3xl md:text-4xl text-foreground mb-4'>
+                {headline.title}
               </h2>
-              <p className="text-lg text-muted-foreground">
+              <p className='text-lg text-muted-foreground'>
                 {headline.description}
               </p>
             </>
-          ) }
+          )}
         </motion.div>
 
         {/* Testimonials Grid */}
         <motion.div
-          className="grid md:grid-cols-2 lg:grid-cols-3 gap-8"
+          className='grid md:grid-cols-2 lg:grid-cols-3 gap-8'
           variants={containerVariants}
-          transition={{duration: 0.8}}
-          animate={{opacity:[0,1],y:[50,0]}}
+          transition={{ duration: 0.8 }}
+          animate={{ opacity: [0, 1], y: [50, 0] }}
           viewport={{ once: true }}
         >
           {testimonials.map((testimonial, index) => (
@@ -166,10 +170,10 @@ export default function Testimonials() {
               whileHover={{ y: -5 }}
               transition={{ duration: 0.3 }}
             >
-              <Card className="bg-card border-border hover:shadow-xl transition-all duration-300 hover:border-primary/30">
-                <CardContent className="p-8">
+              <Card className='bg-card border-border hover:shadow-xl transition-all duration-300 hover:border-primary/30'>
+                <CardContent className='p-8'>
                   {/* Rating */}
-                  <div className="flex space-x-1 mb-4">
+                  <div className='flex space-x-1 mb-4'>
                     {[...Array(testimonial.rating)].map((_, i) => (
                       <motion.div
                         key={i}
@@ -183,7 +187,7 @@ export default function Testimonials() {
                         }}
                         whileHover={{ scale: 1.2 }}
                       >
-                        <Star className="h-5 w-5 fill-primary text-primary" />
+                        <Star className='h-5 w-5 fill-primary text-primary' />
                       </motion.div>
                     ))}
                   </div>
@@ -195,27 +199,27 @@ export default function Testimonials() {
                       onChange={(e) =>
                         updateTestimonial(index, "quote", e.target.value)
                       }
-                      className="text-card-foreground leading-relaxed w-full border-b mb-6 bg-transparent"
+                      className='text-card-foreground leading-relaxed w-full border-b mb-6 bg-transparent'
                     />
                   ) : (
-                    <blockquote className="text-card-foreground mb-6 leading-relaxed">
-                      <span className="text-card-foreground leading-relaxed">
+                    <blockquote className='text-card-foreground mb-6 leading-relaxed'>
+                      <span className='text-card-foreground leading-relaxed'>
                         {testimonial.quote}
                       </span>
                     </blockquote>
                   )}
 
                   {/* Author */}
-                  <div className="flex items-center space-x-4">
+                  <div className='flex items-center space-x-4'>
                     <motion.div
-                      className="w-12 h-12 rounded-full overflow-hidden"
+                      className='w-12 h-12 rounded-full overflow-hidden'
                       whileHover={{ scale: 1.1 }}
                       transition={{ duration: 0.3 }}
                     >
                       {isEditing ? (
                         <input
-                          type="file"
-                          accept="image/*"
+                          type='file'
+                          accept='image/*'
                           onChange={(e) => {
                             const file = e.target.files?.[0];
                             if (file) {
@@ -230,13 +234,13 @@ export default function Testimonials() {
                               reader.readAsDataURL(file);
                             }
                           }}
-                          className="w-full h-full object-cover"
+                          className='w-full h-full object-cover'
                         />
                       ) : (
                         <ImageWithFallback
                           src={testimonial.image}
                           alt={testimonial.name}
-                          className="w-full h-full object-cover"
+                          className='w-full h-full object-cover'
                         />
                       )}
                     </motion.div>
@@ -248,17 +252,17 @@ export default function Testimonials() {
                             onChange={(e) =>
                               updateTestimonial(index, "name", e.target.value)
                             }
-                            className="font-medium text-card-foreground w-full border-b bg-transparent"
+                            className='font-medium text-card-foreground w-full border-b bg-transparent'
                           />
                           <input
                             value={testimonial.role}
                             onChange={(e) =>
                               updateTestimonial(index, "role", e.target.value)
                             }
-                            className="text-sm text-muted-foreground w-full border-b bg-transparent"
+                            className='text-sm text-muted-foreground w-full border-b bg-transparent'
                           />
                           <input
-                            type="number"
+                            type='number'
                             min={1}
                             max={5}
                             value={testimonial.rating}
@@ -269,13 +273,13 @@ export default function Testimonials() {
                                 Number(e.target.value)
                               )
                             }
-                            className="w-16 mt-2 border rounded px-2 py-1 text-sm"
-                            placeholder="Rating"
+                            className='w-16 mt-2 border rounded px-2 py-1 text-sm'
+                            placeholder='Rating'
                           />
                           <Button
-                            size="sm"
-                            variant="destructive"
-                            className="mt-2"
+                            size='sm'
+                            variant='destructive'
+                            className='mt-2'
                             onClick={() => removeTestimonial(index)}
                           >
                             Remove
@@ -283,10 +287,10 @@ export default function Testimonials() {
                         </>
                       ) : (
                         <>
-                          <div className="font-medium text-card-foreground">
+                          <div className='font-medium text-card-foreground'>
                             {testimonial.name}
                           </div>
-                          <div className="text-sm text-muted-foreground">
+                          <div className='text-sm text-muted-foreground'>
                             {testimonial.role}
                           </div>
                         </>
@@ -298,8 +302,8 @@ export default function Testimonials() {
             </motion.div>
           ))}
           {isEditing && (
-            <div className="flex items-center justify-center">
-              <Button onClick={addTestimonial} className="text-green-600">
+            <div className='flex items-center justify-center'>
+              <Button onClick={addTestimonial} className='text-green-600'>
                 + Add Testimonial
               </Button>
             </div>
@@ -308,17 +312,17 @@ export default function Testimonials() {
 
         {/* Stats section */}
         <motion.div
-          className="mt-16 pt-16 border-t border-border"
+          className='mt-16 pt-16 border-t border-border'
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.8, delay: 0.2 }}
         >
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+          <div className='grid grid-cols-2 md:grid-cols-4 gap-8 text-center'>
             {stats.map((stat, index) => (
               <motion.div
                 key={index}
-                className="group cursor-pointer"
+                className='group cursor-pointer'
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
@@ -335,10 +339,10 @@ export default function Testimonials() {
                       onChange={(e) =>
                         updateStat(index, "value", e.target.value)
                       }
-                      className="text-3xl font-bold text-foreground mb-2 group-hover:text-primary transition-colors w-full text-center border-b bg-transparent"
+                      className='text-3xl font-bold text-foreground mb-2 group-hover:text-primary transition-colors w-full text-center border-b bg-transparent'
                     />
                   ) : (
-                    <div className="text-3xl font-bold text-foreground mb-2 group-hover:text-primary transition-colors">
+                    <div className='text-3xl font-bold text-foreground mb-2 group-hover:text-primary transition-colors'>
                       {stat.value}
                     </div>
                   )}
@@ -350,38 +354,36 @@ export default function Testimonials() {
                       onChange={(e) =>
                         updateStat(index, "label", e.target.value)
                       }
-                      className="text-muted-foreground w-full text-center border-b bg-transparent"
+                      className='text-muted-foreground w-full text-center border-b bg-transparent'
                     />
                     <Button
-                      size="sm"
-                      variant="destructive"
-                      className="mt-2"
+                      size='sm'
+                      variant='destructive'
+                      className='mt-2'
                       onClick={() => removeStat(index)}
                     >
                       Remove
                     </Button>
                   </>
                 ) : (
-                  <div className="text-muted-foreground">{stat.label}</div>
+                  <div className='text-muted-foreground'>{stat.label}</div>
                 )}
                 <motion.div
-                  className="w-8 h-1 bg-primary/30 group-hover:bg-primary transition-colors mt-2 mx-auto rounded-full"
+                  className='w-8 h-1 bg-primary/30 group-hover:bg-primary transition-colors mt-2 mx-auto rounded-full'
                   whileHover={{ width: "100%" }}
                   transition={{ duration: 0.3 }}
                 />
               </motion.div>
             ))}
             {isEditing && (
-              <div className="flex items-center justify-center">
-                <Button onClick={addStat} className="text-green-600">
+              <div className='flex items-center justify-center'>
+                <Button onClick={addStat} className='text-green-600'>
                   + Add Stat
                 </Button>
               </div>
             )}
           </div>
         </motion.div>
-
-      
       </div>
     </motion.section>
   );

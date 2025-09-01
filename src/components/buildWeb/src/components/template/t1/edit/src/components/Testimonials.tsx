@@ -1,0 +1,549 @@
+import { useState, useEffect } from "react";
+import { Edit2, Check, X, Plus, Trash2 } from "lucide-react";
+
+export default function EditableTestimonials({ content }) {
+  // Extract testimonials data from the content prop
+  const testimonialsData = content || {};
+
+  // Initialize with data from JSON if available, otherwise use default
+  const initialTestimonials = testimonialsData.testimonials || [];
+  const initialHeadline = testimonialsData.headline || {
+    title: "What Our Clients Say",
+    description:
+      "Real experiences from clients who have transformed their operations with our solutions.",
+  };
+  const initialStats = testimonialsData.stats || [];
+
+  const [testimonials, setTestimonials] = useState(initialTestimonials);
+  const [headline, setHeadline] = useState(initialHeadline);
+  const [stats, setStats] = useState(initialStats);
+  const [current, setCurrent] = useState(0);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editingId, setEditingId] = useState(null);
+  const [editingField, setEditingField] = useState(null);
+  const [tempValue, setTempValue] = useState("");
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [isEditingDescription, setIsEditingDescription] = useState(false);
+  const [editingStatIndex, setEditingStatIndex] = useState(null);
+  const [editingStatField, setEditingStatField] = useState(null);
+
+  useEffect(() => {
+    if (!isEditing) {
+      const interval = setInterval(
+        () => setCurrent((c) => (c + 1) % testimonials.length),
+        5000
+      );
+      return () => clearInterval(interval);
+    }
+  }, [testimonials.length, isEditing]);
+
+  const handleEdit = (id, field, currentValue) => {
+    setEditingId(id);
+    setEditingField(field);
+    setTempValue(currentValue);
+    setIsEditing(true);
+  };
+
+  const handleSave = () => {
+    if (editingId && editingField) {
+      setTestimonials((prev) =>
+        prev.map((testimonial) =>
+          testimonial.id === editingId
+            ? { ...testimonial, [editingField]: tempValue }
+            : testimonial
+        )
+      );
+    }
+    cancelEdit();
+  };
+
+  const handleStatEdit = (index, field, currentValue) => {
+    setEditingStatIndex(index);
+    setEditingStatField(field);
+    setTempValue(currentValue);
+    setIsEditing(true);
+  };
+
+  const handleStatSave = () => {
+    if (editingStatIndex !== null && editingStatField) {
+      setStats((prev) =>
+        prev.map((stat, index) =>
+          index === editingStatIndex
+            ? { ...stat, [editingStatField]: tempValue }
+            : stat
+        )
+      );
+    }
+    cancelStatEdit();
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditingField(null);
+    setTempValue("");
+    setIsEditing(false);
+  };
+
+  const cancelStatEdit = () => {
+    setEditingStatIndex(null);
+    setEditingStatField(null);
+    setTempValue("");
+    setIsEditing(false);
+  };
+
+  const addTestimonial = () => {
+    const newTestimonial = {
+      name: "New Client",
+      rating: 5.0,
+      image:
+        "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=400&q=80",
+      role: "Position",
+      quote: "Add testimonial quote here.",
+    };
+    setTestimonials((prev) => [...prev, newTestimonial]);
+  };
+
+  const deleteTestimonial = (index) => {
+    if (testimonials.length > 1) {
+      setTestimonials((prev) => prev.filter((_, i) => i !== index));
+      if (current >= testimonials.length - 1) {
+        setCurrent(0);
+      }
+    }
+  };
+
+  const addStat = () => {
+    const newStat = {
+      value: "New Value",
+      label: "New Label",
+    };
+    setStats((prev) => [...prev, newStat]);
+  };
+
+  const deleteStat = (index) => {
+    if (stats.length > 1) {
+      setStats((prev) => prev.filter((_, i) => i !== index));
+    }
+  };
+
+  const handleTitleEdit = () => {
+    setIsEditingTitle(true);
+    setTempValue(headline.title);
+  };
+
+  const handleDescriptionEdit = () => {
+    setIsEditingDescription(true);
+    setTempValue(headline.description);
+  };
+
+  const saveTitleEdit = () => {
+    setHeadline((prev) => ({ ...prev, title: tempValue }));
+    setIsEditingTitle(false);
+    setTempValue("");
+  };
+
+  const saveDescriptionEdit = () => {
+    setHeadline((prev) => ({ ...prev, description: tempValue }));
+    setIsEditingDescription(false);
+    setTempValue("");
+  };
+
+  const cancelTitleEdit = () => {
+    setIsEditingTitle(false);
+    setTempValue("");
+  };
+
+  const cancelDescriptionEdit = () => {
+    setIsEditingDescription(false);
+    setTempValue("");
+  };
+
+  const EditableText = ({ value, onEdit, isLarge = false, className = "" }) => (
+    <div className={`group relative ${className}`}>
+      <span className={isLarge ? "text-3xl font-bold" : ""}>{value}</span>
+      <button
+        onClick={onEdit}
+        className='opacity-0 group-hover:opacity-100 absolute -right-6 top-0 p-1 text-gray-400 hover:text-blue-600 transition-all duration-200'
+      >
+        <Edit2 size={14} />
+      </button>
+    </div>
+  );
+
+  const EditableField = ({
+    testimonial,
+    index,
+    field,
+    className = "",
+    multiline = false,
+  }) => {
+    const isCurrentlyEditing = editingId === index && editingField === field;
+    const value = testimonial[field];
+
+    if (isCurrentlyEditing) {
+      return (
+        <div className='flex items-center gap-2'>
+          {multiline ? (
+            <textarea
+              value={tempValue}
+              onChange={(e) => setTempValue(e.target.value)}
+              className='flex-1 px-2 py-1 border border-blue-300 rounded resize-none'
+              rows={3}
+              autoFocus
+            />
+          ) : (
+            <input
+              type='text'
+              value={tempValue}
+              onChange={(e) => setTempValue(e.target.value)}
+              className='flex-1 px-2 py-1 border border-blue-300 rounded'
+              autoFocus
+            />
+          )}
+          <button
+            onClick={handleSave}
+            className='p-1 text-green-600 hover:text-green-800'
+          >
+            <Check size={16} />
+          </button>
+          <button
+            onClick={cancelEdit}
+            className='p-1 text-red-600 hover:text-red-800'
+          >
+            <X size={16} />
+          </button>
+        </div>
+      );
+    }
+
+    return (
+      <div className={`group relative ${className}`}>
+        {multiline ? (
+          <blockquote className='text-lg text-gray-700 italic'>
+            "{value}"
+          </blockquote>
+        ) : (
+          <span>{value}</span>
+        )}
+        <button
+          onClick={() => handleEdit(index, field, value)}
+          className='opacity-0 group-hover:opacity-100 absolute -right-6 top-0 p-1 text-gray-400 hover:text-blue-600 transition-all duration-200'
+        >
+          <Edit2 size={14} />
+        </button>
+      </div>
+    );
+  };
+
+  const EditableStatField = ({ stat, index, field, className = "" }) => {
+    const isCurrentlyEditing =
+      editingStatIndex === index && editingStatField === field;
+    const value = stat[field];
+
+    if (isCurrentlyEditing) {
+      return (
+        <div className='flex items-center gap-2'>
+          <input
+            type='text'
+            value={tempValue}
+            onChange={(e) => setTempValue(e.target.value)}
+            className='flex-1 px-2 py-1 border border-blue-300 rounded text-center'
+            autoFocus
+          />
+          <button
+            onClick={handleStatSave}
+            className='p-1 text-green-600 hover:text-green-800'
+          >
+            <Check size={16} />
+          </button>
+          <button
+            onClick={cancelStatEdit}
+            className='p-1 text-red-600 hover:text-red-800'
+          >
+            <X size={16} />
+          </button>
+        </div>
+      );
+    }
+
+    return (
+      <div className={`group relative ${className}`}>
+        <span>{value}</span>
+        <button
+          onClick={() => handleStatEdit(index, field, value)}
+          className='opacity-0 group-hover:opacity-100 absolute -right-6 top-0 p-1 text-gray-400 hover:text-blue-600 transition-all duration-200'
+        >
+          <Edit2 size={14} />
+        </button>
+      </div>
+    );
+  };
+
+  const renderStars = (rating) => {
+    const stars = [];
+    for (let i = 1; i <= 5; i++) {
+      stars.push(
+        <span
+          key={i}
+          className={i <= rating ? "text-yellow-400" : "text-gray-300"}
+        >
+          ★
+        </span>
+      );
+    }
+    return stars;
+  };
+
+  return (
+    <section
+      id='testimonials'
+      className='bg-gray-50 py-16 scroll-mt-20 relative'
+    >
+      {/* Edit Mode Toggle */}
+      <div className='absolute top-4 right-4 z-10'>
+        <button
+          onClick={() => setIsEditing(!isEditing)}
+          className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
+            isEditing
+              ? "bg-blue-600 text-white shadow-lg"
+              : "bg-white text-gray-700 border border-gray-300 hover:border-blue-300"
+          }`}
+        >
+          {isEditing ? "Exit Edit Mode" : "Edit Content"}
+        </button>
+      </div>
+
+      <div className='max-w-6xl mx-auto px-6'>
+        <div className='text-center mb-12'>
+          {/* Editable Title */}
+          {isEditingTitle ? (
+            <div className='flex items-center justify-center gap-2 mb-4'>
+              <input
+                type='text'
+                value={tempValue}
+                onChange={(e) => setTempValue(e.target.value)}
+                className='text-3xl font-bold text-gray-900 px-2 py-1 border border-blue-300 rounded text-center'
+                autoFocus
+              />
+              <button
+                onClick={saveTitleEdit}
+                className='p-1 text-green-600 hover:text-green-800'
+              >
+                <Check size={18} />
+              </button>
+              <button
+                onClick={cancelTitleEdit}
+                className='p-1 text-red-600 hover:text-red-800'
+              >
+                <X size={18} />
+              </button>
+            </div>
+          ) : (
+            <div className='mb-4'>
+              <EditableText
+                value={headline.title}
+                onEdit={handleTitleEdit}
+                isLarge={true}
+                className='text-3xl font-bold text-gray-900 inline-block'
+              />
+            </div>
+          )}
+
+          {/* Editable Description */}
+          {isEditingDescription ? (
+            <div className='flex items-center justify-center gap-2'>
+              <textarea
+                value={tempValue}
+                onChange={(e) => setTempValue(e.target.value)}
+                className='text-gray-600 max-w-2xl px-2 py-1 border border-blue-300 rounded resize-none'
+                rows={2}
+                autoFocus
+              />
+              <button
+                onClick={saveDescriptionEdit}
+                className='p-1 text-green-600 hover:text-green-800'
+              >
+                <Check size={18} />
+              </button>
+              <button
+                onClick={cancelDescriptionEdit}
+                className='p-1 text-red-600 hover:text-red-800'
+              >
+                <X size={18} />
+              </button>
+            </div>
+          ) : (
+            <EditableText
+              value={headline.description}
+              onEdit={handleDescriptionEdit}
+              className='text-gray-600 max-w-2xl mx-auto'
+            />
+          )}
+        </div>
+
+        {/* Stats Section */}
+        {stats.length > 0 && (
+          <div className='grid grid-cols-2 md:grid-cols-4 gap-6 mb-12'>
+            {stats.map((stat, index) => (
+              <div
+                key={index}
+                className='bg-white p-6 rounded-lg shadow-sm text-center relative'
+              >
+                {isEditing && (
+                  <button
+                    onClick={() => deleteStat(index)}
+                    className='absolute top-2 right-2 p-1 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-full z-10'
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                )}
+                <div className='text-3xl font-bold text-blue-600 mb-2'>
+                  <EditableStatField stat={stat} index={index} field='value' />
+                </div>
+                <div className='text-gray-600'>
+                  <EditableStatField stat={stat} index={index} field='label' />
+                </div>
+              </div>
+            ))}
+            {isEditing && (
+              <button
+                onClick={addStat}
+                className='flex flex-col items-center justify-center bg-gray-100 p-6 rounded-lg shadow-sm text-center hover:bg-gray-200 transition-colors duration-200'
+              >
+                <Plus size={24} className='text-gray-500 mb-2' />
+                <span className='text-gray-600'>Add Stat</span>
+              </button>
+            )}
+          </div>
+        )}
+
+        <div className='relative overflow-hidden'>
+          <div
+            className='flex transition-transform duration-500 ease-in-out'
+            style={{ transform: `translateX(-${current * 100}%)` }}
+          >
+            {testimonials.map((testimonial, index) => (
+              <div key={index} className='w-full flex-shrink-0'>
+                <div className='mx-4 bg-white shadow-lg border-0 rounded-lg relative'>
+                  {/* Delete Button */}
+                  {isEditing && testimonials.length > 1 && (
+                    <button
+                      onClick={() => deleteTestimonial(index)}
+                      className='absolute top-2 right-2 p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-full z-10'
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  )}
+
+                  <div className='p-8 text-center'>
+                    <div className='mb-6'>
+                      <div className='w-16 h-16 bg-indigo-600 rounded-full flex items-center justify-center mx-auto mb-4 overflow-hidden'>
+                        <img
+                          src={testimonial.image}
+                          alt={testimonial.name}
+                          className='w-full h-full object-cover'
+                        />
+                      </div>
+                      <h3 className='font-semibold text-xl text-gray-900 mb-2'>
+                        <EditableField
+                          testimonial={testimonial}
+                          index={index}
+                          field='name'
+                        />
+                      </h3>
+                      <div className='flex justify-center mb-2'>
+                        {renderStars(testimonial.rating)}
+                      </div>
+                    </div>
+
+                    <div className='mb-6'>
+                      <EditableField
+                        testimonial={testimonial}
+                        index={index}
+                        field='quote'
+                        multiline={true}
+                      />
+                    </div>
+
+                    <div className='border-t pt-6'>
+                      <p className='text-gray-600'>
+                        <EditableField
+                          testimonial={testimonial}
+                          index={index}
+                          field='role'
+                        />
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Controls */}
+        <div className='flex justify-center items-center mt-8 space-x-4'>
+          {/* Add Button */}
+          {isEditing && (
+            <button
+              onClick={addTestimonial}
+              className='flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200'
+            >
+              <Plus size={16} />
+              Add Testimonial
+            </button>
+          )}
+
+          {/* Pagination Dots */}
+          {testimonials.length > 0 && (
+            <div className='flex space-x-2'>
+              {testimonials.map((_, index) => (
+                <button
+                  key={index}
+                  onClick={() => setCurrent(index)}
+                  className={`w-3 h-3 rounded-full transition-colors duration-200 ${
+                    index === current
+                      ? "bg-blue-600"
+                      : "bg-gray-300 hover:bg-gray-400"
+                  }`}
+                  aria-label={`Go to testimonial ${index + 1}`}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Instructions for Edit Mode */}
+        {isEditing && (
+          <div className='mt-8 p-4 bg-blue-50 rounded-lg border border-blue-200'>
+            <p className='text-sm text-blue-800 mb-2'>
+              <strong>Edit Mode Active:</strong> You can now:
+            </p>
+            <ul className='text-sm text-blue-800 space-y-1'>
+              <li>
+                • <strong>Edit existing content:</strong> Hover over any text
+                and click the edit icon
+              </li>
+              <li>
+                • <strong>Add new testimonials:</strong> Click the green "Add
+                Testimonial" button
+              </li>
+              <li>
+                • <strong>Delete testimonials:</strong> Click the red trash icon
+                on any testimonial
+              </li>
+              <li>
+                • <strong>Add/Edit stats:</strong> Edit the statistics section
+                below the headline
+              </li>
+              <li>
+                • <strong>Navigate:</strong> Use the dots below to switch
+                between testimonials while editing
+              </li>
+            </ul>
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}

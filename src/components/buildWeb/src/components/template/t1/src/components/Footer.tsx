@@ -10,7 +10,9 @@ import {
 } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
+import { motion } from "motion/react";
 
+import logo from "../public/images/logos/logo.svg";
 export default function Footer() {
   return (
     <footer className='bg-gray-900 border-t border-gray-800'>
@@ -20,7 +22,33 @@ export default function Footer() {
           {/* Brand Section */}
           <div className='col-span-1 md:col-span-2 lg:col-span-1'>
             <div className='flex items-center justify-center md:justify-start space-x-3 mb-4'>
-              <span className='text-xl font-bold text-red-500'>
+              <span className='flex flex-row gap-2 text-xl font-bold text-red-500'>
+                <motion.img
+                  src={logo}
+                  alt='Logo'
+                  className='h-6 w-6 sm:h-10 sm:w-10 object-contain'
+                  // Entrance animation
+                  initial={{ opacity: 0, scale: 0.5, y: -20 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  transition={{ duration: 0.8, type: "spring", stiffness: 120 }}
+                  // Floating effect (infinite)
+                  whileInView={{
+                    y: [0, -4, 0],
+                    transition: {
+                      duration: 2,
+                      repeat: Infinity,
+                      ease: "easeInOut",
+                    },
+                  }}
+                  // Interactive hover & tap
+                  whileHover={{
+                    rotate: [0, -5, 5, -5, 0],
+                    scale: 1.2,
+                    boxShadow: "0px 0px 15px rgba(255, 215, 0, 0.6)", // gold glow
+                    transition: { duration: 0.5 },
+                  }}
+                  whileTap={{ scale: 0.9 }}
+                />
                 Innovative Labs
               </span>
             </div>
@@ -40,7 +68,7 @@ export default function Footer() {
                 />
                 <Button
                   size='sm'
-                  className='bg-blue-600 hover:bg-blue-700 h-10 px-4 whitespace-nowrap'
+                  className='bg-[#ffeb3b] hover:bg-[#ffeb3b] h-10 px-4 whitespace-nowrap'
                 >
                   Subscribe
                   <ArrowRight className='w-4 h-4 ml-2' />

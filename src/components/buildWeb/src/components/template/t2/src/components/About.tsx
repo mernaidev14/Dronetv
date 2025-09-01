@@ -1,6 +1,14 @@
 import { useState } from "react";
 import { motion } from "motion/react";
-import { CheckCircle, Eye, Target, Rocket, Globe, Users, Heart } from "lucide-react";
+import {
+  CheckCircle,
+  Eye,
+  Target,
+  Rocket,
+  Globe,
+  Users,
+  Heart,
+} from "lucide-react";
 
 export default function About() {
   const [isEditing, setIsEditing] = useState(false);
@@ -92,29 +100,37 @@ export default function About() {
   };
 
   return (
-    <section id="about" className="py-20 bg-secondary theme-transition">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <section id='about' className='py-20 bg-secondary theme-transition'>
+      <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'>
         {/* Main About Section */}
-        <div className="grid lg:grid-cols-2 gap-12 items-center mb-20">
+        <div className='grid lg:grid-cols-2 gap-12 items-center mb-20'>
           {/* Image */}
           <motion.div
-            className="relative rounded-2xl overflow-hidden shadow-xl"
+            className='relative rounded-2xl overflow-hidden shadow-xl'
             initial={{ opacity: 0, x: -50 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.8 }}
           >
-            <img src={imageUrl} alt="About" className="w-full h-[400px] object-cover" />
+            <img
+              src={imageUrl}
+              alt='About'
+              className='w-full h-[400px] object-cover'
+            />
             {isEditing && (
-              <div className="absolute bottom-4 left-4 bg-white/80 p-2 rounded shadow">
-                <input type="file" accept="image/*" onChange={handleImageUpload} />
+              <div className='absolute bottom-4 left-4 bg-white/80 p-2 rounded shadow'>
+                <input
+                  type='file'
+                  accept='image/*'
+                  onChange={handleImageUpload}
+                />
               </div>
             )}
           </motion.div>
 
           {/* Content */}
-          <div className="space-y-8">
+          <div className='space-y-8'>
             <motion.div
-              className="space-y-4"
+              className='space-y-4'
               initial={{ opacity: 0, x: 50 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.8, delay: 0.2 }}
@@ -123,36 +139,38 @@ export default function About() {
                 <input
                   value={aboutTitle}
                   onChange={(e) => setAboutTitle(e.target.value)}
-                  className="bg-transparent border-b border-primary text-3xl md:text-4xl text-foreground outline-none"
+                  className='bg-transparent border-b border-primary text-3xl md:text-4xl text-foreground outline-none'
                 />
               ) : (
-                <h2 className="text-3xl md:text-4xl text-foreground">{aboutTitle}</h2>
+                <h2 className='text-3xl md:text-4xl text-foreground'>
+                  {aboutTitle}
+                </h2>
               )}
               {isEditing ? (
                 <textarea
                   value={aboutDesc1}
                   onChange={(e) => setAboutDesc1(e.target.value)}
-                  className="w-full bg-transparent border-b border-muted-foreground text-lg text-muted-foreground outline-none"
+                  className='w-full bg-transparent border-b border-muted-foreground text-lg text-muted-foreground outline-none'
                 />
               ) : (
-                <p className="text-lg text-muted-foreground">{aboutDesc1}</p>
+                <p className='text-lg text-muted-foreground'>{aboutDesc1}</p>
               )}
               {isEditing ? (
                 <textarea
                   value={aboutDesc2}
                   onChange={(e) => setAboutDesc2(e.target.value)}
-                  className="w-full bg-transparent border-b border-muted-foreground text-muted-foreground outline-none"
+                  className='w-full bg-transparent border-b border-muted-foreground text-muted-foreground outline-none'
                 />
               ) : (
-                <p className="text-muted-foreground">{aboutDesc2}</p>
+                <p className='text-muted-foreground'>{aboutDesc2}</p>
               )}
             </motion.div>
 
             {/* Features list */}
-            <motion.div className="space-y-3">
+            <motion.div className='space-y-3'>
               {features.map((feature, index) => (
-                <div key={index} className="flex items-center space-x-3">
-                  <CheckCircle className="h-5 w-5 text-primary flex-shrink-0" />
+                <div key={index} className='flex items-center space-x-3'>
+                  <CheckCircle className='h-5 w-5 text-primary flex-shrink-0' />
                   {isEditing ? (
                     <input
                       value={feature}
@@ -161,17 +179,19 @@ export default function About() {
                           prev.map((f, i) => (i === index ? e.target.value : f))
                         )
                       }
-                      className="bg-transparent border-b border-muted-foreground text-muted-foreground outline-none"
+                      className='bg-transparent border-b border-muted-foreground text-muted-foreground outline-none'
                     />
                   ) : (
-                    <span className="text-muted-foreground">{feature}</span>
+                    <span className='text-muted-foreground'>{feature}</span>
                   )}
                 </div>
               ))}
               {isEditing && (
                 <button
-                  onClick={() => setFeatures((prev) => [...prev, "New Feature"])}
-                  className="text-green-600 text-sm mt-2"
+                  onClick={() =>
+                    setFeatures((prev) => [...prev, "New Feature"])
+                  }
+                  className='text-green-600 text-sm mt-2'
                 >
                   + Add Feature
                 </button>
@@ -179,45 +199,49 @@ export default function About() {
             </motion.div>
 
             {/* Company metrics */}
-            <motion.div className="grid grid-cols-2 gap-6 pt-6">
-              <div className="text-center p-4 bg-card rounded-lg shadow-sm">
+            <motion.div className='grid grid-cols-2 gap-6 pt-6'>
+              <div className='text-center p-4 bg-card rounded-lg shadow-sm'>
                 {isEditing ? (
                   <input
                     value={metric1Num}
                     onChange={(e) => setMetric1Num(e.target.value)}
-                    className="bg-transparent border-b border-foreground text-2xl font-bold outline-none"
+                    className='bg-transparent border-b border-foreground text-2xl font-bold outline-none'
                   />
                 ) : (
-                  <div className="text-2xl font-bold text-card-foreground">{metric1Num}</div>
+                  <div className='text-2xl font-bold text-card-foreground'>
+                    {metric1Num}
+                  </div>
                 )}
                 {isEditing ? (
                   <input
                     value={metric1Label}
                     onChange={(e) => setMetric1Label(e.target.value)}
-                    className="bg-transparent border-b border-muted-foreground text-muted-foreground outline-none"
+                    className='bg-transparent border-b border-muted-foreground text-muted-foreground outline-none'
                   />
                 ) : (
-                  <div className="text-muted-foreground">{metric1Label}</div>
+                  <div className='text-muted-foreground'>{metric1Label}</div>
                 )}
               </div>
-              <div className="text-center p-4 bg-card rounded-lg shadow-sm">
+              <div className='text-center p-4 bg-card rounded-lg shadow-sm'>
                 {isEditing ? (
                   <input
                     value={metric2Num}
                     onChange={(e) => setMetric2Num(e.target.value)}
-                    className="bg-transparent border-b border-foreground text-2xl font-bold outline-none"
+                    className='bg-transparent border-b border-foreground text-2xl font-bold outline-none'
                   />
                 ) : (
-                  <div className="text-2xl font-bold text-card-foreground">{metric2Num}</div>
+                  <div className='text-2xl font-bold text-card-foreground'>
+                    {metric2Num}
+                  </div>
                 )}
                 {isEditing ? (
                   <input
                     value={metric2Label}
                     onChange={(e) => setMetric2Label(e.target.value)}
-                    className="bg-transparent border-b border-muted-foreground text-muted-foreground outline-none"
+                    className='bg-transparent border-b border-muted-foreground text-muted-foreground outline-none'
                   />
                 ) : (
-                  <div className="text-muted-foreground">{metric2Label}</div>
+                  <div className='text-muted-foreground'>{metric2Label}</div>
                 )}
               </div>
             </motion.div>
@@ -225,17 +249,17 @@ export default function About() {
         </div>
 
         {/* Vision Section */}
-        <motion.div className="text-center mb-16">
+        <motion.div className='text-center mb-16'>
           {isEditing ? (
             <input
               value={visionBadge}
               onChange={(e) => setVisionBadge(e.target.value)}
-              className="bg-transparent border-b border-primary text-primary outline-none"
+              className='bg-transparent border-b border-primary text-primary outline-none'
             />
           ) : (
-            <div className="inline-flex items-center px-4 py-2 bg-primary/10 rounded-full text-primary mb-6">
-              <Eye className="w-4 h-4 mr-2" />
-              <span className="font-medium">{visionBadge}</span>
+            <div className='inline-flex items-center px-4 py-2 bg-primary/10 rounded-full text-primary mb-6'>
+              <Eye className='w-4 h-4 mr-2' />
+              <span className='font-medium'>{visionBadge}</span>
             </div>
           )}
 
@@ -243,53 +267,61 @@ export default function About() {
             <input
               value={visionTitle}
               onChange={(e) => setVisionTitle(e.target.value)}
-              className="bg-transparent border-b border-foreground text-3xl md:text-4xl outline-none"
+              className='bg-transparent border-b border-foreground text-3xl md:text-4xl outline-none'
             />
           ) : (
-            <h2 className="text-3xl md:text-4xl text-foreground mb-6">{visionTitle}</h2>
+            <h2 className='text-3xl md:text-4xl text-foreground mb-6'>
+              {visionTitle}
+            </h2>
           )}
 
           {isEditing ? (
             <textarea
               value={visionDesc}
               onChange={(e) => setVisionDesc(e.target.value)}
-              className="w-full bg-transparent border-b border-muted-foreground text-lg text-muted-foreground outline-none"
+              className='w-full bg-transparent border-b border-muted-foreground text-lg text-muted-foreground outline-none'
             />
           ) : (
-            <p className="text-lg text-muted-foreground max-w-3xl mx-auto mb-12">
+            <p className='text-lg text-muted-foreground max-w-3xl mx-auto mb-12'>
               {visionDesc}
             </p>
           )}
 
           {/* Vision Pillars */}
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className='grid md:grid-cols-2 lg:grid-cols-4 gap-8'>
             {visionPillars.map((pillar, index) => {
               const Icon = pillar.icon;
               return (
                 <div
                   key={index}
-                  className="text-center p-6 bg-card rounded-xl shadow-sm hover:shadow-lg"
+                  className='text-center p-6 bg-card rounded-xl shadow-sm hover:shadow-lg'
                 >
-                  <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center mx-auto mb-4">
-                    <Icon className="h-6 w-6 text-primary" />
+                  <div className='w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center mx-auto mb-4'>
+                    <Icon className='h-6 w-6 text-primary' />
                   </div>
                   {isEditing ? (
                     <input
                       value={pillar.title}
-                      onChange={(e) => updatePillar(index, "title", e.target.value)}
-                      className="bg-transparent border-b border-foreground font-semibold outline-none"
+                      onChange={(e) =>
+                        updatePillar(index, "title", e.target.value)
+                      }
+                      className='bg-transparent border-b border-foreground font-semibold outline-none'
                     />
                   ) : (
-                    <h3 className="font-semibold text-card-foreground mb-3">{pillar.title}</h3>
+                    <h3 className='font-semibold text-card-foreground mb-3'>
+                      {pillar.title}
+                    </h3>
                   )}
                   {isEditing ? (
                     <textarea
                       value={pillar.description}
-                      onChange={(e) => updatePillar(index, "description", e.target.value)}
-                      className="w-full bg-transparent border-b border-muted-foreground text-sm text-muted-foreground outline-none"
+                      onChange={(e) =>
+                        updatePillar(index, "description", e.target.value)
+                      }
+                      className='w-full bg-transparent border-b border-muted-foreground text-sm text-muted-foreground outline-none'
                     />
                   ) : (
-                    <p className="text-muted-foreground text-sm leading-relaxed">
+                    <p className='text-muted-foreground text-sm leading-relaxed'>
                       {pillar.description}
                     </p>
                   )}
@@ -300,31 +332,31 @@ export default function About() {
         </motion.div>
 
         {/* Mission Section */}
-        <motion.div className="bg-gradient-to-r from-primary/5 to-red-accent/5 rounded-2xl p-12 text-center">
-          <Target className="w-12 h-12 text-primary mx-auto mb-6" />
+        <motion.div className='bg-gradient-to-r from-primary/5 to-red-accent/5 rounded-2xl p-12 text-center'>
+          <Target className='w-12 h-12 text-primary mx-auto mb-6' />
           {isEditing ? (
             <input
               value={missionTitle}
               onChange={(e) => setMissionTitle(e.target.value)}
-              className="bg-transparent border-b border-foreground text-2xl font-semibold outline-none"
+              className='bg-transparent border-b border-foreground text-2xl font-semibold outline-none'
             />
           ) : (
-            <h3 className="text-2xl font-semibold text-foreground mb-6">{missionTitle}</h3>
+            <h3 className='text-2xl font-semibold text-foreground mb-6'>
+              {missionTitle}
+            </h3>
           )}
           {isEditing ? (
             <textarea
               value={missionDesc}
               onChange={(e) => setMissionDesc(e.target.value)}
-              className="w-full bg-transparent border-b border-muted-foreground text-lg text-muted-foreground outline-none"
+              className='w-full bg-transparent border-b border-muted-foreground text-lg text-muted-foreground outline-none'
             />
           ) : (
-            <p className="text-muted-foreground text-lg max-w-3xl mx-auto leading-relaxed">
+            <p className='text-muted-foreground text-lg max-w-3xl mx-auto leading-relaxed'>
               {missionDesc}
             </p>
           )}
         </motion.div>
-
-       
       </div>
     </section>
   );

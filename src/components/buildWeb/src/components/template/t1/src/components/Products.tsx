@@ -1,9 +1,7 @@
-import { useState, useEffect, useRef, useMemo, useCallback } from "react";
-import { motion, useMotionValue } from "framer-motion";
+import { useState, useEffect } from "react";
+import { motion, useMotionValue } from "motion/react";
 import { Card, CardContent } from "../components/ui/card";
 import { Badge } from "../components/ui/badge";
-import { Edit2, Save, X, Upload, Loader2, Plus, Trash2 } from "lucide-react";
-import { Button } from "../components/ui/button";
 import Product1 from "../public/images/Product/Product1.jpg";
 import Product2 from "../public/images/Product/Product2.jpg";
 import Product3 from "../public/images/Product/Product3.jpg";
@@ -12,455 +10,202 @@ import Product5 from "../public/images/Product/Product2.jpg";
 import Product6 from "../public/images/Product/Product3.jpg";
 import Product7 from "../public/images/Product/Product3.jpg";
 
-export default function EditableProducts() {
-  const [isEditing, setIsEditing] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-  const [dataLoaded, setDataLoaded] = useState(false);
-  const [isVisible, setIsVisible] = useState(false);
+const allProducts = [
+  {
+    image: Product1,
+    title: "Innovation Platform",
+    description: "Comprehensive platform for managing workflows",
+    category: "Platform",
+  },
+  {
+    image: Product2,
+    title: "Analytics Suite",
+    description: "Advanced analytics tools for data-driven decisions",
+    category: "Analytics",
+  },
+  {
+    image: Product3,
+    title: "Collaboration Hub",
+    description: "Seamless collaboration tools for modern teams",
+    category: "Collaboration",
+  },
+  {
+    image: Product3,
+    title: "Workflow Engine",
+    description: "Automated workflow management",
+    category: "Automation",
+  },
+  {
+    image: Product4,
+    title: "Innovation Platform",
+    description: "Comprehensive platform for managing workflows",
+    category: "Platform",
+  },
+  {
+    image: Product5,
+    title: "Analytics Suite",
+    description: "Advanced analytics tools for data-driven decisions",
+    category: "Analytics",
+  },
+  {
+    image: Product6,
+    title: "Collaboration Hub",
+    description: "Seamless collaboration tools for modern teams",
+    category: "Collaboration",
+  },
+  {
+    image: Product7,
+    title: "Workflow Engine",
+    description: "Automated workflow management",
+    category: "Automation",
+  },
+];
+
+const categories = [
+  "All",
+  "Platform",
+  "Analytics",
+  "Collaboration",
+  "Automation",
+];
+
+export default function Products() {
   const [selected, setSelected] = useState("All");
   const [showAll, setShowAll] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
-  const sectionRef = useRef(null);
-  const fileInputRefs = useRef({});
 
-  const defaultProducts = [
-    {
-      id: 1,
-      image: Product1,
-      title: "Innovation Platform",
-      description: "Comprehensive platform for managing workflows",
-      category: "Platform",
-    },
-    {
-      id: 2,
-      image: Product2,
-      title: "Analytics Suite",
-      description: "Advanced analytics tools for data-driven decisions",
-      category: "Analytics",
-    },
-    {
-      id: 3,
-      image: Product3,
-      title: "Collaboration Hub",
-      description: "Seamless collaboration tools for modern teams",
-      category: "Collaboration",
-    },
-    {
-      id: 4,
-      image: Product3,
-      title: "Workflow Engine",
-      description: "Automated workflow management",
-      category: "Automation",
-    },
-    {
-      id: 5,
-      image: Product4,
-      title: "Innovation Platform",
-      description: "Comprehensive platform for managing workflows",
-      category: "Platform",
-    },
-    {
-      id: 6,
-      image: Product5,
-      title: "Analytics Suite",
-      description: "Advanced analytics tools for data-driven decisions",
-      category: "Analytics",
-    },
-    {
-      id: 7,
-      image: Product6,
-      title: "Collaboration Hub",
-      description: "Seamless collaboration tools for modern teams",
-      category: "Collaboration",
-    },
-    {
-      id: 8,
-      image: Product7,
-      title: "Workflow Engine",
-      description: "Automated workflow management",
-      category: "Automation",
-    },
-  ];
-
-  const defaultCategories = [
-    "All",
-    "Platform",
-    "Analytics",
-    "Collaboration",
-    "Automation",
-  ];
-
-  const defaultContent = {
-    sectionTitle: "Products",
-    sectionDescription: "Discover our suite of innovative products.",
-    loadMoreButtonText: "Load More",
-    products: defaultProducts,
-    categories: defaultCategories,
-  };
-
-  const [content, setContent] = useState(defaultContent);
-  const [tempContent, setTempContent] = useState(defaultContent);
-
-  const x = useMotionValue(0);
-  const speed = 0.5;
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => setIsVisible(entry.isIntersecting),
-      { threshold: 0.1 }
-    );
-    if (sectionRef.current) observer.observe(sectionRef.current);
-    return () => sectionRef.current && observer.unobserve(sectionRef.current);
-  }, []);
-
-  const fetchProductsData = async () => {
-    setIsLoading(true);
-    try {
-      const response = await new Promise((resolve) => {
-        setTimeout(() => resolve(defaultContent), 1400);
-      });
-      setContent(response);
-      setTempContent(response);
-      setDataLoaded(true);
-    } catch (error) {
-      console.error("Error fetching products data:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const saveProductsData = async (updatedContent) => {
-    setIsSaving(true);
-    try {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      return true;
-    } catch (error) {
-      console.error("Error saving products data:", error);
-      return false;
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  useEffect(() => {
-    if (isVisible && !dataLoaded && !isLoading) fetchProductsData();
-  }, [isVisible, dataLoaded, isLoading]);
-
-  const displayContent = isEditing ? tempContent : content;
   const filtered =
     selected === "All"
-      ? displayContent.products
-      : displayContent.products.filter((p) => p.category === selected);
+      ? allProducts
+      : allProducts.filter((p) => p.category === selected);
+
   const duplicated = showAll ? filtered : [...filtered, ...filtered];
 
+  const x = useMotionValue(0); // horizontal position
+  const speed = 0.5; // pixels per frame
+
   useEffect(() => {
-    if (showAll || isEditing) return;
+    if (showAll) return; // stop animation if showing all in grid
     let animationFrame;
+
     const animate = () => {
       if (!isHovered) {
         x.set(x.get() - speed);
+        // Reset to 0 if fully scrolled (duplicate loop)
         if (Math.abs(x.get()) >= (duplicated.length / 2) * 320) x.set(0);
       }
       animationFrame = requestAnimationFrame(animate);
     };
+
     animate();
     return () => cancelAnimationFrame(animationFrame);
-  }, [isHovered, x, duplicated.length, showAll, isEditing]);
-
-  const handleEdit = () => {
-    setIsEditing(true);
-    setTempContent(content);
-  };
-  const handleSave = async () => {
-    const success = await saveProductsData(tempContent);
-    if (success) {
-      setContent(tempContent);
-      setIsEditing(false);
-    } else {
-      alert("Failed to save changes. Please try again.");
-    }
-  };
-  const handleCancel = () => {
-    setTempContent(content);
-    setIsEditing(false);
-  };
-
-  const handleImageUpload = (productId, event) => {
-    const file = event.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setTempContent((prev) => ({
-          ...prev,
-          products: prev.products.map((product) =>
-            product.id === productId
-              ? { ...product, image: e.target.result }
-              : product
-          ),
-        }));
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const addProduct = () => {
-    const newId = Math.max(...tempContent.products.map((p) => p.id)) + 1;
-    setTempContent((prev) => ({
-      ...prev,
-      products: [
-        ...prev.products,
-        {
-          id: newId,
-          title: "New Product",
-          description: "Product description",
-          category: "Platform",
-          image: Product1,
-        },
-      ],
-    }));
-  };
-
-  const removeProduct = (productId) => {
-    setTempContent((prev) => ({
-      ...prev,
-      products: prev.products.filter((product) => product.id !== productId),
-    }));
-  };
-
-  // ✅ FIX for continuous typing
-  const updateProduct = useCallback((productId, field, value) => {
-    setTempContent((prev) => ({
-      ...prev,
-      products: prev.products.map((product) =>
-        product.id === productId ? { ...product, [field]: value } : product
-      ),
-    }));
-  }, []);
-
-  const addCategory = () => {
-    const newCategory = prompt("Enter new category name:");
-    if (newCategory && !tempContent.categories.includes(newCategory)) {
-      setTempContent((prev) => ({
-        ...prev,
-        categories: [...prev.categories, newCategory],
-      }));
-    }
-  };
-
-  const removeCategory = (categoryToRemove) => {
-    if (categoryToRemove === "All") return;
-    setTempContent((prev) => ({
-      ...prev,
-      categories: prev.categories.filter((cat) => cat !== categoryToRemove),
-      products: prev.products.map((product) =>
-        product.category === categoryToRemove
-          ? { ...product, category: "Platform" }
-          : product
-      ),
-    }));
-  };
-
-  // ✅ FIX: EditableText memoized
-  const EditableText = useMemo(
-    () =>
-      ({
-        value,
-        onChange,
-        multiline = false,
-        className = "",
-        placeholder = "",
-      }) => {
-        const baseClasses =
-          "w-full bg-white border-2 border-dashed border-blue-300 rounded focus:border-blue-500 focus:outline-none";
-        if (multiline) {
-          return (
-            <textarea
-              value={value}
-              onChange={(e) => onChange(e.target.value)}
-              className={`${baseClasses} p-2 resize-none ${className}`}
-              placeholder={placeholder}
-              rows={3}
-            />
-          );
-        }
-        return (
-          <input
-            type='text'
-            value={value}
-            onChange={(e) => onChange(e.target.value)}
-            className={`${baseClasses} p-2 ${className}`}
-            placeholder={placeholder}
-          />
-        );
-      },
-    []
-  );
+  }, [isHovered, x, duplicated.length, showAll]);
 
   return (
-    <section
-      ref={sectionRef}
-      className='max-w-7xl mx-auto py-20 bg-gray-50 relative overflow-hidden'
-    >
-      <div className=' container mx-auto px-4'>
-        <div className='flex justify-between items-center mb-8'>
-          {isEditing ? (
-            <EditableText
-              value={tempContent.sectionTitle}
-              onChange={(val) =>
-                setTempContent({ ...tempContent, sectionTitle: val })
-              }
-              className='text-4xl font-bold'
-            />
-          ) : (
-            <h2 className='text-4xl font-bold'>
-              {displayContent.sectionTitle}
-            </h2>
-          )}
-
-          <div className='flex gap-2'>
-            {!isEditing && (
-              <Button onClick={handleEdit} variant='outline'>
-                <Edit2 className='w-4 h-4 mr-2' /> Edit
-              </Button>
-            )}
-            {isEditing && (
-              <>
-                <Button onClick={handleSave} disabled={isSaving}>
-                  {isSaving ? (
-                    <Loader2 className='w-4 h-4 mr-2 animate-spin' />
-                  ) : (
-                    <Save className='w-4 h-4 mr-2' />
-                  )}
-                  Save
-                </Button>
-                <Button onClick={handleCancel} variant='outline'>
-                  <X className='w-4 h-4 mr-2' /> Cancel
-                </Button>
-              </>
-            )}
+    <section id='product' className='py-20 bg-gray-50 scroll-mt-20'>
+      <div className='max-w-7xl mx-auto px-6'>
+        {/* Heading */}
+        <div className='text-center mb-16'>
+          <h2 className='text-3xl font-bold text-gray-900'>Products</h2>
+          <p className='text-gray-600'>
+            Discover our suite of innovative products.
+          </p>
+          <div className='flex gap-4 justify-center mt-6 flex-wrap'>
+            {categories.map((c) => (
+              <button
+                key={c}
+                onClick={() => {
+                  setSelected(c);
+                  setShowAll(false);
+                }}
+                className={`px-6 py-2 rounded-full ${
+                  selected === c
+                    ? "bg-[#ffeb3b]"
+                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                }`}
+              >
+                {c}
+              </button>
+            ))}
           </div>
         </div>
 
-        {/* Categories */}
-        <div className='flex flex-wrap gap-2 mb-6'>
-          {displayContent.categories.map((cat) => (
-            <Badge
-              key={cat}
-              onClick={() => setSelected(cat)}
-              className={`cursor-pointer px-4 py-2 rounded-full ${
-                selected === cat ? "bg-blue-600 text-white" : "bg-gray-200"
-              }`}
-            >
-              {cat}
-              {isEditing && cat !== "All" && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    removeCategory(cat);
-                  }}
-                  className='ml-2 text-xs text-red-600'
+        {/* Products Display */}
+        {!showAll ? (
+          <div
+            className='overflow-x-hidden'
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
+          >
+            <motion.div className='flex gap-6' style={{ x }}>
+              {duplicated.map((p, i) => (
+                <Card
+                  key={i}
+                  className='group flex-none w-80 overflow-hidden border-0 shadow-lg hover:shadow-2xl transition-all duration-300 rounded-xl'
                 >
-                  ✕
-                </button>
-              )}
-            </Badge>
-          ))}
-          {isEditing && (
-            <Button onClick={addCategory} size='sm' variant='outline'>
-              <Plus className='w-4 h-4 mr-1' /> Add Category
-            </Button>
-          )}
-        </div>
-
-        {/* ✅ Horizontal scrolling product list */}
-        <motion.div
-          className='flex space-x-6'
-          style={{ x }}
-          onMouseEnter={() => setIsHovered(true)}
-          onMouseLeave={() => setIsHovered(false)}
-        >
-          {duplicated.map((product, index) => (
-            <Card
-              key={index}
-              className='min-w-[300px] shadow-md rounded-xl overflow-hidden'
-            >
-              <CardContent className='p-4'>
+                  <div className='relative'>
+                    <img
+                      src={p.image}
+                      alt={p.title}
+                      className='w-full h-48 object-cover group-hover:scale-105 transition-transform duration-500'
+                    />
+                    <Badge className='absolute top-4 left-4 bg-[#ffeb3b] text-gray-900'>
+                      {p.category}
+                    </Badge>
+                  </div>
+                  <CardContent className='p-6 bg-white'>
+                    <h3 className='text-xl font-semibold text-gray-900 mb-2'>
+                      {p.title}
+                    </h3>
+                    <p className='text-gray-600 mb-4'>{p.description}</p>
+                    <button className='text-red-500 font-medium hover:text-red-600'>
+                      Learn More →
+                    </button>
+                  </CardContent>
+                </Card>
+              ))}
+            </motion.div>
+          </div>
+        ) : (
+          <div className='grid md:grid-cols-3 lg:grid-cols-4 gap-8'>
+            {filtered.map((p, i) => (
+              <Card
+                key={i}
+                className='group overflow-hidden border-0 shadow-lg hover:shadow-2xl transition-all duration-300 rounded-xl'
+              >
                 <div className='relative'>
                   <img
-                    src={product.image}
-                    alt={product.title}
-                    className='w-full h-40 object-cover rounded'
+                    src={p.image}
+                    alt={p.title}
+                    className='w-full h-48 object-cover group-hover:scale-105 transition-transform duration-500'
                   />
-                  {isEditing && (
-                    <>
-                      <input
-                        type='file'
-                        accept='image/*'
-                        ref={(el) => (fileInputRefs.current[product.id] = el)}
-                        onChange={(e) => handleImageUpload(product.id, e)}
-                        className='hidden'
-                      />
-                      <Button
-                        size='sm'
-                        variant='outline'
-                        className='absolute top-2 right-2'
-                        onClick={() =>
-                          fileInputRefs.current[product.id]?.click()
-                        }
-                      >
-                        <Upload className='w-4 h-4' />
-                      </Button>
-                    </>
-                  )}
+                  <Badge className='absolute top-4 left-4 bg-[#ffeb3b] text-gray-900'>
+                    {p.category}
+                  </Badge>
                 </div>
+                <CardContent className='p-6 bg-white'>
+                  <h3 className='text-xl font-semibold text-gray-900 mb-2'>
+                    {p.title}
+                  </h3>
+                  <p className='text-gray-600 mb-4'>{p.description}</p>
+                  <button className='text-red-500 font-medium hover:text-red-600'>
+                    Learn More →
+                  </button>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
 
-                <div className='mt-4'>
-                  {isEditing ? (
-                    <EditableText
-                      value={product.title}
-                      onChange={(val) =>
-                        updateProduct(product.id, "title", val)
-                      }
-                      className='text-lg font-semibold'
-                    />
-                  ) : (
-                    <h3 className='text-lg font-semibold'>{product.title}</h3>
-                  )}
-
-                  {isEditing ? (
-                    <EditableText
-                      value={product.description}
-                      onChange={(val) =>
-                        updateProduct(product.id, "description", val)
-                      }
-                      multiline
-                      className='text-gray-600 mt-2'
-                    />
-                  ) : (
-                    <p className='text-gray-600 mt-2'>{product.description}</p>
-                  )}
-                </div>
-
-                {isEditing && (
-                  <Button
-                    onClick={() => removeProduct(product.id)}
-                    size='sm'
-                    variant='destructive'
-                    className='mt-3 w-full'
-                  >
-                    <Trash2 className='w-4 h-4 mr-1' /> Delete
-                  </Button>
-                )}
-              </CardContent>
-            </Card>
-          ))}
-        </motion.div>
-
-        {isEditing && (
-          <Button onClick={addProduct} size='sm' className='mt-6'>
-            <Plus className='w-4 h-4 mr-1' /> Add Product
-          </Button>
+        {!showAll && (
+          <div className='text-center mt-8'>
+            <button
+              onClick={() => setShowAll(true)}
+              className='px-6 py-2 bg-[#ffeb3b] rounded-full text-gray-900 font-medium hover:bg-yellow-400 transition'
+            >
+              Load More
+            </button>
+          </div>
         )}
       </div>
     </section>
