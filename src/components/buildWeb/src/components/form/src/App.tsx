@@ -150,7 +150,7 @@ function App() {
           
             setAIGenData(data);
             console.log("AIgen:", AIGenData);
-            navigate("/edit/template/t2");
+            navigate(`/edit/template/${draftDetails.templateSelection ===1?"t1":"t2"}`);
           
   
           
