@@ -33,6 +33,7 @@ import Template2 from './components/buildWeb/src/components/template/t2/src/main
 import Form from "./components/buildWeb/src/components/form/src/main";
 import EditTemp2 from "./components/buildWeb/src/components/template/t2/edit/src/main";
 import Templale1 from "./components/buildWeb/src/components/template/t1/src/main";
+import {AuthProvider} from "./components/context/context"
 const HomePage = () => (
   <>
     <Hero />
@@ -52,6 +53,7 @@ const AppContent = () => {
 
   return (
     <div className="min-h-screen">
+      <AuthProvider>
       <Navigation />
       <Routes>
         <Route path="/" element={<HomePage />} />
@@ -78,6 +80,7 @@ const AppContent = () => {
       </Routes>
       {!hideFooter && <Footer />}
       <ScrollingFooter />
+      </AuthProvider>
     </div>
   );
 };

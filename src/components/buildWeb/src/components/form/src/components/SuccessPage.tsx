@@ -1,5 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { useNavigate } from "react-router-dom";
 import { CheckCircle, Globe, Mail, Download, ExternalLink } from 'lucide-react';
+import { useAuth } from '../../../../../../context/context';
 
 interface SuccessPageProps {
   formData: any;
@@ -7,6 +9,40 @@ interface SuccessPageProps {
 
 export const SuccessPage: React.FC<SuccessPageProps> = ({ formData }) => {
   const websiteUrl = `https://${formData.companyName?.toLowerCase().replace(/\s+/g, '-')}.dronetv.com`;
+
+  const [isloading, setisloading]= useState(false);
+
+  const { draftDetails, setAIGenData, AIGenData } = useAuth();
+  const navigate = useNavigate(); // Use the useNavigate hook
+
+  const API = "https://3l8nvxqw1a.execute-api.ap-south-1.amazonaws.com/prod/api/draft";
+//  const Dummyapi = "https://3l8nvxqw1a.execute-api.ap-south-1.amazonaws.com/prod/api/draft/alok-12345/draft-alok-aerospace-2025-002?template=template-2";
+  async function handleClick() {
+    try {
+      const response = await fetch(`${API}/${draftDetails.userId}/${draftDetails.draftId}?template=template-${draftDetails.templateSelection}`);
+      // const response = await fetch(`${Dummyapi}`);
+      
+      const data = await response.json();
+      if (response.ok) {
+        
+        // console.log("data: ",data);
+        
+        setisloading(!isloading)
+        // Use navigate function instead of Navigate component
+        setTimeout(() => {
+          setAIGenData(data);
+          console.log("AIgen:", AIGenData);
+          navigate("/edit/template/t2");
+        }, 3000);
+
+        
+      } else {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+    } catch (error) {
+      console.error('Error fetching data:', error);
+    }
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 flex items-center justify-center p-6">
@@ -50,11 +86,16 @@ export const SuccessPage: React.FC<SuccessPageProps> = ({ formData }) => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <button className="flex items-center justify-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+            <button className="flex items-center justify-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            onClick={handleClick}
+            >
               <Globe className="w-5 h-5 mr-2" />
-              View Website
+              {isloading?"loading...":"View Website"}
+              
             </button>
-            <button className="flex items-center justify-center px-6 py-3 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300 transition-colors">
+            <button className="flex items-center justify-center px-6 py-3 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300 transition-colors"
+            
+            >
               <Download className="w-5 h-5 mr-2" />
               Download Assets
             </button>

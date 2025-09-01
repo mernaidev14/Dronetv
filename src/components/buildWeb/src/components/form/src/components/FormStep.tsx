@@ -147,7 +147,7 @@ export const FormStep: React.FC<FormStepProps> = ({
           <button
             onClick={onNext}
             disabled={!isValid}
-            className={`flex items-center px-6 py-2 rounded-md font-medium transition-all ${
+            className={`flex items-center px-6 py-2 rounded-md bg-black font-medium transition-all ${
               !isValid
                 ? 'bg-yellow-100 text-gray-400 cursor-not-allowed'
                 : isLastStep
@@ -156,7 +156,7 @@ export const FormStep: React.FC<FormStepProps> = ({
             }`}
           >
             {isLastStep ? 'Submit Form' : 'Next Step'}
-            {!isLastStep && <ChevronRight className="w-4 h-4 ml-1" />}
+            {!isLastStep && <ChevronRight className="w-4  h-4 ml-1" />}
           </button>
         </div>
       </div>

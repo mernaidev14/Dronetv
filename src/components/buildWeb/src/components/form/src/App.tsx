@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { FormData } from "./types/form";
-import { useLocation } from "react-router-dom";
+import { useLocation,useNavigate } from "react-router-dom";
 import Step1CompanyCategory from "./components/steps/Step1CompanyCategory";
 import Step3SectorsServed from "./components/steps/Step3SectorsServed";
 import Step4BusinessCategories from "./components/steps/Step4BusinessCategories";
@@ -8,6 +8,7 @@ import Step5ProductsServices from "./components/steps/Step5ProductsServices";
 import Step7PromotionBilling from "./components/steps/Step7PromotionBilling";
 import Step8MediaUploads from "./components/steps/Step8MediaUploads";
 import { AIGenerationLoader } from "./components/AIGenerationLoader";
+import {useAuth} from "../../../../../context/context"
 import { SuccessPage } from "./components/SuccessPage";
 
 // ---- initial form state ----
@@ -129,6 +130,38 @@ const initialFormData: FormData = {
 function App() {
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState<FormData>(initialFormData);
+  const { draftDetails, setAIGenData, AIGenData } = useAuth();
+    
+  const navigate = useNavigate(); // Use the useNavigate hook
+  
+    const API = "https://3l8nvxqw1a.execute-api.ap-south-1.amazonaws.com/prod/api/draft";
+  //  const Dummyapi = "https://3l8nvxqw1a.execute-api.ap-south-1.amazonaws.com/prod/api/draft/alok-12345/draft-alok-aerospace-2025-002?template=template-2";
+    async function handleClick() {
+      try {
+        const response = await fetch(`${API}/${draftDetails.userId}/${draftDetails.draftId}?template=template-${draftDetails.templateSelection}`);
+        // const response = await fetch(`${Dummyapi}`);
+        
+        const data = await response.json();
+        if (response.ok) {
+          
+          // console.log("data: ",data);
+          
+          // Use navigate function instead of Navigate component
+          
+            setAIGenData(data);
+            console.log("AIgen:", AIGenData);
+            navigate("/edit/template/t2");
+          
+  
+          
+        } else {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      }
+    }
+  
 
   // Get templateId from navigation state
   const location = useLocation();
@@ -213,7 +246,10 @@ function App() {
   }
 
   if (isComplete) {
-    return <SuccessPage formData={formData} />;
+    return (setTimeout(() => {
+       handleClick()
+    }, 3000)
+    );
   }
 
   return <div>{renderStep()}</div>;

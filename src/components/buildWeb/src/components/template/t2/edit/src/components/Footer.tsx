@@ -171,7 +171,23 @@ export default function Footer() {
       viewport={{ once: true }}
       transition={{ duration: 0.8 }}
     >
+        {/* Edit/Save Buttons */}
+        <div className="flex justify-end mr-[10rem]">
+         {isEditing ? (
+            <motion.button 
+            whileTap={{scale:0.9}}
+            whileHover={{y:-1,scaleX:1.1}}
+            onClick={() => setIsEditing(false)} className="bg-green-600 cursor-pointer hover:font-semibold hover:shadow-2xl shadow-xl text-white px-4 py-2 rounded">Save</motion.button>
+          ) : (
+            <motion.button 
+            whileTap={{scale:0.9}}
+            whileHover={{y:-1,scaleX:1.1}}
+            onClick={() => setIsEditing(true)} className="bg-yellow-500 text-black px-4 py-2 rounded cursor-pointer  hover:shadow-2xl shadow-xl hover:font-semibold">Edit</motion.button>
+          )}
+        </div>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
+         
         {/* Main footer content */}
         <motion.div 
           className="py-16"
@@ -180,6 +196,8 @@ export default function Footer() {
           whileInView="visible"
           viewport={{ once: true }}
         >
+
+          
           <div className="grid lg:grid-cols-5 gap-8">
             {/* Company info */}
             <motion.div 
@@ -319,7 +337,7 @@ export default function Footer() {
                   );
                 })}
                 {isEditing && (
-                  <Button onClick={addSocialLink} className="text-green-600 mb-2">
+                  <Button onClick={addSocialLink} className="text-green-600 hover:scale-105 cursor-pointer mb-2">
                     + Add
                   </Button>
                 )}
@@ -393,11 +411,14 @@ export default function Footer() {
                     </motion.li>
                   ))}
                   {isEditing && (
-                    <li>
+                    <motion.li
+                    whileHover={{scale:1.1}}
+                    whileTap={{scale:0.9}}
+                    >
                       <Button onClick={() => addFooterLink(category)} className="text-green-600">
                         + Add Link
                       </Button>
-                    </li>
+                    </motion.li>
                   )}
                 </ul>
               </motion.div>
@@ -531,24 +552,7 @@ export default function Footer() {
           </div>
         </motion.div>
 
-        {/* Edit/Save Button */}
-        <div className="flex justify-end mt-6 pb-6">
-          {isEditing ? (
-            <Button
-              onClick={() => setIsEditing(false)}
-              className="bg-green-600 text-white"
-            >
-              Save
-            </Button>
-          ) : (
-            <Button
-              onClick={() => setIsEditing(true)}
-              className="bg-yellow-500 text-black"
-            >
-              Edit
-            </Button>
-          )}
-        </div>
+      
       </div>
     </motion.footer>
   );

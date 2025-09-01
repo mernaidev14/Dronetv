@@ -3,86 +3,69 @@ import { Card, CardContent } from "./ui/card";
 import { Star } from "lucide-react";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 import { motion } from "motion/react";
-
 import { Button } from "./ui/button";
 
-
-export default function Testimonials() {
+export default function Testimonials({testimonialsData}) {
   const [isEditing, setIsEditing] = useState(false);
-  const [testimonials, setTestimonials] = useState([
-    {
-      name: "Sarah Johnson",
-      role: "CEO, TechStart Inc.",
-      image:
-        "https://images.unsplash.com/photo-1613473350016-1fe047d6d360?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx3b21hbiUyMGV4ZWN1dGl2ZSUyMHBvcnRyYWl0fGVufDF8fHx8MTc1NTYxODQxNHww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
-      quote:
-        "Working with this company has been a game-changer for our business. Their expertise and dedication to our success is unmatched.",
-      rating: 5,
-    },
-    {
-      name: "Michael Chen",
-      role: "Founder, Innovation Labs",
-      image:
-        "https://images.unsplash.com/photo-1584940120505-117038d90b05?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwcm9mZXNzaW9uYWwlMjBidXNpbmVzcyUyMHBlcnNvbiUyMHBvcnRyYWl0fGVufDF8fHx8MTc1NTU1MzI2OHww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
-      quote:
-        "The results speak for themselves. We've seen a 300% increase in efficiency since implementing their solutions.",
-      rating: 5,
-    },
-    {
-      name: "David Rodriguez",
-      role: "Director, Global Enterprises",
-      image:
-        "https://images.unsplash.com/photo-1629507208649-70919ca33793?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxidXNpbmVzcyUyMG1hbiUyMHN1aXQlMjBwb3J0cmFpdHxlbnwxfHx8fDE3NTU1ODYzOTB8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
-      quote:
-        "Professional, reliable, and results-driven. They've helped us scale our operations beyond what we thought possible.",
-      rating: 5,
-    },
-  ]);
-  const [stats, setStats] = useState([
-    { value: "4.9/5", label: "Average Rating" },
-    { value: "500+", label: "Happy Clients" },
-    { value: "1000+", label: "Projects Delivered" },
-    { value: "99%", label: "Client Retention" },
-  ]);
-
-  const [headline, setHeadline] = useState({
-    title: "What Our Clients Say",
-    description: "Don't just take our word for it. Here's what our satisfied clients have to say about working with us.",
-  });
+  
+  // Merged all state into a single object
+  const [testimonialsSection, setTestimonialsSection] = useState(testimonialsData);
 
   // Handlers for testimonials
   const updateTestimonial = (idx, field, value) => {
-    setTestimonials((prev) =>
-      prev.map((t, i) => (i === idx ? { ...t, [field]: value } : t))
-    );
-  };
-  const removeTestimonial = (idx) => {
-    setTestimonials((prev) => prev.filter((_, i) => i !== idx));
-  };
-  const addTestimonial = () => {
-    setTestimonials((prev) => [
+    setTestimonialsSection(prev => ({
       ...prev,
-      {
-        name: "New Client",
-        role: "Role, Company",
-        image: "",
-        quote: "New testimonial...",
-        rating: 5,
-      },
-    ]);
+      testimonials: prev.testimonials.map((t, i) => 
+        i === idx ? { ...t, [field]: value } : t
+      )
+    }));
+  };
+  
+  const removeTestimonial = (idx) => {
+    setTestimonialsSection(prev => ({
+      ...prev,
+      testimonials: prev.testimonials.filter((_, i) => i !== idx)
+    }));
+  };
+  
+  const addTestimonial = () => {
+    setTestimonialsSection(prev => ({
+      ...prev,
+      testimonials: [
+        ...prev.testimonials,
+        {
+          name: "New Client",
+          role: "Role, Company",
+          image: "",
+          quote: "New testimonial...",
+          rating: 5,
+        },
+      ]
+    }));
   };
 
   // Handlers for stats
   const updateStat = (idx, field, value) => {
-    setStats((prev) =>
-      prev.map((s, i) => (i === idx ? { ...s, [field]: value } : s))
-    );
+    setTestimonialsSection(prev => ({
+      ...prev,
+      stats: prev.stats.map((s, i) => 
+        i === idx ? { ...s, [field]: value } : s
+      )
+    }));
   };
+  
   const removeStat = (idx) => {
-    setStats((prev) => prev.filter((_, i) => i !== idx));
+    setTestimonialsSection(prev => ({
+      ...prev,
+      stats: prev.stats.filter((_, i) => i !== idx)
+    }));
   };
+  
   const addStat = () => {
-    setStats((prev) => [...prev, { value: "New", label: "New Stat" }]);
+    setTestimonialsSection(prev => ({
+      ...prev,
+      stats: [...prev.stats, { value: "New", label: "New Stat" }]
+    }));
   };
 
   const containerVariants = {
@@ -117,6 +100,22 @@ export default function Testimonials() {
       transition={{ duration: 0.8 }}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
+         {/* Edit/Save Buttons */}
+        <div className="flex justify-end mt-6">
+         {isEditing ? (
+            <motion.button 
+            whileTap={{scale:0.9}}
+            whileHover={{y:-1,scaleX:1.1}}
+            onClick={() => setIsEditing(false)} className="bg-green-600 cursor-pointer hover:font-semibold hover:shadow-2xl shadow-xl text-white px-4 py-2 rounded">Save</motion.button>
+          ) : (
+            <motion.button 
+            whileTap={{scale:0.9}} 
+            whileHover={{y:-1,scaleX:1.1}}
+            onClick={() => setIsEditing(true)} className="bg-yellow-500 text-black px-4 py-2 rounded cursor-pointer  hover:shadow-2xl shadow-xl hover:font-semibold">Edit</motion.button>
+          )}
+        </div>
+
         {/* Header */}
         <motion.div
           className="text-center max-w-3xl mx-auto mb-16"
@@ -128,13 +127,19 @@ export default function Testimonials() {
           {isEditing ? (
             <>
               <input
-                value={headline.title}
-                onChange={e => setHeadline(h => ({ ...h, title: e.target.value }))}
+                value={testimonialsSection.headline.title}
+                onChange={e => setTestimonialsSection(prev => ({
+                  ...prev,
+                  headline: { ...prev.headline, title: e.target.value }
+                }))}
                 className="text-3xl md:text-4xl text-foreground mb-4 w-full text-center bg-transparent border-b font-bold"
               />
               <textarea
-                value={headline.description}
-                onChange={e => setHeadline(h => ({ ...h, description: e.target.value }))}
+                value={testimonialsSection.headline.description}
+                onChange={e => setTestimonialsSection(prev => ({
+                  ...prev,
+                  headline: { ...prev.headline, description: e.target.value }
+                }))}
                 className="text-lg text-muted-foreground w-full text-center bg-transparent border-b"
                 rows={2}
               />
@@ -142,10 +147,10 @@ export default function Testimonials() {
           ) : (
             <>
               <h2 className="text-3xl md:text-4xl text-foreground mb-4">
-               {headline.title}
+               {testimonialsSection.headline.title}
               </h2>
               <p className="text-lg text-muted-foreground">
-                {headline.description}
+                {testimonialsSection.headline.description}
               </p>
             </>
           ) }
@@ -159,7 +164,7 @@ export default function Testimonials() {
           animate={{opacity:[0,1],y:[50,0]}}
           viewport={{ once: true }}
         >
-          {testimonials.map((testimonial, index) => (
+          {testimonialsSection.testimonials.map((testimonial, index) => (
             <motion.div
               key={index}
               variants={cardVariants}
@@ -212,7 +217,7 @@ export default function Testimonials() {
                       whileHover={{ scale: 1.1 }}
                       transition={{ duration: 0.3 }}
                     >
-                      {isEditing ? (
+                      {/* {isEditing ? (
                         <input
                           type="file"
                           accept="image/*"
@@ -238,7 +243,7 @@ export default function Testimonials() {
                           alt={testimonial.name}
                           className="w-full h-full object-cover"
                         />
-                      )}
+                      )} */}
                     </motion.div>
                     <div>
                       {isEditing ? (
@@ -275,7 +280,7 @@ export default function Testimonials() {
                           <Button
                             size="sm"
                             variant="destructive"
-                            className="mt-2"
+                            className="mt-2 hover:scale-105 cursor-pointer "
                             onClick={() => removeTestimonial(index)}
                           >
                             Remove
@@ -298,11 +303,14 @@ export default function Testimonials() {
             </motion.div>
           ))}
           {isEditing && (
-            <div className="flex items-center justify-center">
+            <motion.div
+            whileTap={{scale:0.9}}
+            whileHover={{scale:1.1}}
+            className="flex items-center justify-center">
               <Button onClick={addTestimonial} className="text-green-600">
                 + Add Testimonial
               </Button>
-            </div>
+            </motion.div>
           )}
         </motion.div>
 
@@ -315,7 +323,7 @@ export default function Testimonials() {
           transition={{ duration: 0.8, delay: 0.2 }}
         >
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
-            {stats.map((stat, index) => (
+            {testimonialsSection.stats.map((stat, index) => (
               <motion.div
                 key={index}
                 className="group cursor-pointer"
@@ -355,7 +363,7 @@ export default function Testimonials() {
                     <Button
                       size="sm"
                       variant="destructive"
-                      className="mt-2"
+                      className="mt-2 cursor-pointer hover:scale-105"
                       onClick={() => removeStat(index)}
                     >
                       Remove
@@ -372,33 +380,19 @@ export default function Testimonials() {
               </motion.div>
             ))}
             {isEditing && (
-              <div className="flex items-center justify-center">
-                <Button onClick={addStat} className="text-green-600">
+              <motion.div
+              whileTap={{scale:0.9}}
+              whileHover={{scale:1.1}}
+              className="flex items-center justify-center">
+                <Button onClick={addStat} className="text-green-600 cursor-pointer">
                   + Add Stat
                 </Button>
-              </div>
+              </motion.div>
             )}
           </div>
         </motion.div>
 
-        {/* Edit/Save Button */}
-        <div className="flex justify-end mt-6">
-          {isEditing ? (
-            <Button
-              onClick={() => setIsEditing(false)}
-              className="bg-green-600 text-white"
-            >
-              Save
-            </Button>
-          ) : (
-            <Button
-              onClick={() => setIsEditing(true)}
-              className="bg-yellow-500 text-black"
-            >
-              Edit
-            </Button>
-          )}
-        </div>
+        
       </div>
     </motion.section>
   );

@@ -1,10 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import axios from 'axios';
 import { FormStep } from '../FormStep';
 import { FormInput } from '../FormInput';
 import { StepProps } from '../../types/form';
-import { Upload, FileText, Image, Video } from 'lucide-react';
-
+import { Upload, FileText, Image, Video, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { useAuth } from '../../../../../../../context/context';
 // ✅ Convert file to base64 + metadata
 const fileToUploadObject = (file: File): Promise<any> => {
   return new Promise((resolve, reject) => {
@@ -15,10 +15,53 @@ const fileToUploadObject = (file: File): Promise<any> => {
         fileName: file.name,
         contentType: file.type,
         dataBase64: reader.result as string, // keeps MIME prefix
+        fileSize: file.size,
       });
     };
     reader.onerror = (error) => reject(error);
   });
+};
+
+// Utility function to chunk array
+const chunkArray = <T,>(array: T[], size: number): T[][] => {
+  const chunks: T[][] = [];
+  for (let i = 0; i < array.length; i += size) {
+    chunks.push(array.slice(i, i + size));
+  }
+  return chunks;
+};
+
+// Retry mechanism with exponential backoff
+const retryRequest = async (
+  url: string, 
+  payload: any, 
+  retries = 3, 
+  timeout = 120000
+): Promise<any> => {
+  for (let i = 0; i < retries; i++) {
+    try {
+      const response = await axios.post(url, payload, {
+        headers: { 
+          "Content-Type": "application/json",
+          "Accept": "application/json"
+        },
+        timeout,
+        maxContentLength: Infinity,
+        maxBodyLength: Infinity
+      });
+      return response;
+    } catch (error: any) {
+      console.warn(`Attempt ${i + 1}/${retries} failed:`, error.message);
+      
+      if (i === retries - 1) {
+        throw error; // Final attempt failed
+      }
+      
+      // Exponential backoff: wait 1s, 2s, 4s...
+      const waitTime = Math.pow(2, i) * 1000;
+      await new Promise(resolve => setTimeout(resolve, waitTime));
+    }
+  }
 };
 
 const Step8MediaUploads: React.FC<StepProps> = ({
@@ -28,106 +71,213 @@ const Step8MediaUploads: React.FC<StepProps> = ({
   onPrev,
   isValid,
 }) => {
-  const API_URL =
-    "https://14exr8c8g0.execute-api.ap-south-1.amazonaws.com/prod/drafts";
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadStatus, setUploadStatus] = useState<string>('');
+  const [fileProcessingStatus, setFileProcessingStatus] = useState<{[key: string]: 'pending' | 'processing' | 'completed' | 'error'}>({});
+const {setDraftDetails}= useAuth()
+  const API_URL = "https://14exr8c8g0.execute-api.ap-south-1.amazonaws.com/prod/drafts";
 
-  // ✅ API Submit Handler
+  // ✅ Enhanced API Submit Handler with batching and retry
   const handleSubmit = async () => {
+    setIsUploading(true);
+    setUploadProgress(0);
+    setUploadStatus('Preparing files...');
+
     try {
-      // Separate files from other form data to avoid DynamoDB size limits
+      // Separate files from other form data
       const fileFields = [
         'companyLogoUrl', 'brochurePdfUrl', 'cataloguePdfUrl', 
         'dgcaTypeCertificateUrl', 'rptoAuthorisationCertificateUrl',
         'caseStudiesUrl', 'brandGuidelinesUrl'
       ];
 
-      // Extract file data
+      // Extract file data and prepare batches
       const files: any = {};
       const formDataWithoutFiles = { ...formData };
+      let totalFiles = 0;
 
+      // Identify files that need uploading
       fileFields.forEach(fieldName => {
         if (formData?.[fieldName]?.dataBase64) {
           files[fieldName] = formData[fieldName];
-          // Replace file object with just filename reference in form data
+          totalFiles++;
+          setFileProcessingStatus(prev => ({...prev, [fieldName]: 'pending'}));
+          
+          // Replace file object with reference in form data
           formDataWithoutFiles[fieldName] = {
             fileName: formData[fieldName].fileName,
             contentType: formData[fieldName].contentType,
-            uploaded: false // Will be set to true after S3 upload
+            uploaded: false
           };
         }
       });
 
-      const payload = {
-        userId: "TEMP_USER_ID234", // replace with real user ID from auth context
-        templateSelection: formData?.templateSelection || null,
-        templateDetails: {
-          id: formData?.selectedTemplate?.id || null,
-          name: formData?.selectedTemplate?.name || "",
-          value: formData?.selectedTemplate?.value || "",
-        },
-        formData: formDataWithoutFiles, // Form data without large file objects
-        files: files // Separate files object for S3 upload
-      };
+      if (totalFiles === 0) {
+        // No files to upload, just save form data
+        const simplePayload = {
+          userId: "TEMP_USER_ID-25",
+          templateSelection: formData?.templateSelection||null,
+          templateDetails: {
+            id: formData?.selectedTemplate?.id || null,
+            name: formData?.selectedTemplate?.name || "",
+            value: formData?.selectedTemplate?.value || "",
+          },
+          formData: formDataWithoutFiles,
+          files: {}
+        };
 
-      // Calculate sizes
-      const formDataSize = JSON.stringify(formDataWithoutFiles).length;
-      const filesSize = JSON.stringify(files).length;
-      const totalSize = JSON.stringify(payload).length;
-
-      console.log("📊 Payload breakdown:", {
-        formDataSize: Math.round(formDataSize / 1024) + "KB",
-        filesSize: Math.round(filesSize / 1024) + "KB", 
-        totalSize: Math.round(totalSize / 1024) + "KB",
-        fileCount: Object.keys(files).length
-      });
-
-      // Check if still too large
-      if (totalSize > 5 * 1024 * 1024) { // 5MB limit
-        alert("Files are still too large. Please reduce file sizes.");
+        setUploadStatus('Saving form data...');
+        const response = await retryRequest(API_URL, simplePayload, 3, 60000);
+        
+        console.log("✅ Draft saved (no files):", response.data);
+        setDraftDetails(response.data)
+        setUploadStatus('Form saved successfully!');
+        setUploadProgress(100);
+        
+        setTimeout(() => {
+          alert("Form submitted successfully!");
+          onNext();
+        }, 1000);
         return;
       }
 
-      console.log("🚀 Sending optimized payload:", {
-        userId: payload.userId,
-        templateSelection: payload.templateSelection,
-        templateDetails: payload.templateDetails,
-        fileCount: Object.keys(files).length,
-        filesToUpload: Object.keys(files).map(key => files[key]?.fileName).join(', '),
-        payloadSize: Math.round(totalSize / 1024) + "KB"
-      });
+      // Process files in smaller batches to avoid timeouts
+      const fileEntries = Object.entries(files);
+      const batchSize = Math.min(2, totalFiles); // Process max 2 files at once
+      const batches = chunkArray(fileEntries, batchSize);
 
-      const response = await axios.post(API_URL, payload, {
-        headers: { 
-          "Content-Type": "application/json",
-          "Accept": "application/json"
-        },
-        timeout: 60000,
-        maxContentLength: Infinity,
-        maxBodyLength: Infinity
-      });
+      console.log(`📦 Processing ${totalFiles} files in ${batches.length} batches`);
 
-      console.log("✅ Draft saved:", response.data);
-      alert("Draft saved successfully!");
-      onNext();
+      let processedFiles = 0;
+      let allUploadedFiles: any = {};
+
+      // Process each batch
+      for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
+        const batch = batches[batchIndex];
+        const batchFiles: any = {};
+        
+        // Prepare current batch
+        batch.forEach(([fieldName, fileData]) => {
+          batchFiles[fieldName] = fileData;
+          setFileProcessingStatus(prev => ({...prev, [fieldName]: 'processing'}));
+        });
+
+        const batchPayload = {
+          userId: "TEMP_USER_ID",
+          templateSelection: formData?.templateSelection || formData?.selectedTemplate?.value || "",
+          templateDetails: {
+            id: formData?.selectedTemplate?.id || null,
+            name: formData?.selectedTemplate?.name || "",
+            value: formData?.selectedTemplate?.value || "",
+          },
+          formData: formDataWithoutFiles,
+          files: batchFiles,
+          batchInfo: {
+            currentBatch: batchIndex + 1,
+            totalBatches: batches.length,
+            isLastBatch: batchIndex === batches.length - 1
+          }
+        };
+
+        // Calculate payload size
+        const payloadSize = JSON.stringify(batchPayload).length;
+        console.log(`📊 Batch ${batchIndex + 1} payload size:`, Math.round(payloadSize / 1024) + "KB");
+
+        // Check size limit
+        if (payloadSize > 6 * 1024 * 1024) { // 6MB limit with buffer
+          throw new Error(`Batch ${batchIndex + 1} is too large (${Math.round(payloadSize / 1024)}KB). Please reduce file sizes.`);
+        }
+
+        setUploadStatus(`Uploading batch ${batchIndex + 1}/${batches.length}...`);
+
+        try {
+          // Upload current batch with retry
+          const response = await retryRequest(API_URL, batchPayload, 3, 180000); // 3 minutes per batch
+
+          console.log(`✅ Batch ${batchIndex + 1} uploaded:`, response.data);
+
+          // Mark batch files as completed
+          batch.forEach(([fieldName]) => {
+            setFileProcessingStatus(prev => ({...prev, [fieldName]: 'completed'}));
+          });
+
+          // Merge uploaded files
+          if (response.data.uploadedFiles) {
+            allUploadedFiles = { ...allUploadedFiles, ...response.data.uploadedFiles };
+          }
+
+          processedFiles += batch.length;
+          const progress = Math.round((processedFiles / totalFiles) * 90); // Leave 10% for final steps
+          setUploadProgress(progress);
+
+        } catch (error: any) {
+          console.error(`❌ Batch ${batchIndex + 1} failed:`, error);
+          
+          // Mark batch files as error
+          batch.forEach(([fieldName]) => {
+            setFileProcessingStatus(prev => ({...prev, [fieldName]: 'error'}));
+          });
+
+          throw new Error(`Batch ${batchIndex + 1} upload failed: ${error.message}`);
+        }
+
+        // Small delay between batches to avoid overwhelming the server
+        if (batchIndex < batches.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
+      }
+
+      setUploadStatus('Finalizing submission...');
+      setUploadProgress(95);
+
+      // Final success steps
+      setUploadProgress(100);
+      setUploadStatus('All files uploaded successfully!');
+      
+      console.log("🎉 All batches completed successfully");
+      
+      setTimeout(() => {
+        alert("All files uploaded successfully! Your website generation has started.");
+        onNext();
+      }, 1500);
+
     } catch (error: any) {
-      console.error("❌ Error sending data to Lambda:", error);
+      console.error("❌ Upload process failed:", error);
+      
+      setUploadStatus('Upload failed');
+      setUploadProgress(0);
+      
+      let errorMessage = "Upload failed. ";
       
       if (error.response) {
-        console.error("Response status:", error.response.status);
-        console.error("Response data:", error.response.data);
+        const status = error.response.status;
+        const data = error.response.data;
         
-        if (error.response.data?.error?.includes('DynamoDB')) {
-          alert(`Database Error: ${error.response.data.error}\n\nThe files are too large for direct storage. Please reduce file sizes or contact support.`);
+        console.error("Response status:", status);
+        console.error("Response data:", data);
+        
+        if (status === 413) {
+          errorMessage += "Files are too large. Please reduce file sizes and try again.";
+        } else if (data?.error?.includes('DynamoDB')) {
+          errorMessage += `Database Error: ${data.error}`;
+        } else if (data?.error?.includes('timeout')) {
+          errorMessage += "Server timeout. Files may be too large. Please try with smaller files.";
         } else {
-          alert(`Server error (${error.response.status}): ${error.response.data?.message || error.response.data?.error || 'Unknown error'}`);
+          errorMessage += `Server error (${status}): ${data?.message || data?.error || 'Unknown error'}`;
         }
       } else if (error.request) {
         console.error("No response received:", error.request);
-        alert("No response from server. Please check your internet connection.");
+        errorMessage += "No response from server. Please check your internet connection and try again.";
+      } else if (error.message?.includes('timeout')) {
+        errorMessage += "Upload timeout. Files may be too large. Please try with smaller files or better connection.";
       } else {
-        console.error("Request setup error:", error.message);
-        alert(`Request error: ${error.message}`);
+        errorMessage += error.message || "Unknown error occurred.";
       }
+      
+      alert(errorMessage);
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -158,6 +308,7 @@ const Step8MediaUploads: React.FC<StepProps> = ({
     onChange,
     required = false,
     description,
+    fieldName,
   }: {
     label: string;
     accept: string;
@@ -165,53 +316,87 @@ const Step8MediaUploads: React.FC<StepProps> = ({
     onChange: (value: any) => void;
     required?: boolean;
     description?: string;
-  }) => (
-    <div className="mb-4">
-      <label className="block text-sm font-semibold text-slate-700 mb-2">
-        {label}
-        {required && <span className="text-red-500 ml-1">*</span>}
-      </label>
-      {description && (
-        <p className="text-sm text-slate-600 mb-2">{description}</p>
-      )}
-      <div className="border-2 border-dashed border-slate-300 rounded-lg p-6 text-center hover:border-slate-400 transition-colors">
-        <Upload className="w-8 h-8 text-slate-400 mx-auto mb-2" />
-        <p className="text-slate-600 mb-2">
-          {value?.fileName
-            ? `File selected (${value.fileName})`
-            : "Click to upload or drag and drop"}
-        </p>
-        <p className="text-xs text-slate-500 mb-3">{accept}</p>
-        <input
-          type="file"
-          accept={accept}
-          onChange={async (e) => {
-            const file = e.target.files?.[0];
-            if (file) {
-              if (file.size > 20 * 1024 * 1024) {
-                alert("File size must be less than 20MB");
-                return;
-              }
-              try {
-                const uploadObj = await fileToUploadObject(file);
-                onChange(uploadObj);
-              } catch (err) {
-                console.error("Error converting file:", err);
-              }
-            }
-          }}
-          className="hidden"
-          id={`upload-${label.replace(/\s+/g, "-").toLowerCase()}`}
-        />
-        <label
-          htmlFor={`upload-${label.replace(/\s+/g, "-").toLowerCase()}`}
-          className="inline-block px-4 py-2 bg-blue-600 text-white rounded-lg cursor-pointer hover:bg-blue-700 transition-colors"
-        >
-          Choose File
+    fieldName?: string;
+  }) => {
+    const status = fieldName ? fileProcessingStatus[fieldName] : undefined;
+    
+    const getStatusIcon = () => {
+      switch (status) {
+        case 'processing': return <Loader2 className="w-4 h-4 animate-spin text-blue-500" />;
+        case 'completed': return <CheckCircle className="w-4 h-4 text-green-500" />;
+        case 'error': return <AlertCircle className="w-4 h-4 text-red-500" />;
+        default: return null;
+      }
+    };
+
+    const getStatusColor = () => {
+      switch (status) {
+        case 'processing': return 'border-blue-300 bg-blue-50';
+        case 'completed': return 'border-green-300 bg-green-50';
+        case 'error': return 'border-red-300 bg-red-50';
+        default: return 'border-slate-300';
+      }
+    };
+
+    return (
+      <div className="mb-4">
+        <label className="block text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">
+          {label}
+          {required && <span className="text-red-500 ml-1">*</span>}
+          {getStatusIcon()}
         </label>
+        {description && (
+          <p className="text-sm text-slate-600 mb-2">{description}</p>
+        )}
+        <div className={`border-2 border-dashed rounded-lg p-6 text-center hover:border-slate-400 transition-colors ${getStatusColor()}`}>
+          <Upload className="w-8 h-8 text-slate-400 mx-auto mb-2" />
+          <p className="text-slate-600 mb-2">
+            {value?.fileName
+              ? `File selected: ${value.fileName} (${Math.round((value.fileSize || 0) / 1024)}KB)`
+              : "Click to upload or drag and drop"}
+          </p>
+          <p className="text-xs text-slate-500 mb-3">{accept}</p>
+          <input
+            type="file"
+            accept={accept}
+            onChange={async (e) => {
+              const file = e.target.files?.[0];
+              if (file) {
+                if (file.size > 20 * 1024 * 1024) {
+                  alert("File size must be less than 20MB");
+                  return;
+                }
+                try {
+                  const uploadObj = await fileToUploadObject(file);
+                  onChange(uploadObj);
+                  
+                  if (fieldName) {
+                    setFileProcessingStatus(prev => ({...prev, [fieldName]: 'pending'}));
+                  }
+                } catch (err) {
+                  console.error("Error converting file:", err);
+                  alert("Error processing file. Please try again.");
+                }
+              }
+            }}
+            className="hidden"
+            id={`upload-${label.replace(/\s+/g, "-").toLowerCase()}`}
+            disabled={isUploading}
+          />
+          <label
+            htmlFor={`upload-${label.replace(/\s+/g, "-").toLowerCase()}`}
+            className={`inline-block px-4 py-2 rounded-lg cursor-pointer transition-colors ${
+              isUploading 
+                ? 'bg-gray-400 text-gray-200 cursor-not-allowed' 
+                : 'bg-blue-600 text-white hover:bg-blue-700'
+            }`}
+          >
+            {isUploading ? 'Uploading...' : 'Choose File'}
+          </label>
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <FormStep
@@ -219,11 +404,32 @@ const Step8MediaUploads: React.FC<StepProps> = ({
       description="Upload your company logo, certificates, and other media assets."
       onNext={handleSubmit}
       onPrev={onPrev}
-      isValid={isValid}
+      isValid={isValid && !isUploading}
       currentStep={7}
       totalSteps={6}
+      nextButtonText={isUploading ? "Uploading..." : "Submit Form"}
     >
       <div className="space-y-8">
+        {/* Upload Progress */}
+        {isUploading && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+            <div className="flex items-center mb-2">
+              <Loader2 className="w-5 h-5 animate-spin text-blue-600 mr-2" />
+              <h3 className="text-lg font-semibold text-blue-800">
+                Uploading Files...
+              </h3>
+            </div>
+            <p className="text-blue-700 mb-3">{uploadStatus}</p>
+            <div className="w-full bg-blue-200 rounded-full h-3">
+              <div 
+                className="bg-blue-600 h-3 rounded-full transition-all duration-500 ease-out"
+                style={{ width: `${uploadProgress}%` }}
+              ></div>
+            </div>
+            <p className="text-sm text-blue-600 mt-2">{uploadProgress}% complete</p>
+          </div>
+        )}
+
         {/* Template Selection Summary */}
         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
           <h3 className="text-lg font-semibold text-yellow-800 mb-2">
@@ -258,6 +464,7 @@ const Step8MediaUploads: React.FC<StepProps> = ({
               onChange={(val) => updateFormData({ companyLogoUrl: val })}
               required
               description="PNG/SVG preferred, minimum 1000×1000px, max 5MB"
+              fieldName="companyLogoUrl"
             />
           </div>
           <p className="text-sm text-blue-700 mt-4">
@@ -274,6 +481,7 @@ const Step8MediaUploads: React.FC<StepProps> = ({
               value={formData?.dgcaTypeCertificateUrl}
               onChange={(val) => updateFormData({ dgcaTypeCertificateUrl: val })}
               description="DGCA certification document, max 20MB"
+              fieldName="dgcaTypeCertificateUrl"
             />
             
             <FileUploadBox
@@ -282,6 +490,7 @@ const Step8MediaUploads: React.FC<StepProps> = ({
               value={formData?.rptoAuthorisationCertificateUrl}
               onChange={(val) => updateFormData({ rptoAuthorisationCertificateUrl: val })}
               description="RPTO certification document, max 20MB"
+              fieldName="rptoAuthorisationCertificateUrl"
             />
             
             <FileUploadBox
@@ -290,6 +499,7 @@ const Step8MediaUploads: React.FC<StepProps> = ({
               value={formData?.brochurePdfUrl}
               onChange={(val) => updateFormData({ brochurePdfUrl: val })}
               description="Company brochure PDF, max 20MB"
+              fieldName="brochurePdfUrl"
             />
             
             <FileUploadBox
@@ -298,6 +508,7 @@ const Step8MediaUploads: React.FC<StepProps> = ({
               value={formData?.cataloguePdfUrl}
               onChange={(val) => updateFormData({ cataloguePdfUrl: val })}
               description="Product catalogue PDF, max 20MB"
+              fieldName="cataloguePdfUrl"
             />
             
             <FileUploadBox
@@ -306,6 +517,7 @@ const Step8MediaUploads: React.FC<StepProps> = ({
               value={formData?.caseStudiesUrl}
               onChange={(val) => updateFormData({ caseStudiesUrl: val })}
               description="Case studies document, max 20MB"
+              fieldName="caseStudiesUrl"
             />
             
             <FileUploadBox
@@ -314,6 +526,7 @@ const Step8MediaUploads: React.FC<StepProps> = ({
               value={formData?.brandGuidelinesUrl}
               onChange={(val) => updateFormData({ brandGuidelinesUrl: val })}
               description="Brand guidelines PDF, max 20MB"
+              fieldName="brandGuidelinesUrl"
             />
           </div>
         </FileUploadSection>
@@ -327,6 +540,7 @@ const Step8MediaUploads: React.FC<StepProps> = ({
               value={formData?.promoVideoFiveMinUrl || ''}
               onChange={(value) => updateFormData({ promoVideoFiveMinUrl: value })}
               placeholder="https://youtube.com/watch?v=..."
+              disabled={isUploading}
             />
             
             <FormInput
@@ -335,6 +549,7 @@ const Step8MediaUploads: React.FC<StepProps> = ({
               value={formData?.promoVideoOneMinUrl || ''}
               onChange={(value) => updateFormData({ promoVideoOneMinUrl: value })}
               placeholder="https://youtube.com/watch?v=..."
+              disabled={isUploading}
             />
             
             <FormInput
@@ -343,12 +558,13 @@ const Step8MediaUploads: React.FC<StepProps> = ({
               value={formData?.companyProfileLink || ''}
               onChange={(value) => updateFormData({ companyProfileLink: value })}
               placeholder="https://drive.google.com/..."
+              disabled={isUploading}
             />
           </div>
           
           <div className="mt-6 p-4 bg-purple-100 rounded-lg">
             <h4 className="font-semibold text-purple-900 mb-2">Video Guidelines:</h4>
-            <ul className="text-purple-800 text-sm space-y-1">
+            <ul className="text-purple-800 text-sm space-y-1">SuccessPage
               <li>• Videos should be 1080p or higher resolution</li>
               <li>• YouTube, Vimeo, or Google Drive links are preferred</li>
               <li>• Ensure videos are publicly accessible or properly shared</li>
@@ -357,44 +573,6 @@ const Step8MediaUploads: React.FC<StepProps> = ({
             </ul>
           </div>
         </FileUploadSection>
-
-        {/* Debug Section - Remove in production */}
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-          <h3 className="text-lg font-semibold text-red-800 mb-2">🔍 Debug Info</h3>
-          <div className="space-x-2">
-            <button
-              type="button"
-              onClick={() => {
-                console.log("🔍 Full Form Data:", formData);
-                const size = Math.round(JSON.stringify(formData).length / 1024);
-                console.log("🔍 Current payload size:", size, "KB");
-                alert(`Check console. Current size: ${size}KB (DynamoDB limit: 400KB)`);
-              }}
-              className="px-3 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700"
-            >
-              Log Form Data
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                const fileFields = ['companyLogoUrl', 'brochurePdfUrl', 'cataloguePdfUrl', 'dgcaTypeCertificateUrl', 'rptoAuthorisationCertificateUrl', 'caseStudiesUrl', 'brandGuidelinesUrl'];
-                const files = fileFields.filter(field => formData?.[field]?.dataBase64).map(field => ({
-                  field,
-                  fileName: formData[field].fileName,
-                  size: Math.round(formData[field].dataBase64.length / 1024) + 'KB'
-                }));
-                console.log("📁 Uploaded files:", files);
-                alert(`Files: ${files.length} uploaded. Check console for details.`);
-              }}
-              className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
-            >
-              Check Files
-            </button>
-          </div>
-          <p className="text-red-600 text-sm mt-2">
-            ⚠️ DynamoDB limit: 400KB per item. Current approach separates large files for S3 upload.
-          </p>
-        </div>
 
         {/* Upload Summary */}
         <div className="bg-slate-100 rounded-lg p-6">
@@ -426,6 +604,7 @@ const Step8MediaUploads: React.FC<StepProps> = ({
             <p className="text-green-700 text-sm">
               Once you click "Submit Form", our AI will create a professional website with all your information, 
               generate additional content, optimize for SEO, and create a beautiful design that matches your industry.
+              The process may take a few minutes for large files.
             </p>
           </div>
         </div>
@@ -434,4 +613,4 @@ const Step8MediaUploads: React.FC<StepProps> = ({
   );
 };
 
-export default Step8MediaUploads;
+export default Step8MediaUploads; //update step medis 8 code

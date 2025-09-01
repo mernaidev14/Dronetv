@@ -3,88 +3,58 @@ import { ImageWithFallback } from "./figma/ImageWithFallback";
 import { motion } from "motion/react";
 import { Button } from "./ui/button";
 
-export default function Clients() {
+export default function Clients({clientData}) {
   const [isEditing, setIsEditing] = useState(false);
 
-  const [headline, setHeadline] = useState({
-    title: "Our Clients",
-    description:
-      "We're proud to collaborate with forward-thinking companies worldwide.",
-  });
-
-  const [clients, setClients] = useState([
-    {
-      name: "TechnoCore Solutions",
-      image:
-        "https://images.unsplash.com/photo-1662052955098-042b46e60c2b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=200",
-    },
-    {
-      name: "GlobalVenture Inc",
-      image:
-        "https://images.unsplash.com/photo-1551263640-1c007852f616?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=200",
-    },
-    {
-      name: "InnovateBrand Co",
-      image:
-        "https://images.unsplash.com/photo-1618588429012-0559f1cbc5aa?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=200",
-    },
-    {
-      name: "FutureWorks Ltd",
-      image:
-        "https://images.unsplash.com/photo-1746047420047-03fc7a9b9226?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=200",
-    },
-    {
-      name: "NextGen Systems",
-      image:
-        "https://images.unsplash.com/photo-1712159018726-4564d92f3ec2?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=200",
-    },
-    {
-      name: "ProBusiness Group",
-      image:
-        "https://images.unsplash.com/photo-1666790676906-0295230c121d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=200",
-    },
-    {
-      name: "Quantum Leap",
-      image:
-        "https://images.unsplash.com/photo-1599305445671-ac291c95aaa9?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=200",
-    },
-  ]);
-
-  const [stats, setStats] = useState([
-    { value: "50+", label: "Trusted Partners" },
-    { value: "25+", label: "Countries Served" },
-    { value: "98%", label: "Client Satisfaction" },
-    { value: "5+", label: "Years Partnership" },
-  ]);
+  // Merged all state into a single object
+  const [clientsSection, setClientsSection] = useState(clientData);
 
   // Handlers for clients
   const updateClient = (idx, field, value) => {
-    setClients((prev) =>
-      prev.map((c, i) => (i === idx ? { ...c, [field]: value } : c))
-    );
+    setClientsSection(prev => ({
+      ...prev,
+      clients: prev.clients.map((c, i) => (i === idx ? { ...c, [field]: value } : c))
+    }));
   };
+  
   const removeClient = (idx) => {
-    setClients((prev) => prev.filter((_, i) => i !== idx));
+    setClientsSection(prev => ({
+      ...prev,
+      clients: prev.clients.filter((_, i) => i !== idx)
+    }));
   };
+  
   const addClient = () => {
-    setClients((prev) => [...prev, { name: "New Client", image: "" }]);
+    setClientsSection(prev => ({
+      ...prev,
+      clients: [...prev.clients, { name: "New Client", image: "" }]
+    }));
   };
 
   // Handlers for stats
   const updateStat = (idx, field, value) => {
-    setStats((prev) =>
-      prev.map((s, i) => (i === idx ? { ...s, [field]: value } : s))
-    );
+    setClientsSection(prev => ({
+      ...prev,
+      stats: prev.stats.map((s, i) => (i === idx ? { ...s, [field]: value } : s))
+    }));
   };
+  
   const removeStat = (idx) => {
-    setStats((prev) => prev.filter((_, i) => i !== idx));
+    setClientsSection(prev => ({
+      ...prev,
+      stats: prev.stats.filter((_, i) => i !== idx)
+    }));
   };
+  
   const addStat = () => {
-    setStats((prev) => [...prev, { value: "New", label: "New Stat" }]);
+    setClientsSection(prev => ({
+      ...prev,
+      stats: [...prev.stats, { value: "New", label: "New Stat" }]
+    }));
   };
 
   // Duplicate clients for marquee loop
-  const duplicatedClients = [...clients, ...clients];
+  const duplicatedClients = [...clientsSection.clients, ...clientsSection.clients];
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -112,6 +82,22 @@ export default function Clients() {
       transition={{ duration: 0.8 }}
     >
       <div className="max-w-6xl mx-auto px-6">
+
+           {/* Edit/Save Buttons */}
+        <div className="flex justify-end mt-6">
+         {isEditing ? (
+            <motion.button 
+            whileTap={{scale:0.9}}
+            whileHover={{y:-1,scaleX:1.1}}
+            onClick={() => setIsEditing(false)} className="bg-green-600 cursor-pointer hover:font-semibold hover:shadow-2xl shadow-xl text-white px-4 py-2 rounded">Save</motion.button>
+          ) : (
+            <motion.button 
+            whileTap={{scale:0.9}}  
+            whileHover={{y:-1,scaleX:1.1}}
+            onClick={() => setIsEditing(true)} className="bg-yellow-500 text-black px-4 py-2 rounded cursor-pointer  hover:shadow-2xl shadow-xl hover:font-semibold">Edit</motion.button>
+          )}
+        </div>
+
         {/* Section Header */}
         <motion.div
           className="text-center mb-16"
@@ -122,16 +108,22 @@ export default function Clients() {
           {isEditing ? (
             <>
               <input
-                value={headline.title}
+                value={clientsSection.headline.title}
                 onChange={(e) =>
-                  setHeadline((h) => ({ ...h, title: e.target.value }))
+                  setClientsSection(prev => ({
+                    ...prev,
+                    headline: { ...prev.headline, title: e.target.value }
+                  }))
                 }
                 className="text-3xl md:text-4xl font-bold text-foreground mb-4 w-full text-center border-b bg-transparent"
               />
               <textarea
-                value={headline.description}
+                value={clientsSection.headline.description}
                 onChange={(e) =>
-                  setHeadline((h) => ({ ...h, description: e.target.value }))
+                  setClientsSection(prev => ({
+                    ...prev,
+                    headline: { ...prev.headline, description: e.target.value }
+                  }))
                 }
                 className="text-lg text-muted-foreground w-full text-center border-b bg-transparent"
                 rows={2}
@@ -140,10 +132,10 @@ export default function Clients() {
           ) : (
             <>
               <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
-                {headline.title}
+                {clientsSection.headline.title}
               </h2>
               <p className="text-muted-foreground text-lg">
-                {headline.description}
+                {clientsSection.headline.description}
               </p>
             </>
           )}
@@ -165,11 +157,22 @@ export default function Clients() {
               }
             `}
           </style>
+          {isEditing && (
+              <motion.div 
+              whileTap={{scale:0.9}}
+              whileHover={{scale:1.1}}
+              className="flex items-center justify-center w-32">
+                <Button onClick={addClient} className="cursor-pointer text-green-600">
+                  + Add Client
+                </Button>
+              </motion.div>
+            )}
           <motion.div
             className="flex gap-10 items-start text-center animate-marquee"
             variants={containerVariants}
-            initial="hidden"
-            whileInView="visible"
+            
+            whileInView={{opacity:[0,1],y:[-50,0]}}
+            transition={{duration:1}}
             viewport={{ once: true }}
           >
             {duplicatedClients.map((client, index) => (
@@ -198,7 +201,7 @@ export default function Clients() {
                           const reader = new FileReader();
                           reader.onloadend = () => {
                             updateClient(
-                              index % clients.length,
+                              index % clientsSection.clients.length,
                               "image",
                               reader.result as string
                             );
@@ -227,7 +230,7 @@ export default function Clients() {
                         value={client.name}
                         onChange={(e) =>
                           updateClient(
-                            index % clients.length,
+                            index % clientsSection.clients.length,
                             "name",
                             e.target.value
                           )
@@ -237,8 +240,8 @@ export default function Clients() {
                       <Button
                         size="sm"
                         variant="destructive"
-                        className="mt-2"
-                        onClick={() => removeClient(index % clients.length)}
+                        className="mt-2 hover:scale-105 cursor-pointer"
+                        onClick={() => removeClient(index % clientsSection.clients.length)}
                       >
                         Remove
                       </Button>
@@ -251,13 +254,7 @@ export default function Clients() {
                 </motion.div>
               </motion.div>
             ))}
-            {isEditing && (
-              <div className="flex items-center justify-center w-32">
-                <Button onClick={addClient} className="text-green-600">
-                  + Add Client
-                </Button>
-              </div>
-            )}
+            
           </motion.div>
         </div>
 
@@ -270,7 +267,7 @@ export default function Clients() {
           transition={{ duration: 0.8, delay: 0.3 }}
         >
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-            {stats.map((stat, index) => (
+            {clientsSection.stats.map((stat, index) => (
               <motion.div
                 key={index}
                 className="group cursor-pointer"
@@ -310,7 +307,7 @@ export default function Clients() {
                     <Button
                       size="sm"
                       variant="destructive"
-                      className="mt-2"
+                      className="mt-2 hover:scale-105 cursor-pointer"
                       onClick={() => removeStat(index)}
                     >
                       Remove
@@ -329,33 +326,19 @@ export default function Clients() {
               </motion.div>
             ))}
             {isEditing && (
-              <div className="flex items-center justify-center">
+              <motion.div
+              whileTap={{scale:0.9}}
+              whileHover={{scale:1.1}}
+              className="flex items-center justify-center">
                 <Button onClick={addStat} className="text-green-600">
                   + Add Stat
                 </Button>
-              </div>
+              </motion.div>
             )}
           </div>
         </motion.div>
 
-        {/* Edit/Save Button */}
-        <div className="flex justify-end mt-6">
-          {isEditing ? (
-            <Button
-              onClick={() => setIsEditing(false)}
-              className="bg-green-600 text-white"
-            >
-              Save
-            </Button>
-          ) : (
-            <Button
-              onClick={() => setIsEditing(true)}
-              className="bg-yellow-500 text-black"
-            >
-              Edit
-            </Button>
-          )}
-        </div>
+        
       </div>
     </motion.section>
   );

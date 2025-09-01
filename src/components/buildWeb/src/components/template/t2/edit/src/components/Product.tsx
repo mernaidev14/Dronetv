@@ -13,213 +13,107 @@ import {
 } from "lucide-react";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 import { motion, AnimatePresence } from "motion/react";
-import { desc, head } from "motion/react-client";
 
-export default function Product() {
+export default function Product({productData}) {
   const [isEditing, setIsEditing] = useState(false);
-  const [products, setProducts] = useState<any[]>([
-    {
-      icon: Monitor,
-      title: "Business Dashboard Pro",
-      category: "Analytics Platform",
-      image:
-        "https://images.unsplash.com/photo-1575388902449-6bca946ad549?auto=format&fit=crop&w=1080&q=80",
-      description:
-        "Real-time business intelligence dashboard with comprehensive performance metrics.",
-      features: [
-        "Real-time Analytics",
-        "Custom Reports",
-        "Data Visualization",
-        "Multi-platform Support",
-      ],
-      isPopular: true,
-      categoryColor: "bg-blue-100 text-blue-800",
-      detailedDescription: "Our business dashboard delivers deep insights...",
-      pricing: "From $5,000",
-      timeline: "4-6 weeks",
-    },
-    {
-      icon: Smartphone,
-      title: "Mobile Workforce App",
-      category: "Mobile Solution",
-      image:
-        "https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?auto=format&fit=crop&w=1080&q=80",
-      description:
-        "Comprehensive mobile solution for remote team management and collaboration.",
-      features: [
-        "Team Communication",
-        "Task Management",
-        "Time Tracking",
-        "GPS Services",
-      ],
-      isPopular: false,
-      categoryColor: "bg-green-100 text-green-800",
-      detailedDescription: "Manage your workforce remotely with efficiency...",
-      pricing: "From $2,500",
-      timeline: "2-4 weeks",
-    },
-    {
-      icon: Cloud,
-      title: "Cloud Infrastructure Suite",
-      category: "Cloud Platform",
-      image:
-        "https://images.unsplash.com/photo-1676378280996-cff6b481d701?auto=format&fit=crop&w=1080&q=80",
-      description:
-        "Scalable cloud infrastructure with enterprise-grade security and reliability.",
-      features: [
-        "Auto-scaling",
-        "Advanced Security",
-        "99.9% Uptime",
-        "24/7 Monitoring",
-      ],
-      isPopular: false,
-      categoryColor: "bg-purple-100 text-purple-800",
-      detailedDescription: "Cloud-native infrastructure to scale seamlessly...",
-      pricing: "Custom Pricing",
-      timeline: "8-12 weeks",
-    },
-    {
-      icon: BarChart3,
-      title: "Advanced Analytics Engine",
-      category: "Data Intelligence",
-      image:
-        "https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=1080&q=80",
-      description:
-        "Powerful analytics engine with predictive insights and machine learning capabilities.",
-      features: [
-        "Predictive Analytics",
-        "ML Models",
-        "Big Data Processing",
-        "Custom Algorithms",
-      ],
-      isPopular: false,
-      categoryColor: "bg-orange-100 text-orange-800",
-      detailedDescription:
-        "Unlock predictive insights with our analytics engine...",
-      pricing: "From $10,000",
-      timeline: "12-20 weeks",
-    },
-  ]);
-
   const [visibleCount, setVisibleCount] = useState(4);
-  const [selectedProduct, setSelectedProduct] = useState<any | null>(null);
+  const [selectedProductIndex, setSelectedProductIndex] = useState<number | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [heading, setHeading] = useState<any[]>({
-    title: "Our Products",
-    heading: "Innovative Solutions Built for Success",
-    description:
-      "Discover our suite of cutting-edge products designed to streamline operations, boost productivity, and drive exceptional results for your business.",
-    trust: "for your business.",
-  });
-const [benefits, setBenefits] = useState<any[]>([
-  {
-    icon: "30",
-    color: "red-accent",
-    title: "30-Day Free Trial",
-    desc: "Try all features risk-free with our comprehensive trial period.",
-  },
-  {
-    icon: "99%",
-    color: "primary",
-    title: "99% Uptime Guarantee",
-    desc: "Enterprise-grade reliability with industry-leading uptime SLA.",
-  },
-  {
-    icon: "∞",
-    color: "gradient",
-    title: "Unlimited Scalability",
-    desc: "Grow without limits with our cloud-native architecture.",
-  },
-]);
 
-const updateBenefit = (index: number, field: string, value: string) => {
-  setBenefits((prev) =>
-    prev.map((b, i) => (i === index ? { ...b, [field]: value } : b))
-  );
-};
+  // Consolidated state
+  const [contentState, setContentState] = useState(productData);
 
-const addBenefit = () => {
-  setBenefits((prev) => [
-    ...prev,
-    {
-      icon: "",
-      color: "primary",
-      title: "New Benefit",
-      desc: "Benefit description...",
-    },
-  ]);
-};
-
-const removeBenefit = (index: number) => {
-  setBenefits((prev) => prev.filter((_, i) => i !== index));
-};
-
-  const updateProductField = (index: number, field: string, value: any) => {
-    setProducts((prev) =>
-      prev.map((p, i) => (i === index ? { ...p, [field]: value } : p))
-    );
+  // Update function for simple fields
+  const updateField = (section, field, value) => {
+    setContentState(prev => ({ 
+      ...prev, 
+      [section]: { ...prev[section], [field]: value } 
+    }));
   };
 
-  const updateFeature = (index: number, fIndex: number, value: string) => {
-    setProducts((prev) =>
-      prev.map((p, i) =>
+  // Update function for products
+  const updateProductField = (index, field, value) => {
+    setContentState(prev => ({
+      ...prev,
+      products: prev.products.map((p, i) => i === index ? { ...p, [field]: value } : p)
+    }));
+  };
+
+  // Update function for product features
+  const updateFeature = (index, fIndex, value) => {
+    setContentState(prev => ({
+      ...prev,
+      products: prev.products.map((p, i) =>
         i === index
           ? {
               ...p,
-              features: p.features.map((f: string, fi: number) =>
-                fi === fIndex ? value : f
-              ),
+              features: p.features.map((f, fi) => fi === fIndex ? value : f)
             }
           : p
       )
-    );
+    }));
   };
 
-  const addFeature = (index: number) => {
-    setProducts((prev) =>
-      prev.map((p, i) =>
+  // Add a new feature to a product
+  const addFeature = (index) => {
+    setContentState(prev => ({
+      ...prev,
+      products: prev.products.map((p, i) =>
         i === index ? { ...p, features: [...p.features, "New Feature"] } : p
       )
-    );
+    }));
   };
 
-  const removeFeature = (index: number, fIndex: number) => {
-    setProducts((prev) =>
-      prev.map((p, i) =>
+  // Remove a feature from a product
+  const removeFeature = (index, fIndex) => {
+    setContentState(prev => ({
+      ...prev,
+      products: prev.products.map((p, i) =>
         i === index
           ? {
               ...p,
-              features: p.features.filter(
-                (_: string, fi: number) => fi !== fIndex
-              ),
+              features: p.features.filter((_, fi) => fi !== fIndex)
             }
           : p
       )
-    );
+    }));
   };
 
-  const handleImageUpload = (
-    index: number,
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        updateProductField(index, "image", reader.result as string);
+  // Handle image upload for a product
+  // Handle image upload for a product
+const handleImageUpload = (index, e) => {
+  const file = e.target.files?.[0];
+  if (file) {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      // Create a new array with the updated product
+      const updatedProducts = [...contentState.products];
+      updatedProducts[index] = {
+        ...updatedProducts[index],
+        image: reader.result
       };
-      reader.readAsDataURL(file);
-    }
-  };
+      
+      // Update the state
+      setContentState(prev => ({
+        ...prev,
+        products: updatedProducts
+      }));
+    };
+    reader.readAsDataURL(file);
+  }
+};
 
-  const addProduct = () => {
-    setProducts((prev) => [
-      ...prev,
+  // Add a new product
+const addProduct = () => {
+  setContentState(prev => ({
+    ...prev,
+    products: [
+      ...prev.products,
       {
         icon: Monitor,
         title: "New Product",
         category: "New Category",
-        image: "https://via.placeholder.com/600x400?text=New+Product",
+        image: null, // Set to null instead of a placeholder URL
         description: "New product description...",
         features: ["New Feature"],
         isPopular: false,
@@ -228,21 +122,58 @@ const removeBenefit = (index: number) => {
         pricing: "TBD",
         timeline: "TBD",
       },
-    ]);
+    ]
+  }));
+};
+
+  // Remove a product
+  const removeProduct = (index) => {
+    setContentState(prev => ({
+      ...prev,
+      products: prev.products.filter((_, i) => i !== index)
+    }));
   };
 
-  const removeProduct = (index: number) => {
-    setProducts((prev) => prev.filter((_, i) => i !== index));
+  // Update function for benefits
+  const updateBenefit = (index, field, value) => {
+    setContentState(prev => ({
+      ...prev,
+      benefits: prev.benefits.map((b, i) => i === index ? { ...b, [field]: value } : b)
+    }));
   };
 
-  const openModal = (product: any) => {
-    setSelectedProduct(product);
+  // Add a new benefit
+  const addBenefit = () => {
+    setContentState(prev => ({
+      ...prev,
+      benefits: [
+        ...prev.benefits,
+        {
+          icon: "",
+          color: "primary",
+          title: "New Benefit",
+          desc: "Benefit description...",
+        },
+      ]
+    }));
+  };
+
+  // Remove a benefit
+  const removeBenefit = (index) => {
+    setContentState(prev => ({
+      ...prev,
+      benefits: prev.benefits.filter((_, i) => i !== index)
+    }));
+  };
+
+  const openModal = (index) => {
+    setSelectedProductIndex(index);
     setIsModalOpen(true);
   };
 
   const closeModal = () => {
     setIsModalOpen(false);
-    setSelectedProduct(null);
+    setSelectedProductIndex(null);
   };
 
   return (
@@ -255,77 +186,80 @@ const removeBenefit = (index: number) => {
       transition={{ duration: 0.8 }}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Edit/Save Buttons */}
+        <div className="flex justify-end mt-6">
+         {isEditing ? (
+            <motion.button 
+            whileTap={{scale:0.9}}
+            whileHover={{y:-1,scaleX:1.1}}
+            onClick={() => setIsEditing(false)} className="bg-green-600 cursor-pointer hover:font-semibold hover:shadow-2xl shadow-xl text-white px-4 py-2 rounded">Save</motion.button>
+          ) : (
+            <motion.button 
+            whileTap={{scale:0.9}}
+            whileHover={{y:-1,scaleX:1.1}}
+            onClick={() => setIsEditing(true)} className="bg-yellow-500 text-black px-4 py-2 rounded cursor-pointer  hover:shadow-2xl shadow-xl hover:font-semibold">Edit</motion.button>
+          )}
+        </div>
+
         {/* Header */}
         <div className="text-center max-w-3xl mx-auto mb-16">
-  {isEditing ? (
-    <>
-      <div className="inline-flex items-center px-4 py-2 bg-red-accent/10 rounded-full text-red-accent mb-4">
-        <Zap className="w-4 h-4 mr-2" />
-        <input
-          type="text"
-          value={heading.title}
-          onChange={(e) =>
-            setHeading((prev) => ({ ...prev, title: e.target.value }))
-          }
-          className="border-b font-medium bg-transparent"
-        />
-      </div>
+          {isEditing ? (
+            <>
+              <div className="inline-flex items-center px-4 py-2 bg-red-accent/10 rounded-full text-red-accent mb-4">
+                <Zap className="w-4 h-4 mr-2" />
+                <input
+                  type="text"
+                  value={contentState.heading.title}
+                  onChange={(e) => updateField("heading", "title", e.target.value)}
+                  className="border-b font-medium bg-transparent"
+                />
+              </div>
 
-      <input
-        type="text"
-        value={heading.heading}
-        onChange={(e) =>
-          setHeading((prev) => ({ ...prev, heading: e.target.value }))
-        }
-        className="border-b font-medium bg-transparent block w-full text-3xl md:text-4xl text-foreground mb-4"
-      />
-      <input
-        type="text"
-        className="border-b font-medium bg-transparent block w-full text-3xl md:text-4xl text-foreground mb-4"
-        value={heading.description}
-        onChange={(e) =>
-          setHeading((prev) => ({
-            ...prev,
-            description: e.target.value,
-          }))
-        }
-      />
+              <input
+                type="text"
+                value={contentState.heading.heading}
+                onChange={(e) => updateField("heading", "heading", e.target.value)}
+                className="border-b font-medium bg-transparent block w-full text-3xl md:text-4xl text-foreground mb-4"
+              />
+              <input
+                type="text"
+                className="border-b font-medium bg-transparent block w-full text-3xl md:text-4xl text-foreground mb-4"
+                value={contentState.heading.description}
+                onChange={(e) => updateField("heading", "description", e.target.value)}
+              />
 
-      <input
-        type="text"
-        value={heading.trust}
-        onChange={(e) =>
-          setHeading((prev) => ({ ...prev, trust: e.target.value }))
-        }
-        className="border-b font-medium bg-transparent block w-full text-3xl md:text-4xl text-foreground mb-4"
-      />
-    </>
-  ) : (
-    <>
-      <div className="inline-flex items-center px-4 py-2 bg-red-accent/10 rounded-full text-red-accent mb-4">
-        <Zap className="w-4 h-4 mr-2" />
-        <span className="font-medium"> {heading.title}</span>
-      </div>
-      <h2 className="text-3xl md:text-4xl text-foreground mb-4">
-        {heading.heading}
-      </h2>
+              <input
+                type="text"
+                value={contentState.heading.trust}
+                onChange={(e) => updateField("heading", "trust", e.target.value)}
+                className="border-b font-medium bg-transparent block w-full text-3xl md:text-4xl text-foreground mb-4"
+              />
+            </>
+          ) : (
+            <>
+              <div className="inline-flex items-center px-4 py-2 bg-red-accent/10 rounded-full text-red-accent mb-4">
+                <Zap className="w-4 h-4 mr-2" />
+                <span className="font-medium"> {contentState.heading.title}</span>
+              </div>
+              <h2 className="text-3xl md:text-4xl text-foreground mb-4">
+                {contentState.heading.heading}
+              </h2>
 
-      <p className="text-lg text-muted-foreground inline">
-        {heading.description}
-      </p>
-      <p className="text-lg text-muted-foreground inline font-bold text-foreground">
-        {" "}
-        {heading.trust}
-      </p>
-    </>
-  )}
-</div>
+              <p className="text-lg text-muted-foreground inline">
+                {contentState.heading.description}
+              </p>
+              <p className="text-lg text-muted-foreground inline font-bold text-foreground">
+                {" "}
+                {contentState.heading.trust}
+              </p>
+            </>
+          )}
+        </div>
 
         {/* Products Grid */}
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
-          {products.slice(0, visibleCount).map((product, index) => {
-            const IconComponent = product.icon;
-            return (
+          {contentState.products.slice(0, visibleCount).map((product, index) => {
+              return (
               <Card
                 key={index}
                 className="group h-full relative overflow-hidden"
@@ -340,7 +274,7 @@ const removeBenefit = (index: number) => {
                     <input
                       type="file"
                       accept="image/*"
-                      className="absolute bottom-2 px-2 inline z-10 text-black hover:text-white hover:bg-black bg-gray-200 rounded-xl left-2 text-xs"
+                      className="absolute bottom-2 px-5 py-1 w-[70%] inline z-10 text-black hover:text-white hover:bg-black bg-gray-200 rounded-xl left-2 text-xs"
                       onChange={(e) => handleImageUpload(index, e)}
                     />
                   )}
@@ -353,11 +287,7 @@ const removeBenefit = (index: number) => {
                         <input
                           value={product.category}
                           onChange={(e) =>
-                            updateProductField(
-                              index,
-                              "category",
-                              e.target.value
-                            )
+                            updateProductField(index, "category", e.target.value)
                           }
                           className="border-b text-xs bg-transparent"
                         />
@@ -371,15 +301,7 @@ const removeBenefit = (index: number) => {
                       <Zap className="w-2 h-2 mr-1" /> Bestseller
                     </div>
                   )}
-                  <div className="absolute bottom-2 left-2">
-                    <div
-                      className={`w-8 h-8 ${
-                        product.isPopular ? "bg-red-accent/90" : "bg-primary/90"
-                      } rounded-lg flex items-center justify-center`}
-                    >
-                      <IconComponent className="h-4 w-4 text-white" />
-                    </div>
-                  </div>
+                  
                 </div>
                 <CardHeader>
                   {isEditing ? (
@@ -409,7 +331,7 @@ const removeBenefit = (index: number) => {
                     </p>
                   )}
                   <ul className="space-y-1 mt-3">
-                    {product.features.map((f: string, fi: number) => (
+                    {product.features.map((f, fi) => (
                       <li
                         key={fi}
                         className="text-xs text-muted-foreground flex items-center"
@@ -424,12 +346,14 @@ const removeBenefit = (index: number) => {
                               }
                               className="border-b w-full"
                             />
-                            <button
+                            <motion.button
+                            whileHover={{scale:1.1}}
+                     whileTap={{scale:0.9}}
                               onClick={() => removeFeature(index, fi)}
-                              className="text-xs text-red-500"
+                              className="text-xs cursor-pointer text-red-500"
                             >
                               ✕ Remove
-                            </button>
+                            </motion.button>
                           </div>
                         ) : (
                           <span>{f}</span>
@@ -438,20 +362,23 @@ const removeBenefit = (index: number) => {
                     ))}
                   </ul>
                   {isEditing && (
-                    <button
+                    <motion.button
+                     whileHover={{scale:1.1}}
+                     whileTap={{scale:0.9}}
                       onClick={() => addFeature(index)}
                       className="text-xs text-green-600 mt-2"
                     >
                       + Add Feature
-                    </button>
+                    </motion.button>
                   )}
                   <div className="mt-4 flex gap-2">
-                    <Button size="sm" onClick={() => openModal(product)}>
+                    <Button size="sm" className="hover:scale-105" onClick={() => openModal(index)}>
                       View Details
                     </Button>
                     {isEditing && (
                       <Button
                         size="sm"
+                        className="hover:scale-105"
                         variant="destructive"
                         onClick={() => removeProduct(index)}
                       >
@@ -464,8 +391,8 @@ const removeBenefit = (index: number) => {
             );
           })}
           {isEditing && (
-            <Card className="flex items-center justify-center border-dashed">
-              <Button onClick={addProduct} className="text-green-600">
+            <Card className=" flex items-center justify-center border-dashed">
+              <Button onClick={addProduct} className="hover:scale-105 text-green-600">
                 + Add Product
               </Button>
             </Card>
@@ -474,12 +401,12 @@ const removeBenefit = (index: number) => {
 
         {/* Load More / Show Less */}
         <div className="flex justify-center mt-6">
-          {visibleCount < products.length && (
+          {visibleCount < contentState.products.length && (
             <Button onClick={() => setVisibleCount((prev) => prev + 4)}>
               Load More
             </Button>
           )}
-          {visibleCount >= products.length && products.length > 4 && (
+          {visibleCount >= contentState.products.length && contentState.products.length > 4 && (
             <Button
               onClick={() => setVisibleCount(4)}
               variant="secondary"
@@ -490,106 +417,88 @@ const removeBenefit = (index: number) => {
           )}
         </div>
 
-        {/* Edit/Save */}
-        <div className="flex justify-end mt-6">
-          {isEditing ? (
-            <Button
-              onClick={() => setIsEditing(false)}
-              className="bg-green-600 text-white"
-            >
-              Save
-            </Button>
-          ) : (
-            <Button
-              onClick={() => setIsEditing(true)}
-              className="bg-yellow-500 text-black"
-            >
-              Edit
-            </Button>
-          )}
-        </div>
+        
 
         {/* Benefits */}
-
-          <div className="mt-16 grid  md:grid-cols-3 gap-8">
-  {benefits.map((benefit, index) => (
-    <div key={index} className="text-center h-50 group cursor-pointer">
-      <div
-        className={`w-10 h-10 ${
-          benefit.color === "gradient"
-            ? "bg-gradient-to-r from-red-accent to-primary"
-            : `bg-${benefit.color}`
-        } rounded-xl flex items-center justify-center mx-auto mb-3`}
-      >
-        {isEditing ? (
-          <input
-            value={benefit.icon}
-            onChange={e => updateBenefit(index, "icon", e.target.value)}
-            className="font-bold text-sm text-white bg-transparent text-center w-8"
-          />
-        ) : (
-          <span className="font-bold text-sm text-white">{benefit.icon}</span>
-        )}
-      </div>
-      {isEditing ? (
-        <>
-          <input
-            value={benefit.title}
-            onChange={e => updateBenefit(index, "title", e.target.value)}
-            className="font-semibold text-foreground mb-2 text-sm w-full text-center border-b bg-transparent"
-          />
-          <input
-            value={benefit.desc}
-            onChange={e => updateBenefit(index, "desc", e.target.value)}
-            className="text-muted-foreground text-xs leading-relaxed w-full text-center border-b bg-transparent"
-          />
-          <select
-            value={benefit.color}
-            onChange={e => updateBenefit(index, "color", e.target.value)}
-            className="mt-2 text-xs"
-          >
-            <option value="red-accent">Red</option>
-            <option value="primary">Primary</option>
-            <option value="gradient">Gradient</option>
-            <option value="orange">Orange</option>
-            <option value="green">Green</option>
-            {/* Add more as needed */}
-          </select>
-          <button
-            onClick={() => removeBenefit(index)}
-            className="text-xs text-red-500 mt-2"
-          >
-            ✕ Remove
-          </button>
-        </>
-      ) : (
-        <>
-          <h4 className="font-semibold text-foreground mb-2 text-sm">
-            {benefit.title}
-          </h4>
-          <p className="text-muted-foreground text-xs leading-relaxed">
-            {benefit.desc}
-          </p>
-        </>
-      )}
-    </div>
-  ))}
-  {isEditing && (
-    <div className="flex items-center justify-center">
-      <button
-        onClick={addBenefit}
-        className="text-green-600 text-sm font-medium"
-      >
-        + Add Benefit
-      </button>
-    </div>
-  )}
-</div>
+        <div className="mt-16 grid md:grid-cols-3 gap-8">
+          {contentState.benefits.map((benefit, index) => (
+            <div key={index} className="text-center h-50 group cursor-pointer">
+              <div
+                className={`w-10 h-10 ${
+                  benefit.color === "gradient"
+                    ? "bg-gradient-to-r from-red-accent to-primary"
+                    : `bg-${benefit.color}`
+                } rounded-xl flex items-center justify-center mx-auto mb-3`}
+              >
+                {isEditing ? (
+                  <input
+                    value={benefit.icon}
+                    onChange={e => updateBenefit(index, "icon", e.target.value)}
+                    className="font-bold text-sm text-white bg-transparent text-center w-8"
+                  />
+                ) : (
+                  <span className="font-bold text-sm text-white">{benefit.icon}</span>
+                )}
+              </div>
+              {isEditing ? (
+                <>
+                  <input
+                    value={benefit.title}
+                    onChange={e => updateBenefit(index, "title", e.target.value)}
+                    className="font-semibold text-foreground mb-2 text-sm w-full text-center border-b bg-transparent"
+                  />
+                  <input
+                    value={benefit.desc}
+                    onChange={e => updateBenefit(index, "desc", e.target.value)}
+                    className="text-muted-foreground text-xs leading-relaxed w-full text-center border-b bg-transparent"
+                  />
+                  <select
+                    value={benefit.color}
+                    onChange={e => updateBenefit(index, "color", e.target.value)}
+                    className="mt-2 text-xs"
+                  >
+                    <option value="red-accent">Red</option>
+                    <option value="primary">Primary</option>
+                    <option value="gradient">Gradient</option>
+                    <option value="orange">Orange</option>
+                    <option value="green">Green</option>
+                    {/* Add more as needed */}
+                  </select>
+                  <button
+                    onClick={() => removeBenefit(index)}
+                    className="text-xs text-red-500 mt-2"
+                  >
+                    ✕ Remove
+                  </button>
+                </>
+              ) : (
+                <>
+                  <h4 className="font-semibold text-foreground mb-2 text-sm">
+                    {benefit.title}
+                  </h4>
+                  <p className="text-muted-foreground text-xs leading-relaxed">
+                    {benefit.desc}
+                  </p>
+                </>
+              )}
+            </div>
+          ))}
+          {isEditing && (
+            <div className="flex items-center justify-center">
+              <button
+                onClick={addBenefit}
+                className="text-green-600 text-sm font-medium"
+              >
+                + Add Benefit
+              </button>
+            </div>
+          )}
         </div>
+      </div>
 
       {/* Modal */}
       <AnimatePresence>
-        {isModalOpen && selectedProduct && (
+        {isModalOpen && selectedProductIndex !== null && (
           <motion.div
             className="fixed inset-0 bg-black/50 flex items-center justify-center p-6 z-50"
             initial={{ opacity: 0 }}
@@ -610,41 +519,29 @@ const removeBenefit = (index: number) => {
 
               {isEditing ? (
                 <input
-                  value={selectedProduct.title}
+                  value={contentState.products[selectedProductIndex].title}
                   onChange={(e) =>
-                    updateProductField(
-                      products.findIndex(
-                        (p) => p.title === selectedProduct.title
-                      ),
-                      "title",
-                      e.target.value
-                    )
+                    updateProductField(selectedProductIndex, "title", e.target.value)
                   }
                   className="border-b w-full text-2xl font-bold mb-4"
                 />
               ) : (
                 <h2 className="text-2xl font-bold mb-4">
-                  {selectedProduct.title}
+                  {contentState.products[selectedProductIndex].title}
                 </h2>
               )}
 
               {isEditing ? (
                 <textarea
-                  value={selectedProduct.detailedDescription}
+                  value={contentState.products[selectedProductIndex].detailedDescription}
                   onChange={(e) =>
-                    updateProductField(
-                      products.findIndex(
-                        (p) => p.title === selectedProduct.title
-                      ),
-                      "detailedDescription",
-                      e.target.value
-                    )
+                    updateProductField(selectedProductIndex, "detailedDescription", e.target.value)
                   }
                   className="border-b w-full mb-4"
                 />
               ) : (
                 <p className="text-muted-foreground mb-4">
-                  {selectedProduct.detailedDescription}
+                  {contentState.products[selectedProductIndex].detailedDescription}
                 </p>
               )}
 
@@ -654,40 +551,28 @@ const removeBenefit = (index: number) => {
                   <h3 className="font-semibold mb-2">Pricing</h3>
                   {isEditing ? (
                     <input
-                      value={selectedProduct.pricing}
+                      value={contentState.products[selectedProductIndex].pricing}
                       onChange={(e) =>
-                        updateProductField(
-                          products.findIndex(
-                            (p) => p.title === selectedProduct.title
-                          ),
-                          "pricing",
-                          e.target.value
-                        )
+                        updateProductField(selectedProductIndex, "pricing", e.target.value)
                       }
                       className="border-b w-full"
                     />
                   ) : (
-                    <p>{selectedProduct.pricing}</p>
+                    <p>{contentState.products[selectedProductIndex].pricing}</p>
                   )}
                 </div>
                 <div>
                   <h3 className="font-semibold mb-2">Timeline</h3>
                   {isEditing ? (
                     <input
-                      value={selectedProduct.timeline}
+                      value={contentState.products[selectedProductIndex].timeline}
                       onChange={(e) =>
-                        updateProductField(
-                          products.findIndex(
-                            (p) => p.title === selectedProduct.title
-                          ),
-                          "timeline",
-                          e.target.value
-                        )
+                        updateProductField(selectedProductIndex, "timeline", e.target.value)
                       }
                       className="border-b w-full"
                     />
                   ) : (
-                    <p>{selectedProduct.timeline}</p>
+                    <p>{contentState.products[selectedProductIndex].timeline}</p>
                   )}
                 </div>
               </div>

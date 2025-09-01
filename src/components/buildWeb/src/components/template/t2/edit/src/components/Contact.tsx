@@ -87,6 +87,21 @@ export default function Contact() {
       transition={{ duration: 0.8 }}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
+          {/* Edit/Save Buttons */}
+        <div className="flex justify-end mt-6">
+         {isEditing ? (
+            <motion.button 
+            whileTap={{scale:0.9}}
+            whileHover={{y:-1,scaleX:1.1}}
+            onClick={() => setIsEditing(false)} className="bg-green-600 cursor-pointer hover:font-semibold hover:shadow-2xl shadow-xl text-white px-4 py-2 rounded">Save</motion.button>
+          ) : (
+            <motion.button 
+            whileTap={{scale:0.9}}  
+            whileHover={{y:-1,scaleX:1.1}}
+            onClick={() => setIsEditing(true)} className="bg-yellow-500 text-black px-4 py-2 rounded cursor-pointer  hover:shadow-2xl shadow-xl hover:font-semibold">Edit</motion.button>
+          )}
+        </div>
         {/* Header */}
         <motion.div 
           className="text-center max-w-3xl mx-auto mb-16"
@@ -152,7 +167,7 @@ export default function Contact() {
             )}
           </motion.div>
         </motion.div>
-
+          
         <div className="grid lg:grid-cols-2 gap-12">
           {/* Contact Form - Keeping this static as requested */}
           <motion.div
@@ -339,7 +354,7 @@ export default function Contact() {
                     </motion.span>
                   </Button>
                 </motion.div>
-
+                  
                 <motion.div 
                   className="text-center"
                   variants={itemVariants}
@@ -347,6 +362,7 @@ export default function Contact() {
                   whileInView="visible"
                   viewport={{ once: true }}
                 >
+                  
                   <p className="text-sm text-muted-foreground">
                     We typically respond within 24 hours during business days.
                   </p>
@@ -402,7 +418,7 @@ export default function Contact() {
                               <Button
                                 size="sm"
                                 variant="destructive"
-                                className="mt-2"
+                                className="mt-2 cursor-pointer hover:scale-105"
                                 onClick={() => removeContactInfo(index)}
                               >
                                 Remove
@@ -429,11 +445,14 @@ export default function Contact() {
             })}
 
             {isEditing && (
-              <div className="flex items-center justify-center">
-                <Button onClick={addContactInfo} className="text-green-600">
+              <motion.div
+              whileTap={{scale:0.9}}
+              whileHover={{scale:1.1}}
+              className="flex items-center justify-center">
+                <Button onClick={addContactInfo} className="cursor-pointer text-green-600">
                   + Add Contact Info
                 </Button>
-              </div>
+              </motion.div>
             )}
 
             {/* Contact CTA card */}
@@ -488,24 +507,7 @@ export default function Contact() {
                 </CardContent>
               </Card>
             </motion.div>
-        {/* Edit/Save Button */}
-        <div className="flex justify-end mt-6">
-          {isEditing ? (
-            <Button
-              onClick={() => setIsEditing(false)}
-              className="bg-green-600 text-white"
-            >
-              Save
-            </Button>
-          ) : (
-            <Button
-              onClick={() => setIsEditing(true)}
-              className="bg-yellow-500 text-black"
-            >
-              Edit
-            </Button>
-          )}
-        </div>
+      
           </motion.div>
         </div>
 

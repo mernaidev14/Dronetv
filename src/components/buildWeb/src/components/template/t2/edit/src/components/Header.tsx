@@ -193,21 +193,18 @@ export default function Header() {
 
             <ThemeToggle />
 
-            {isEditing ? (
-              <button
-                onClick={() => setIsEditing(false)}
-                className="bg-green-600 text-white px-3 py-1 rounded"
-              >
-                Save
-              </button>
-            ) : (
-              <button
-                onClick={() => setIsEditing(true)}
-                className="bg-yellow-500 text-black px-3 py-1 rounded"
-              >
-                Edit
-              </button>
-            )}
+            {/* Edit/Save Buttons */}
+         {isEditing ? (
+            <motion.button 
+            whileTap={{scale:0.9}}
+            whileHover={{y:-1,scaleX:1.1}}
+            onClick={() => setIsEditing(false)} className="bg-green-600 cursor-pointer hover:font-semibold hover:shadow-2xl shadow-xl text-white px-4 py-2 rounded">Save</motion.button>
+          ) : (
+            <motion.button 
+            whileTap={{scale:0.9}}
+            whileHover={{y:-1,scaleX:1.1}}
+            onClick={() => setIsEditing(true)} className="bg-yellow-500 text-black px-4 py-2 rounded cursor-pointer  hover:shadow-2xl shadow-xl hover:font-semibold">Edit</motion.button>
+          )}
           </div>
 
           {/* Mobile menu button */}

@@ -3,73 +3,106 @@ import { Button } from "./ui/button";
 import { ArrowRight, Play, CheckCircle } from "lucide-react";
 import { motion } from "motion/react";
 
-export default function Hero() {
+export default function Hero({ heroData }) {
   const [isEditing, setIsEditing] = useState(false);
+  
+  // Consolidated state
+  const [heroState, setHeroState] = useState({
+    badgeText: "Trusted by 500+ Companies",
+    heading: heroData?.title || "Transform Your Business with",
+    highlight: "Innovation",
+    description: heroData?.subtitle||"We help companies scale and grow with cutting-edge solutions, expert guidance, and proven strategies that deliver",
+    highlightDesc: "exceptional results",
+    primaryBtn: heroData?.primaryAction?.text||"Get Started Today",
+    secondaryBtn: "Watch Demo",
+    trustText: "Join 500+ satisfied clients",
+    stats: [
+      { id: 1, value: "500+", label: "Happy Clients", color: "red-accent" },
+      { id: 2, value: "95%", label: "Success Rate", color: "red-accent" },
+      { id: 3, value: "24/7", label: "Support", color: "primary" },
+    ],
+    heroImage: "https://images.unsplash.com/photo-1698047682129-c3e217ac08b7?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtb2Rlcm4lMjBidXNpbmVzcyUyMHRlYW0lMjBvZmZpY2V8ZW58MXx8fHwxNzU1NjE4MzQ4fDA&ixlib=rb-4.1.0&q=80&w=1080",
+    cardText: "Live Support Available"
+  });
 
-  // Hero states
-  const [badgeText, setBadgeText] = useState("Trusted by 500+ Companies");
-  const [heading, setHeading] = useState("Transform Your Business with");
-  const [highlight, setHighlight] = useState("Innovation");
-  const [description, setDescription] = useState(
-    "We help companies scale and grow with cutting-edge solutions, expert guidance, and proven strategies that deliver"
-  );
-  const [highlightDesc, setHighlightDesc] = useState("exceptional results");
-
-  // Buttons
-  const [primaryBtn, setPrimaryBtn] = useState("Get Started Today");
-  const [secondaryBtn, setSecondaryBtn] = useState("Watch Demo");
-
-  // Trust text
-  const [trustText, setTrustText] = useState("Join 500+ satisfied clients");
-
-  // Stats
-  const [stats, setStats] = useState([
-    { id: 1, value: "500+", label: "Happy Clients", color: "red-accent" },
-    { id: 2, value: "95%", label: "Success Rate", color: "red-accent" },
-    { id: 3, value: "24/7", label: "Support", color: "primary" },
-  ]);
-
-  const updateStat = (id: number, field: string, value: string) => {
-    setStats((prev) =>
-      prev.map((s) => (s.id === id ? { ...s, [field]: value } : s))
-    );
+  // Update function for simple fields
+  const updateField = (field, value) => {
+    setHeroState(prev => ({ ...prev, [field]: value }));
   };
-  const addStat = () => {
-    setStats((prev) => [
+
+  // Stats functions
+  const updateStat = (id, field, value) => {
+    setHeroState(prev => ({
       ...prev,
-      { id: Date.now(), value: "0", label: "New Stat", color: "primary" },
-    ]);
-  };
-  const removeStat = (id: number) => {
-    setStats((prev) => prev.filter((s) => s.id !== id));
+      stats: prev.stats.map(s => s.id === id ? { ...s, [field]: value } : s)
+    }));
   };
 
-  // Hero image
-  const [heroImage, setHeroImage] = useState(
-    "https://images.unsplash.com/photo-1698047682129-c3e217ac08b7?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtb2Rlcm4lMjBidXNpbmVzcyUyMHRlYW0lMjBvZmZpY2V8ZW58MXx8fHwxNzU1NjE4MzQ4fDA&ixlib=rb-4.1.0&q=80&w=1080"
-  );
+  const addStat = () => {
+    setHeroState(prev => ({
+      ...prev,
+      stats: [
+        ...prev.stats,
+        { id: Date.now(), value: "0", label: "New Stat", color: "primary" }
+      ]
+    }));
+  };
 
-  const handleHeroImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const removeStat = (id) => {
+    setHeroState(prev => ({
+      ...prev,
+      stats: prev.stats.filter(s => s.id !== id)
+    }));
+  };
+
+  const handleHeroImageUpload = (e) => {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setHeroImage(reader.result as string);
+        updateField("heroImage", reader.result);
       };
       reader.readAsDataURL(file);
     }
   };
 
-  // Floating card
-  const [cardText, setCardText] = useState("Live Support Available");
-
   // Animations
-  const containerVariants = { hidden: { opacity: 0 }, visible: { opacity: 1, transition: { staggerChildren: 0.3, delayChildren: 0.2 } } };
-  const itemVariants = { hidden: { y: 50, opacity: 0 }, visible: { y: 0, opacity: 1, transition: { duration: 0.8, ease: "easeOut" } } };
-  const floatingVariants = { animate: { y: [-10, 10, -10], transition: { duration: 4, repeat: Infinity, ease: "easeInOut" } } };
+  const containerVariants = { 
+    hidden: { opacity: 0 }, 
+    visible: { 
+      opacity: 1, 
+      transition: { 
+        staggerChildren: 0.3, 
+        delayChildren: 0.2 
+      } 
+    } 
+  };
+  
+  const itemVariants = { 
+    hidden: { y: 50, opacity: 0 }, 
+    visible: { 
+      y: 0, 
+      opacity: 1, 
+      transition: { 
+        duration: 0.8, 
+        ease: "easeOut" 
+      } 
+    } 
+  };
+  
+  const floatingVariants = { 
+    animate: { 
+      y: [-10, 10, -10], 
+      transition: { 
+        duration: 4, 
+        repeat: Infinity, 
+        ease: "easeInOut" 
+      } 
+    } 
+  };
 
   return (
-    <section id="home" className="pt-20 mt-[3rem] pb-16 bg-background relative overflow-hidden theme-transition">
+    <section id="home" className="pt-20 mt-[4rem] pb-16 bg-background relative overflow-hidden theme-transition">
       {/* Background decorations */}
       <motion.div className="absolute top-20 right-0 w-72 h-72 bg-primary/5 rounded-full -translate-y-1/2 translate-x-1/2" animate={{ scale: [1, 1.1, 1], rotate: [0, 180, 360] }} transition={{ duration: 20, repeat: Infinity, ease: "linear" }} />
       <motion.div className="absolute bottom-0 left-0 w-96 h-96 bg-primary/3 rounded-full translate-y-1/2 -translate-x-1/2" animate={{ scale: [1, 1.2, 1], rotate: [0, -180, -360] }} transition={{ duration: 25, repeat: Infinity, ease: "linear" }} />
@@ -84,9 +117,13 @@ export default function Hero() {
               <motion.div className="inline-flex items-center px-4 py-2 bg-primary/10 rounded-full text-primary border border-primary/20 mb-4" variants={itemVariants}>
                 <CheckCircle className="w-4 h-4 mr-2" />
                 {isEditing ? (
-                  <input value={badgeText} onChange={(e) => setBadgeText(e.target.value)} className="bg-transparent border-b border-primary text-sm outline-none" />
+                  <input 
+                    value={heroState.badgeText} 
+                    onChange={(e) => updateField("badgeText", e.target.value)} 
+                    className="bg-transparent hover:bg-blue-200 border-b border-primary text-sm outline-none" 
+                  />
                 ) : (
-                  <span className="font-medium text-sm">{badgeText}</span>
+                  <span className="font-medium text-sm">{heroState.badgeText}</span>
                 )}
               </motion.div>
 
@@ -94,12 +131,20 @@ export default function Hero() {
               <motion.div variants={itemVariants}>
                 {isEditing ? (
                   <>
-                    <textarea value={heading} onChange={(e) => setHeading(e.target.value)} className="bg-transparent border-b border-foreground text-4xl md:text-6xl leading-tight outline-none w-full max-w-lg" />
-                    <input value={highlight} onChange={(e) => setHighlight(e.target.value)} className="bg-transparent border-b border-primary text-4xl md:text-6xl text-primary outline-none" />
+                    <textarea 
+                      value={heroState.heading} 
+                      onChange={(e) => updateField("heading", e.target.value)} 
+                      className="bg-transparent border-b border-foreground text-4xl md:text-6xl leading-tight outline-none w-full max-w-lg" 
+                    />
+                    <input 
+                      value={heroState.highlight} 
+                      onChange={(e) => updateField("highlight", e.target.value)} 
+                      className="bg-transparent border-b border-primary text-4xl md:text-6xl text-primary outline-none" 
+                    />
                   </>
                 ) : (
                   <h1 className="text-4xl md:text-6xl text-foreground leading-tight">
-                    {heading} <span className="text-primary">{highlight}</span>
+                    {heroState.heading} <span className="text-primary">{heroState.highlight}</span>
                   </h1>
                 )}
               </motion.div>
@@ -108,12 +153,20 @@ export default function Hero() {
               <motion.div variants={itemVariants}>
                 {isEditing ? (
                   <>
-                    <textarea value={description} onChange={(e) => setDescription(e.target.value)} className="bg-transparent border-b border-muted-foreground text-xl text-muted-foreground outline-none w-full max-w-lg" />
-                    <input value={highlightDesc} onChange={(e) => setHighlightDesc(e.target.value)} className="bg-transparent border-b border-red-accent text-xl font-semibold outline-none" />
+                    <textarea 
+                      value={heroState.description} 
+                      onChange={(e) => updateField("description", e.target.value)} 
+                      className="bg-transparent border-b border-muted-foreground text-xl text-muted-foreground outline-none w-full max-w-lg" 
+                    />
+                    <input 
+                      value={heroState.highlightDesc} 
+                      onChange={(e) => updateField("highlightDesc", e.target.value)} 
+                      className="bg-transparent border-b border-red-accent text-xl font-semibold outline-none" 
+                    />
                   </>
                 ) : (
                   <p className="text-xl text-muted-foreground max-w-lg inline">
-                    {description} <span className="text-red-accent font-semibold">{highlightDesc}</span>.
+                    {heroState.description} <span className="text-red-accent font-semibold">{heroState.highlightDesc}</span>.
                   </p>
                 )}
               </motion.div>
@@ -123,17 +176,25 @@ export default function Hero() {
             <motion.div className="flex flex-col sm:flex-row gap-4" variants={itemVariants}>
               {isEditing ? (
                 <>
-                  <input value={primaryBtn} onChange={(e) => setPrimaryBtn(e.target.value)} className="bg-transparent border-b border-primary outline-none max-w-[200px]" />
-                  <input value={secondaryBtn} onChange={(e) => setSecondaryBtn(e.target.value)} className="bg-transparent border-b border-muted-foreground outline-none max-w-[200px]" />
+                  <input 
+                    value={heroState.primaryBtn} 
+                    onChange={(e) => updateField("primaryBtn", e.target.value)} 
+                    className="bg-transparent border-b border-primary outline-none max-w-[200px]" 
+                  />
+                  <input 
+                    value={heroState.secondaryBtn} 
+                    onChange={(e) => updateField("secondaryBtn", e.target.value)} 
+                    className="bg-transparent border-b border-muted-foreground outline-none max-w-[200px]" 
+                  />
                 </>
               ) : (
                 <>
                   <Button size="lg" className="bg-primary text-primary-foreground shadow-xl">
-                    {primaryBtn}
+                    {heroState.primaryBtn}
                     <ArrowRight className="ml-2 h-5 w-5" />
                   </Button>
                   <Button variant="outline" size="lg" className="border-primary text-primary hover:bg-primary hover:text-primary-foreground">
-                    <Play className="mr-2 h-5 w-5" /> {secondaryBtn}
+                    <Play className="mr-2 h-5 w-5" /> {heroState.secondaryBtn}
                   </Button>
                 </>
               )}
@@ -148,22 +209,41 @@ export default function Hero() {
                   <div className="w-8 h-8 bg-red-accent rounded-full border-2 border-background" />
                 </div>
                 {isEditing ? (
-                  <input value={trustText} onChange={(e) => setTrustText(e.target.value)} className="bg-transparent border-b border-muted-foreground text-sm outline-none" />
+                  <input 
+                    value={heroState.trustText} 
+                    onChange={(e) => updateField("trustText", e.target.value)} 
+                    className="bg-transparent border-b border-muted-foreground text-sm outline-none" 
+                  />
                 ) : (
-                  <span className="text-sm text-muted-foreground">{trustText}</span>
+                  <span className="text-sm text-muted-foreground">{heroState.trustText}</span>
                 )}
               </div>
             </motion.div>
 
             {/* Stats */}
             <motion.div className="grid grid-cols-3 gap-8 pt-8" variants={itemVariants}>
-              {stats.map((s) => (
+              {heroState.stats.map((s) => (
                 <div key={s.id} className="group">
                   {isEditing ? (
                     <div className="flex flex-col gap-1">
-                      <input value={s.value} onChange={(e) => updateStat(s.id, "value", e.target.value)} className="bg-transparent border-b border-foreground font-bold text-2xl outline-none" />
-                      <input value={s.label} onChange={(e) => updateStat(s.id, "label", e.target.value)} className="bg-transparent border-b border-muted-foreground text-sm outline-none" />
-                      <button onClick={() => removeStat(s.id)} className="text-red-500 text-xs">✕ Remove</button>
+                      <input 
+                        value={s.value} 
+                        onChange={(e) => updateStat(s.id, "value", e.target.value)} 
+                        className="bg-transparent border-b border-foreground font-bold text-2xl outline-none" 
+                      />
+                      <input 
+                        value={s.label} 
+                        onChange={(e) => updateStat(s.id, "label", e.target.value)} 
+                        className="bg-transparent border-b border-muted-foreground text-sm outline-none" 
+                      />
+                      <motion.button 
+                      whileTap={{scale:0.9}}
+                      whileHover={{scale:1.2}}
+                        onClick={() => removeStat(s.id)} 
+                        className="text-red-500 cursor-pointer text-xs"
+                      >
+                        ✕ Remove
+                      </motion.button>
                     </div>
                   ) : (
                     <>
@@ -175,7 +255,14 @@ export default function Hero() {
                 </div>
               ))}
               {isEditing && (
-                <button onClick={addStat} className="text-green-600 text-sm font-medium">+ Add Stat</button>
+                <motion.button 
+                whileTap={{scale:0.9}}
+                      whileHover={{scale:1.2}}
+                  onClick={addStat} 
+                  className="text-green-600 cursor-pointer shadow-sm  text-sm font-medium"
+                >
+                  + Add Stat
+                </motion.button>
               )}
             </motion.div>
           </motion.div>
@@ -194,7 +281,7 @@ export default function Hero() {
               </div>
             )}
             <motion.div className="relative rounded-2xl overflow-hidden shadow-2xl" whileHover={{ scale: 1.02 }}>
-              <img src={heroImage} alt="Modern business team collaborating" className="w-full h-[500px] object-cover" />
+              <img src={heroState.heroImage} alt="Modern business team collaborating" className="w-full h-[500px] object-cover" />
               <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
               
               {/* Image overlay decorations */}
@@ -219,9 +306,13 @@ export default function Hero() {
                   transition={{ duration: 2, repeat: Infinity }}
                 />
                 {isEditing ? (
-                  <input value={cardText} onChange={(e) => setCardText(e.target.value)} className="bg-transparent border-b border-foreground text-sm outline-none" />
+                  <input 
+                    value={heroState.cardText} 
+                    onChange={(e) => updateField("cardText", e.target.value)} 
+                    className="bg-transparent border-b border-foreground text-sm outline-none" 
+                  />
                 ) : (
-                  <span className="text-sm font-medium">{cardText}</span>
+                  <span className="text-sm font-medium">{heroState.cardText}</span>
                 )}
               </div>
             </motion.div>
@@ -231,9 +322,15 @@ export default function Hero() {
         {/* Edit/Save */}
         <div className="flex justify-end mt-6">
           {isEditing ? (
-            <button onClick={() => setIsEditing(false)} className="bg-green-600 text-white px-4 py-2 rounded">Save</button>
+            <motion.button 
+            whileHover={{y:-1,scaleX:1.1}}
+            whileTap={{scale:0.9}}
+            onClick={() => setIsEditing(false)} className="bg-green-600 cursor-pointer hover:font-semibold hover:shadow-2xl shadow-xl text-white px-4 py-2 rounded">Save</motion.button>
           ) : (
-            <button onClick={() => setIsEditing(true)} className="bg-yellow-500 text-black px-4 py-2 rounded">Edit</button>
+            <motion.button 
+            whileHover={{y:-1,scaleX:1.1}}
+            whileTap={{scale:0.9}}
+            onClick={() => setIsEditing(true)} className="bg-yellow-500 text-black px-4 py-2 rounded cursor-pointer  hover:shadow-2xl shadow-xl hover:font-semibold">Edit</motion.button>
           )}
         </div>
       </div>
