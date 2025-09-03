@@ -1,18 +1,19 @@
 import { Button } from "./ui/button";
 import { Menu, X } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { ThemeToggle } from "./ThemeToggle";
 import { useTheme } from "./ThemeProvider";
+import { useAuth } from "../../../../../../../../context/context";
 
-export default function Header() {
+export default function Header({headerData,onStateChange}) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { theme } = useTheme();
-
+ let {isPublishedTrigured}=useAuth()
   const [isEditing, setIsEditing] = useState(false);
   const [content, setContent] = useState({
     logoLetter: "C",
-    companyName: "Company",
+    companyName: headerData.name||"Company",
     navItems: [
       { id: 1, label: "Home", href: "#home", color: "primary" },
       { id: 2, label: "About", href: "#about", color: "primary" },
@@ -23,6 +24,12 @@ export default function Header() {
     ],
     ctaText: "Get Started",
   });
+  // In each component, add:
+useEffect(() => {
+  if (onStateChange) {
+    onStateChange(content);
+  }
+}, [content, onStateChange]);
 
   const updateContent = (field: string, value: string) => {
     setContent((prev) => ({ ...prev, [field]: value }));
@@ -79,70 +86,70 @@ export default function Header() {
       animate={{ y: 0 }}
       transition={{ duration: 0.6, ease: "easeOut" }}
     >
-      <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'>
-        <div className='flex justify-between items-center h-16'>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between items-center h-16">
           {/* Logo */}
-          <div className='flex items-center'>
+          <div className="flex items-center">
             <motion.div
-              className='w-8 h-8 bg-primary rounded-lg flex items-center justify-center mr-2 shadow-md'
+              className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center mr-2 shadow-md"
               whileHover={{ rotate: 360 }}
               transition={{ duration: 0.6 }}
             >
               {isEditing ? (
                 <input
-                  type='text'
+                  type="text"
                   value={content.logoLetter}
                   onChange={(e) =>
                     updateContent("logoLetter", e.target.value.slice(0, 1))
                   }
-                  className='w-6 max-w-[32px] text-center bg-transparent border-b border-black font-bold text-lg outline-none'
+                  className="w-6 max-w-[32px] text-center bg-transparent border-b border-black font-bold text-lg outline-none"
                 />
               ) : (
-                <span className='text-black font-bold text-lg'>
+                <span className="text-black font-bold text-lg">
                   {content.logoLetter}
                 </span>
               )}
             </motion.div>
             {isEditing ? (
               <input
-                type='text'
+                type="text"
                 value={content.companyName}
                 onChange={(e) => updateContent("companyName", e.target.value)}
-                className='bg-transparent border-b border-primary text-xl font-bold outline-none max-w-[140px] truncate'
+                className="bg-transparent border-b border-primary text-xl font-bold outline-none max-w-[140px] truncate"
               />
             ) : (
-              <motion.span className='text-xl font-bold text-black'>
+              <motion.span className="text-xl font-bold text-black">
                 {content.companyName}
               </motion.span>
             )}
           </div>
 
           {/* Desktop Nav */}
-          <nav className='hidden md:flex items-center space-x-6 flex-wrap max-w-[600px] overflow-hidden'>
+          <nav className="hidden md:flex items-center space-x-6 flex-wrap max-w-[600px] overflow-hidden">
             {content.navItems.map((item) => (
-              <div key={item.id} className='flex items-center space-x-2'>
+              <div key={item.id} className="flex items-center space-x-2">
                 {isEditing ? (
                   <>
                     <input
-                      type='text'
+                      type="text"
                       value={item.label}
                       onChange={(e) =>
                         updateNavItem(item.id, "label", e.target.value)
                       }
-                      className='bg-white border px-2 py-1 rounded text-sm outline-none max-w-[100px] truncate'
+                      className="bg-white border px-2 py-1 rounded text-sm outline-none max-w-[100px] truncate"
                     />
                     <input
-                      type='text'
+                      type="text"
                       value={item.href}
                       onChange={(e) =>
                         updateNavItem(item.id, "href", e.target.value)
                       }
-                      className='bg-white border px-2 py-1 rounded text-xs text-gray-500 outline-none max-w-[120px] truncate'
-                      placeholder='URL'
+                      className="bg-white border px-2 py-1 rounded text-xs text-gray-500 outline-none max-w-[120px] truncate"
+                      placeholder="URL"
                     />
                     <button
                       onClick={() => removeNavItem(item.id)}
-                      className='text-red-500 text-xs'
+                      className="text-red-500 text-xs"
                     >
                       ✕
                     </button>
@@ -169,7 +176,7 @@ export default function Header() {
             {isEditing && (
               <button
                 onClick={addNavItem}
-                className='text-green-600 text-sm font-medium'
+                className="text-green-600 text-sm font-medium"
               >
                 + Add
               </button>
@@ -177,16 +184,16 @@ export default function Header() {
           </nav>
 
           {/* Right side */}
-          <div className='flex items-center space-x-4'>
+          <div className="flex items-center space-x-4">
             {isEditing ? (
               <input
-                type='text'
+                type="text"
                 value={content.ctaText}
                 onChange={(e) => updateContent("ctaText", e.target.value)}
-                className='bg-white border px-3 py-1 rounded font-medium outline-none max-w-[120px] truncate'
+                className="bg-white border px-3 py-1 rounded font-medium outline-none max-w-[120px] truncate"
               />
             ) : (
-              <Button className='bg-primary text-black hover:bg-primary/90 shadow-lg transition-all duration-300'>
+              <Button className="bg-primary text-black hover:bg-primary/90 shadow-lg transition-all duration-300">
                 {content.ctaText}
               </Button>
             )}
@@ -194,38 +201,30 @@ export default function Header() {
             <ThemeToggle />
 
             {/* Edit/Save Buttons */}
-            {isEditing ? (
-              <motion.button
-                whileTap={{ scale: 0.9 }}
-                whileHover={{ y: -1, scaleX: 1.1 }}
-                onClick={() => setIsEditing(false)}
-                className='bg-green-600 cursor-pointer hover:font-semibold hover:shadow-2xl shadow-xl text-white px-4 py-2 rounded'
-              >
-                Save
-              </motion.button>
-            ) : (
-              <motion.button
-                whileTap={{ scale: 0.9 }}
-                whileHover={{ y: -1, scaleX: 1.1 }}
-                onClick={() => setIsEditing(true)}
-                className='bg-yellow-500 text-black px-4 py-2 rounded cursor-pointer  hover:shadow-2xl shadow-xl hover:font-semibold'
-              >
-                Edit
-              </motion.button>
-            )}
+         {isEditing ? (
+            <motion.button 
+            whileTap={{scale:0.9}}
+            whileHover={{y:-1,scaleX:1.1}}
+            onClick={() => setIsEditing(false)} className="bg-green-600 cursor-pointer hover:font-semibold hover:shadow-2xl shadow-xl text-white px-4 py-2 rounded">Save</motion.button>
+          ) : (
+            <motion.button 
+            whileTap={{scale:0.9}}
+            whileHover={{y:-1,scaleX:1.1}}
+            onClick={() => setIsEditing(true)} className="bg-yellow-500 text-black px-4 py-2 rounded cursor-pointer  hover:shadow-2xl shadow-xl hover:font-semibold">Edit</motion.button>
+          )}
           </div>
 
           {/* Mobile menu button */}
-          <motion.div className='md:hidden'>
+          <motion.div className="md:hidden">
             <motion.button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className='text-gray-700 hover:text-primary transition-colors p-2'
+              className="text-gray-700 hover:text-primary transition-colors p-2"
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
               animate={{ rotate: isMenuOpen ? 180 : 0 }}
               transition={{ duration: 0.3 }}
             >
-              <AnimatePresence mode='wait'>
+              <AnimatePresence mode="wait">
                 {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
               </AnimatePresence>
             </motion.button>
@@ -236,13 +235,13 @@ export default function Header() {
         <AnimatePresence>
           {isMenuOpen && (
             <motion.div
-              className='md:hidden border-t border-gray-200 overflow-hidden'
+              className="md:hidden border-t border-gray-200 overflow-hidden"
               variants={menuVariants}
-              initial='closed'
-              animate='open'
-              exit='closed'
+              initial="closed"
+              animate="open"
+              exit="closed"
             >
-              <motion.nav className='flex flex-col space-y-4 py-4'>
+              <motion.nav className="flex flex-col space-y-4 py-4">
                 {content.navItems.map((item, index) => (
                   <motion.a
                     key={item.id}
@@ -255,7 +254,7 @@ export default function Header() {
                     {item.label}
                   </motion.a>
                 ))}
-                <Button className='bg-primary text-black hover:bg-primary/90 w-full mt-4 shadow-lg'>
+                <Button className="bg-primary text-black hover:bg-primary/90 w-full mt-4 shadow-lg">
                   {content.ctaText}
                 </Button>
               </motion.nav>
