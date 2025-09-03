@@ -76,7 +76,7 @@ const Navigation = () => {
 
           {/* Desktop Navigation */}
           <div className="hidden xl:flex items-center space-x-1">
-            {navItems.map((item, index) => (
+            {navItems.map((item) => (
               <Link
                 key={item.name}
                 to={item.path}

@@ -38,6 +38,7 @@ import Login from './components/login';
 import ForgotPassword from './components/ForgotPassword';
 import Logout from './components/Logout';
 import ResetPassword from './components/resetPassword';
+import ProtectedRoute from './components/ProtectedRoute';
 const HomePage = () => (
   <>
     <Hero />
@@ -64,7 +65,11 @@ const AppContent = () => {
         <Route path="/videos" element={<VideosPage />} />
         <Route path="/professionals" element={<ProfessionalsPage />} />
         <Route path="/companies" element={<CompaniesPage />} />
-        <Route path="/user/companies" element={<CompanyDirectory/>}/>
+        <Route path="/user/companies" element={
+          <ProtectedRoute>
+                   <CompanyDirectory/>
+          </ProtectedRoute>
+          }/>
         <Route path="/products" element={<ProductsPage />} />
         <Route path="/services" element={<ServicesPage />} />
         <Route path="/events" element={<EventsPage />} />
@@ -77,9 +82,13 @@ const AppContent = () => {
         <Route path="/product/:id" element={<ProductDetailPage />} />
         <Route path="/service/:id" element={<ServiceDetailPage />} />
         <Route path="/company/*" element={<SubApp />} />
-        <Route path="/buildweb" element={<Select />} />
+        <Route path="/user/companies/template-selection" element={<Select />} />
         <Route path="/template/t2" element={<Template2 />} />
-        <Route path="/form" element={<Form />} />
+        <Route path="/form" element={
+          <ProtectedRoute>
+            <Form />
+          </ProtectedRoute>
+          } />
         <Route path="/edit/template/t1" element={<Templale1 />} />
         <Route path="/edit/template/t2" element={<EditTemp2 />} />
         {/* login functionality */}

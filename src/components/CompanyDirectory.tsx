@@ -32,7 +32,7 @@ const Header = () => {
 
           <div className='flex flex-col sm:flex-row items-center justify-center gap-4'>
             <button
-              onClick={() => navigate('/buildweb')}
+              onClick={() => navigate('/user/companies/template-selection')}
               className='bg-gradient-to-r from-yellow-400 to-yellow-500 text-black px-6 py-3 md:px-8 md:py-4 font-semibold hover:from-yellow-500 hover:to-yellow-600 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1 rounded-lg w-full sm:w-auto text-sm md:text-base'
             >
               🚀 List Your Company
@@ -188,7 +188,7 @@ const Sidebar = ({
         <div className='space-y-3'>
           <p className='text-sm text-gray-600'>Don't see your company?</p>
           <button 
-            onClick={()=>navigate("/buildweb")}
+            onClick={()=>navigate("/user/companies/template-selection")}
             className='w-full bg-gray-900 text-white py-3 px-4 rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors'
           >
             List Your Company
