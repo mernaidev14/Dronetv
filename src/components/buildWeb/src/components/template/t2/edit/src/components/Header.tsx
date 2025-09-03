@@ -4,12 +4,10 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { ThemeToggle } from "./ThemeToggle";
 import { useTheme } from "./ThemeProvider";
-import { useAuth } from "../../../../../../../../context/context";
 
 export default function Header({headerData,onStateChange}) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { theme } = useTheme();
- let {isPublishedTrigured}=useAuth()
   const [isEditing, setIsEditing] = useState(false);
   const [content, setContent] = useState({
     logoLetter: "C",

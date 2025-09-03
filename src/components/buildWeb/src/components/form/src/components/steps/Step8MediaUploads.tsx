@@ -12,7 +12,7 @@ import {
   AlertCircle,
   Loader2,
 } from "lucide-react";
-import { useAuth } from "../../../../../../../context/context";
+import { useTemplate } from "../../../../../../../context/context";
 // ✅ Convert file to base64 + metadata
 const fileToUploadObject = (file: File): Promise<any> => {
   return new Promise((resolve, reject) => {
@@ -85,7 +85,7 @@ const Step8MediaUploads: React.FC<StepProps> = ({
   const [fileProcessingStatus, setFileProcessingStatus] = useState<{
     [key: string]: "pending" | "processing" | "completed" | "error";
   }>({});
-  const { setDraftDetails } = useAuth();
+  const { setDraftDetails } = useTemplate();
   const API_URL =
     "https://14exr8c8g0.execute-api.ap-south-1.amazonaws.com/prod/drafts";
 

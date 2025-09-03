@@ -9,12 +9,12 @@ import Clients from "./components/Clients";
 import Contact from "./components/Contact";
 import Footer from "./components/Footer";
 import { ThemeProvider } from "./components/ThemeProvider";
-import { useAuth } from "../../../../../../../context/context";
+import { useTemplate } from "../../../../../../../context/context";
 import { useEffect, useState, useCallback } from "react"; // Add useCallback
 import Publish from "./components/publish";
 
 export default function App() {
-  const { AIGenData, isPublishedTrigured, setFinalTemplate } = useAuth();
+  const { AIGenData, isPublishedTrigured, setFinalTemplate } = useTemplate();
   const [componentStates, setComponentStates] = useState({});
 
   // Memoize the collectComponentState function

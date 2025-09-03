@@ -32,8 +32,12 @@ import Template2 from './components/buildWeb/src/components/template/t2/src/main
 import Form from "./components/buildWeb/src/components/form/src/main";
 import EditTemp2 from "./components/buildWeb/src/components/template/t2/edit/src/main";
 import Templale1 from "./components/buildWeb/src/components/template/t1/src/main";
-import {AuthProvider} from "./components/context/context"
+import {CombinedProviders} from "./components/context/context"
 import CompanyDirectory from "./components/CompanyDirectory"
+import Login from './components/login';
+import ForgotPassword from './components/ForgotPassword';
+import Logout from './components/Logout';
+import ResetPassword from './components/resetPassword';
 const HomePage = () => (
   <>
     <Hero />
@@ -53,7 +57,7 @@ const AppContent = () => {
 
   return (
     <div className="min-h-screen">
-      <AuthProvider>
+      <CombinedProviders>
       <Navigation />
       <Routes>
         <Route path="/" element={<HomePage />} />
@@ -78,10 +82,15 @@ const AppContent = () => {
         <Route path="/form" element={<Form />} />
         <Route path="/edit/template/t1" element={<Templale1 />} />
         <Route path="/edit/template/t2" element={<EditTemp2 />} />
+        {/* login functionality */}
+        <Route path="/login" element={<Login />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/logout" element={<Logout />} />
+        <Route path="reset-password/:id" element={<ResetPassword />}/>
       </Routes>
       {!hideFooter && <Footer />}
       <ScrollingFooter />
-      </AuthProvider>
+      </CombinedProviders>
     </div>
   );
 };

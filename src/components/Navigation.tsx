@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Search, Menu, X } from 'lucide-react';
-
+import { useUserAuth } from './context/context';
 const Navigation = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [isLanguageOpen, setIsLanguageOpen] = useState(false);
-
+  const { isLogin } = useUserAuth();
+  
   const languageRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
   const navigate = useNavigate();
@@ -51,7 +52,9 @@ const Navigation = () => {
     //{ name: 'News', path: '/news' },
     { name: 'Videos', path: '/videos' },
     { name: 'Gallery', path: '/gallery' },
-    { name: 'Contact', path: '/contact' }
+    { name: 'Contact', path: '/contact' },
+    { name: isLogin ? 'Logout' : 'Login', path: isLogin ? '/logout' : '/login' }
+    
   ];
 
   return (

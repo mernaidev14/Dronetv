@@ -1,10 +1,10 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { CheckCircle, X, Upload, AlertCircle, Scale } from "lucide-react";
-import { useAuth } from "../../../../../../../../context/context"; // Adjust path as needed
+import { useTemplate } from "../../../../../../../../context/context"; // Adjust path as needed
 export default function Publish() {
   const [model, setModel] = useState(false);
-  const { publishTemplate } = useAuth(); // Get the publish function from context
+  const { publishTemplate } = useTemplate(); // Get the publish function from context
   return (
     <>
       <motion.div className="fixed bottom-20 right-10 z-50">

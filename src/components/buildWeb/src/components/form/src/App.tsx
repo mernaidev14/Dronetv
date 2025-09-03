@@ -8,7 +8,7 @@ import Step5ProductsServices from "./components/steps/Step5ProductsServices";
 import Step7PromotionBilling from "./components/steps/Step7PromotionBilling";
 import Step8MediaUploads from "./components/steps/Step8MediaUploads";
 import { AIGenerationLoader } from "./components/AIGenerationLoader";
-import {useAuth} from "../../../../../context/context"
+import {useTemplate} from "../../../../../context/context"
 import { SuccessPage } from "./components/SuccessPage";
 
 // ---- initial form state ----
@@ -130,7 +130,7 @@ const initialFormData: FormData = {
 function App() {
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState<FormData>(initialFormData);
-  const { draftDetails, setAIGenData, AIGenData } = useAuth();
+  const { draftDetails, setAIGenData, AIGenData } = useTemplate();
     
   const navigate = useNavigate(); // Use the useNavigate hook
   
