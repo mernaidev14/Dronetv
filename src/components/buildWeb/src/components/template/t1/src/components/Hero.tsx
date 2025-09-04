@@ -39,7 +39,7 @@ export default function Hero() {
   return (
     <section
       id='home'
-      className='relative min-h-screen flex items-center pt-[128px] pb-16 px-4 sm:px-6 lg:px-8 lg:pb-32'
+      className='relative h-100vh flex items-center pt-[128px] pb-16 px-4 sm:px-6 lg:px-8 lg:pb-32'
       style={{
         backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)), url('${HeroBackground}')`,
         backgroundSize: "cover",
@@ -62,7 +62,7 @@ export default function Hero() {
             variants={itemVariants}
           >
             <motion.h1
-              className='text-xl sm:text-4xl md:text-5xl lg:text-5xl font-bold text-white leading-tight px-2 sm:px-0'
+              className='text-xl sm:text-xl md:text-xl lg:text-xl xl:text-3xl font-bold text-white leading-tight px-2 pt-24 sm:px-0'
               variants={itemVariants}
             >
               Shaping Tomorrow with Innovation Today,
@@ -72,7 +72,7 @@ export default function Hero() {
             </motion.h1>
 
             <motion.p
-              className='text-base sm:text-lg lg:text-xl text-gray-200 max-w-2xl mx-auto lg:mx-0 px-2 sm:px-0 leading-relaxed'
+              className='text-base sm:text-lg lg:text-lg text-gray-200 max-w-2xl mx-auto lg:mx-0 px-2 sm:px-0 leading-relaxed'
               variants={itemVariants}
             >
               We believe in turning bold ideas into lasting impact. Our

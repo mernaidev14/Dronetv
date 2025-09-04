@@ -10,11 +10,11 @@ import BlogModal from "./components/BlogModal";
 import Testimonials from "./components/Testimonials";
 import Contact from "./components/Contact";
 import Footer from "./components/Footer";
-import { useAuth } from "../../../../../../../context/context";
+import { useTemplate } from "../../../../../../../context/context";
 // import { useEffect } from "react";
 
 export default function App() {
-  const { AIGenData } = useAuth();
+  const { AIGenData } = useTemplate();
 
   useEffect(() => {
     console.log("AIgen:", AIGenData);

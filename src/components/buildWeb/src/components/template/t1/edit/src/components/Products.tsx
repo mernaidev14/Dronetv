@@ -77,7 +77,7 @@ export default function EditableProducts({ productData }) {
   const [tempContent, setTempContent] = useState(defaultContent);
 
   const x = useMotionValue(0);
-  const speed = 0.5;
+  const animationRef = useRef();
 
   // Update content when productData changes
   useEffect(() => {
@@ -137,26 +137,48 @@ export default function EditableProducts({ productData }) {
     selected === "All"
       ? displayContent.products
       : displayContent.products.filter((p) => p.category === selected);
-  const duplicated = showAll ? filtered : [...filtered, ...filtered];
+
+  // Create seamless loop by tripling the items instead of doubling
+  const loopedItems = showAll
+    ? filtered
+    : [...filtered, ...filtered, ...filtered];
 
   // Reset animation position when filter changes
   useEffect(() => {
     x.set(0);
   }, [selected, x]);
 
+  // Improved animation logic
   useEffect(() => {
-    if (showAll || isEditing) return;
-    let animationFrame;
+    if (showAll || isEditing || filtered.length === 0) return;
+
+    const cardWidth = 320; // min-w-[320px]
+    const gap = 24; // space-x-6
+    const itemWidth = cardWidth + gap;
+    const totalWidth = filtered.length * itemWidth;
+
+    let startTime = Date.now();
+
     const animate = () => {
       if (!isHovered) {
-        x.set(x.get() - speed);
-        if (Math.abs(x.get()) >= (duplicated.length / 2) * 320) x.set(0);
+        const elapsed = Date.now() - startTime;
+        const speed = 0.5; // pixels per millisecond
+        const currentX = -(elapsed * speed) % totalWidth;
+        x.set(currentX);
+      } else {
+        startTime = Date.now() - Math.abs(x.get() / 0.5); // Adjust start time when paused
       }
-      animationFrame = requestAnimationFrame(animate);
+      animationRef.current = requestAnimationFrame(animate);
     };
-    animate();
-    return () => cancelAnimationFrame(animationFrame);
-  }, [isHovered, x, duplicated.length, showAll, isEditing, selected]);
+
+    animationRef.current = requestAnimationFrame(animate);
+
+    return () => {
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
+    };
+  }, [isHovered, x, filtered.length, showAll, isEditing, selected]);
 
   const handleEdit = () => {
     setIsEditing(true);
@@ -417,28 +439,33 @@ export default function EditableProducts({ productData }) {
         </div>
 
         {/* Categories */}
-        <div className='flex flex-wrap gap-2 mb-6'>
+        <div className='flex gap-4 justify-center mt-6 flex-wrap mb-16'>
           {displayContent.categories.map((cat) => (
-            <Badge
+            <button
               key={cat}
-              onClick={() => setSelected(cat)}
-              className={`cursor-pointer px-4 py-2 rounded-full ${
-                selected === cat ? "bg-yellow-400 text-white" : "bg-gray-200"
+              onClick={() => {
+                setSelected(cat);
+                setShowAll(false);
+              }}
+              className={`px-6 py-2 rounded-full transition-colors ${
+                selected === cat
+                  ? "bg-yellow-400 text-gray-900"
+                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
               }`}
             >
               {cat}
               {isEditing && cat !== "All" && (
-                <button
+                <span
                   onClick={(e) => {
                     e.stopPropagation();
                     removeCategory(cat);
                   }}
-                  className='ml-2 text-xs text-red-600'
+                  className='ml-2 text-xs text-red-600 hover:text-red-800 cursor-pointer'
                 >
                   ✕
-                </button>
+                </span>
               )}
-            </Badge>
+            </button>
           ))}
           {isEditing && (
             <Button onClick={addCategory} size='sm' variant='outline'>
@@ -448,19 +475,19 @@ export default function EditableProducts({ productData }) {
         </div>
       </div>
 
-      {/* Full-width animation container with constrained content */}
-      <div className='w-screen left-1/2 right-1/2 -ml-[50vw] -mr-[50vw] relative'>
+      {/* Full-width animation container */}
+      <div className='w-full overflow-hidden'>
         <div
           ref={containerRef}
-          className='w-full overflow-hidden'
+          className='w-full'
           onMouseEnter={() => setIsHovered(true)}
           onMouseLeave={() => setIsHovered(false)}
         >
-          <motion.div className='flex space-x-6 pl-6' style={{ x }}>
-            {duplicated.map((product, index) => (
+          <motion.div className='flex gap-6 pl-6' style={{ x }}>
+            {loopedItems.map((product, index) => (
               <Card
                 key={`${product.id}-${index}`}
-                className='min-w-[320px] shadow-md rounded-xl overflow-hidden relative'
+                className='flex-shrink-0 w-80 shadow-md rounded-xl overflow-hidden relative bg-white hover:shadow-lg transition-shadow duration-300'
               >
                 {product.isPopular && (
                   <div className='absolute top-4 right-4 z-10'>
@@ -549,7 +576,7 @@ export default function EditableProducts({ productData }) {
                         <ul className='text-sm text-gray-600 space-y-1'>
                           {product.features.map((feature, idx) => (
                             <li key={idx} className='flex items-center'>
-                              <div className='w-1.5 h-1.5 bg-yellow-400 rounded-full mr-2'></div>
+                              <div className='w-1.5 h-1.5 bg-yellow-400 rounded-full mr-2 flex-shrink-0'></div>
                               {feature}
                             </li>
                           ))}

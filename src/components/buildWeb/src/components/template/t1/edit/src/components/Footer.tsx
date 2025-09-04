@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import logo from "../public/images/logos/logo.svg";
 import {
   Mail,
   Phone,
@@ -55,8 +56,7 @@ export default function EditableFooter() {
       name: "Innovative Labs",
       description:
         "Innovative solutions for modern businesses. Transform your operations with our expert guidance and cutting-edge technology.",
-      logoUrl:
-        "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTEyIDJMMTMuMDkgOC4yNkwyMCA5TDEzLjA5IDE1Ljc0TDEyIDIyTDEwLjkxIDE1Ljc0TDQgOUwxMC45MSA4LjI2TDEyIDJaIiBmaWxsPSIjRUYzNDQ2Ii8+Cjwvc3ZnPgo=",
+      logoUrl: logo,
     },
     newsletter: {
       title: "Stay Updated",
@@ -273,7 +273,7 @@ export default function EditableFooter() {
                   <img
                     src={footerData.brand.logoUrl}
                     alt='Logo'
-                    className='h-6 w-6 sm:h-10 sm:w-10 object-contain'
+                    className='h-4 w-4 sm:h-6 sm:w-6 object-contain'
                     style={{
                       filter: isEditing ? "brightness(0.7)" : "none",
                     }}

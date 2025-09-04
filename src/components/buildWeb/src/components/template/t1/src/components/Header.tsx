@@ -76,7 +76,7 @@ export default function Header() {
               <motion.img
                 src={logo}
                 alt='Logo'
-                className='h-6 w-6 sm:h-10 sm:w-10 object-contain'
+                className='h-4 w-4 sm:h-6 sm:w-6 object-contain'
                 // Entrance animation
                 initial={{ opacity: 0, scale: 0.5, y: -20 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
