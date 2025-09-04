@@ -5,7 +5,7 @@ import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
 import { jwtDecode } from 'jwt-decode';
 import { Link } from 'react-router-dom';
 import {useUserAuth}  from "./context/context";
-
+ import { toast } from 'react-toastify';
 interface LoginData {
   email: string;
   password: string;
@@ -47,7 +47,7 @@ export default function Login() {
   const [formSubmitted, setFormSubmitted] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
-  const [loginData, setLoginData] = useState<LoginData>({ email: '', password: '' });
+  const [loginData, setLoginData] = useState<LoginData>({ email: '', password: '' }); 
   const [signUpData, setSignUpData] = useState<SignUpData>({
     email: '',
     fullName: '',
@@ -137,10 +137,11 @@ export default function Login() {
 
       if (response.ok) {
         const data = await response.json();
-        console.log('API response:', data);
+        toast(data.message)
+        // console.log('API response:', data);
         setHaveAccount(true); // Switch to login view after successful registration
       } else {
-        console.error('Failed to register user:', response.statusText);
+        toast.error('Failed to register user:', response.statusText);
       }
     } catch (error) {
       console.error('Error during registration:', error);
@@ -175,10 +176,11 @@ export default function Login() {
         if (response.ok) {
           const data = await response.json();
           login(data); // Store user data
-          alert('Google login successful!');
+          toast('Google login successful!');
+          // alert('Google login successful!');
           navigate("/user/companies")
         } else {
-          console.error('Google authentication failed:', response.statusText);
+          toast.error('Google authentication failed:', response.statusText);
         }
       } catch (error) {
         console.error('Error during Google authentication:', error);
@@ -206,9 +208,10 @@ export default function Login() {
         body: JSON.stringify(loginData)
       });
 
+      const data = await response.json();
       if (response.ok) {
         setIsLoading(false);
-        const data = await response.json();
+           toast.success(data.message);
         // console.log('API response:', data);
         
         // Store user data in context and localStorage
@@ -222,7 +225,8 @@ export default function Login() {
         navigate("/user/companies") // Navigate to dashdoard
       } else {
         setIsLoading(false);
-        console.error('Failed to log in:', response.statusText);
+        toast.error(data.message);
+        // console.error( response.statusText);
       }
     } catch (error) {
       console.error('Error during login:', error);

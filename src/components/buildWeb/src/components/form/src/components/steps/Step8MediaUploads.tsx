@@ -12,7 +12,9 @@ import {
   AlertCircle,
   Loader2,
 } from "lucide-react";
-import { useTemplate } from "../../../../../../../context/context";
+import { useTemplate,useUserAuth } from "../../../../../../../context/context";
+import { toast } from "react-toastify";
+
 // ✅ Convert file to base64 + metadata
 const fileToUploadObject = (file: File): Promise<any> => {
   return new Promise((resolve, reject) => {
@@ -86,6 +88,8 @@ const Step8MediaUploads: React.FC<StepProps> = ({
     [key: string]: "pending" | "processing" | "completed" | "error";
   }>({});
   const { setDraftDetails } = useTemplate();
+  const {user} = useUserAuth()
+  
   const API_URL =
     "https://14exr8c8g0.execute-api.ap-south-1.amazonaws.com/prod/drafts";
 
@@ -134,7 +138,7 @@ const Step8MediaUploads: React.FC<StepProps> = ({
       if (totalFiles === 0) {
         // No files to upload, just save form data
         const simplePayload = {
-          userId: "TEMP_USER_ID-25",
+          userId: user.email,
           templateSelection: formData?.templateSelection || null,
           templateDetails: {
             id: formData?.selectedTemplate?.id || null,
@@ -154,7 +158,7 @@ const Step8MediaUploads: React.FC<StepProps> = ({
         setUploadProgress(100);
 
         setTimeout(() => {
-          alert("Form submitted successfully!");
+          toast.success("Form submitted successfully!");
           onNext();
         }, 1000);
         return;
@@ -187,7 +191,7 @@ const Step8MediaUploads: React.FC<StepProps> = ({
         });
 
         const batchPayload = {
-          userId: "TEMP_USER_ID",
+          userId: user.email,
           templateSelection:
             formData?.templateSelection ||
             formData?.selectedTemplate?.value ||
@@ -284,7 +288,7 @@ const Step8MediaUploads: React.FC<StepProps> = ({
       console.log("🎉 All batches completed successfully");
 
       setTimeout(() => {
-        alert(
+        toast.success(
           "All files uploaded successfully! Your website generation has started."
         );
         onNext();
@@ -328,7 +332,7 @@ const Step8MediaUploads: React.FC<StepProps> = ({
         errorMessage += error.message || "Unknown error occurred.";
       }
 
-      alert(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setIsUploading(false);
     }
@@ -428,7 +432,7 @@ const Step8MediaUploads: React.FC<StepProps> = ({
               const file = e.target.files?.[0];
               if (file) {
                 if (file.size > 20 * 1024 * 1024) {
-                  alert("File size must be less than 20MB");
+                  toast.warn("File size must be less than 20MB");
                   return;
                 }
                 try {
@@ -443,7 +447,7 @@ const Step8MediaUploads: React.FC<StepProps> = ({
                   }
                 } catch (err) {
                   console.error("Error converting file:", err);
-                  alert("Error processing file. Please try again.");
+                  toast.error("Error processing file. Please try again.");
                 }
               }
             }}

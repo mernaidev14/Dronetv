@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { FormData } from "./types/form";
 import { useLocation,useNavigate } from "react-router-dom";
 import Step1CompanyCategory from "./components/steps/Step1CompanyCategory";
@@ -10,6 +10,7 @@ import Step8MediaUploads from "./components/steps/Step8MediaUploads";
 import { AIGenerationLoader } from "./components/AIGenerationLoader";
 import {useTemplate} from "../../../../../context/context"
 import { SuccessPage } from "./components/SuccessPage";
+import { toast } from "react-toastify";
 
 // ---- initial form state ----
 const initialFormData: FormData = {
@@ -144,12 +145,11 @@ function App() {
         const data = await response.json();
         if (response.ok) {
           
-          // console.log("data: ",data);
-          
+          toast.success("AI generates the data successfully",{toastId: "ai-success"})          
           // Use navigate function instead of Navigate component
           
             setAIGenData(data);
-            console.log("AIgen:", AIGenData);
+            // console.log("AIgen:", AIGenData);
             navigate(`/edit/template/${draftDetails.templateSelection ===1?"t1":"t2"}`);
           
   

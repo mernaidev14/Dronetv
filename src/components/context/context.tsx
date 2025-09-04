@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-
+ import {toast } from 'react-toastify';
 // User Authentication Types and Context
 interface User {
   email: string;
@@ -102,7 +102,10 @@ export const TemplateProvider: React.FC<TemplateProviderProps> = ({ children }) 
 
     if (response.ok) {
       console.log("response:", res);
+      toast.success("your site is successfully published and now it is in under-review")
       navigate("/user/companies");
+    }else{
+      toast.error("somthing want wrong...")
     }
   }
 

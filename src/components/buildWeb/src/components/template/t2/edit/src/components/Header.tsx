@@ -75,7 +75,7 @@ useEffect(() => {
 
   return (
     <motion.header
-      className={`fixed top-16 left-0 right-0 border-b z-50 ${
+      className={`fixed top-16 left-0 right-0 border-b z-10 ${
         theme === "dark"
           ? "bg-gray-800 border-gray-700 text-gray-300"
           : "bg-white border-gray-200"

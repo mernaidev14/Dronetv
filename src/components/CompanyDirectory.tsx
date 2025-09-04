@@ -1,9 +1,174 @@
-import { useState, useEffect } from "react";
-import { Search, MapPin, ChevronDown, ArrowRight, Star, Users, Building2, Menu, X } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Search, MapPin, ChevronDown, ArrowRight, Star, Users, Building2, Menu, X, Eye, Edit } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useUserAuth } from "./context/context"; // Import your user context
+
+// TypeScript Interfaces
+interface Company {
+  publishedId: string;
+  companyName: string;
+  location: string;
+  sectors: string[];
+  publishedDate: string;
+  previewImage?: string;
+  status: string;
+}
+
+interface ApiResponse {
+  cards: Company[];
+  totalCount: number;
+  hasMore: boolean;
+  nextKey: string | null;
+  userId?: string;
+}
+
+interface PublishedDetailsResponse {
+  publishedId: string;
+  templateSelection: string;
+  websiteContent: {
+    hero: {
+      headline?: string;
+      subheadline?: string;
+      title?: string;
+      subtitle?: string;
+      description?: string;
+      heroImage?: string;
+      numberOfClients?: string;
+      clientImages?: string[];
+      primaryCta?: string;
+      secondaryCta?: string;
+      features?: string[];
+      keyBenefits?: string[];
+    };
+    about: {
+      companyName?: string;
+      industry?: string;
+      established?: string;
+      headquarters?: string;
+      description1?: string;
+      description2?: string;
+      story?: string;
+      mission?: string;
+      vision?: string;
+      values?: Array<{ title: string; description: string }>;
+      achievements?: string[];
+      certifications?: string[];
+      officeImage?: string;
+      visionPillars?: string[];
+      teamExperience?: string;
+    };
+    services: {
+      headline?: string;
+      description?: string;
+      services?: any[];
+      whyChooseUs?: string[];
+    };
+    products: {
+      headline?: string;
+      description?: string;
+      products?: any[];
+      advantages?: string[];
+    };
+    clients: {
+      headline?: any;
+      clients?: any[];
+      stats?: any[];
+    };
+    testimonials: any[];
+    blog: any;
+    contact: any;
+    faq: {
+      headline?: string;
+      description?: string;
+      faqs?: Array<{ question: string; answer: string }>;
+    };
+    templateMetadata: any;
+  };
+  mediaAssets: {
+    companyLogoUrl?: string;
+    heroBackgroundUrl?: string;
+    officeImageUrl?: string;
+    contactBackgroundUrl?: string;
+    dgcaCertificateUrl?: string;
+  };
+  companyInfo: {
+    name: string;
+    location: string;
+    sectors: string[];
+    yearEstablished: string;
+  };
+  contentSource: string;
+  metadata: {
+    lastModified: string;
+    version: number;
+    hasEdits: boolean;
+    templateOptimized: boolean;
+    ownerId: string;
+  };
+  editHistory?: {
+    version: number;
+    lastModified: string;
+    editedSections?: string[];
+  };
+  publishedAt?: string;
+  createdAt?: string;
+}
+
+interface User {
+  userId: string;
+  // Add other user properties as needed
+}
+
+interface DropdownProps {
+  value: string;
+  onChange: (value: string) => void;
+  options: string[];
+  placeholder: string;
+}
+
+interface SidebarProps {
+  searchTerm: string;
+  onSearchChange: (value: string) => void;
+  industryFilter: string;
+  onIndustryChange: (value: string) => void;
+  sortBy: string;
+  onSortChange: (value: string) => void;
+  industries: string[];
+  isMobileSidebarOpen: boolean;
+  onCloseMobileSidebar: () => void;
+}
+
+interface CompanyCardProps {
+  company: Company;
+  onEdit: (publishedId: string) => void;
+  onPreview: (publishedId: string) => void;
+}
+
+interface MainContentProps {
+  companies: Company[];
+  currentPage: number;
+  totalPages: number;
+  loading: boolean;
+  error: string | null;
+  onRetry: () => void;
+  totalCount: number;
+  hasMore: boolean;
+  onOpenMobileSidebar: () => void;
+  onEdit: (publishedId: string) => void;
+  onPreview: (publishedId: string) => void;
+  searchTerm: string;
+  industryFilter: string;
+  sortBy: string;
+  onClearFilters: () => void;
+}
+
+interface ErrorMessageProps {
+  error: string;
+  onRetry: () => void;
+}
 
 // Header Component
-const Header = () => {
+const Header: React.FC = () => {
   const navigate = useNavigate();
   return (
     <div className='h-[40vh] md:h-[60vh] bg-yellow-50 flex items-center justify-center px-4 sm:px-6'>
@@ -20,14 +185,14 @@ const Header = () => {
           </div>
 
           <h1 className='text-3xl md:text-5xl font-light text-amber-900 mb-4 md:mb-6'>
-            Companies
+            My Companies
             <span className='block text-xl md:text-3xl font-extralight text-yellow-600 mt-1 md:mt-2'>
-              Directory
+              Dashboard
             </span>
           </h1>
 
           <p className='text-base md:text-lg text-amber-700 mb-6 md:mb-10 max-w-xl mx-auto font-light'>
-            Explore top companies leading drone, AI, and geospatial tech.
+            Manage your company listings, track performance, and update content.
           </p>
 
           <div className='flex flex-col sm:flex-row items-center justify-center gap-4'>
@@ -35,11 +200,11 @@ const Header = () => {
               onClick={() => navigate('/user/companies/template-selection')}
               className='bg-gradient-to-r from-yellow-400 to-yellow-500 text-black px-6 py-3 md:px-8 md:py-4 font-semibold hover:from-yellow-500 hover:to-yellow-600 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1 rounded-lg w-full sm:w-auto text-sm md:text-base'
             >
-              🚀 List Your Company
+              + Add New Company
             </button>
             <div className='w-px h-8 md:h-12 bg-yellow-300 hidden sm:block'></div>
             <button className='text-amber-700 hover:text-amber-900 transition-colors duration-300 text-sm md:text-base sm:mt-0 mt-2'>
-              Learn More
+              View Analytics
             </button>
           </div>
         </div>
@@ -48,9 +213,9 @@ const Header = () => {
   );
 };
 
-/* Dropdown Filter Component */
-const MinimalisticDropdown = ({ value, onChange, options, placeholder }) => {
-  const [open, setOpen] = useState(false);
+/* Dropdown Filter Component - FIXED SYNTAX ERROR */
+const MinimalisticDropdown: React.FC<DropdownProps> = ({ value, onChange, options, placeholder }) => {
+  const [open, setOpen] = useState<boolean>(false);
 
   return (
     <div className='relative'>
@@ -70,7 +235,7 @@ const MinimalisticDropdown = ({ value, onChange, options, placeholder }) => {
 
       {open && (
         <div className='absolute mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-sm z-10'>
-          {options.map((option, idx) => (
+          {options.map((option: string, idx: number) => (
             <button
               key={idx}
               onClick={() => {
@@ -93,7 +258,7 @@ const MinimalisticDropdown = ({ value, onChange, options, placeholder }) => {
 };
 
 /* Sidebar Filters Component */
-const Sidebar = ({
+const Sidebar: React.FC<SidebarProps> = ({
   searchTerm,
   onSearchChange,
   industryFilter,
@@ -104,7 +269,7 @@ const Sidebar = ({
   isMobileSidebarOpen,
   onCloseMobileSidebar
 }) => {
-  const sortOptions = [
+  const sortOptions: string[] = [
     "Sort by Name",
     "Sort by Location",
     "Sort by Date",
@@ -137,7 +302,7 @@ const Sidebar = ({
               type='text'
               placeholder='Search companies...'
               value={searchTerm}
-              onChange={(e) => onSearchChange(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => onSearchChange(e.target.value)}
               className='w-full pl-10 pr-4 py-3 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-gray-300 focus:border-gray-300 bg-gray-50 transition-colors'
             />
           </div>
@@ -186,12 +351,12 @@ const Sidebar = ({
 
         {/* CTA Section */}
         <div className='space-y-3'>
-          <p className='text-sm text-gray-600'>Don't see your company?</p>
+          <p className='text-sm text-gray-600'>Ready to expand?</p>
           <button 
             onClick={()=>navigate("/user/companies/template-selection")}
             className='w-full bg-gray-900 text-white py-3 px-4 rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors'
           >
-            List Your Company
+            Create New Listing
           </button>
         </div>
       </div>
@@ -199,25 +364,64 @@ const Sidebar = ({
   );
 };
 
-// Company Card Component
-const CompanyCard = ({ company }) => {
+// Company Card Component with Edit/Preview Buttons
+const CompanyCard: React.FC<CompanyCardProps> = ({ company, onEdit, onPreview }) => {
   // Create a placeholder image using company name
   const placeholderImg = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%23f3f4f6' rx='8'/%3E%3Ctext x='32' y='38' text-anchor='middle' fill='%23374151' font-size='20' font-family='Arial' font-weight='bold'%3E${
     company.companyName?.charAt(0) || "C"
   }%3C/text%3E%3C/svg%3E`;
 
   // Format date
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    });
+  const formatDate = (dateString: string): string => {
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      });
+    } catch (error) {
+      return "Date not available";
+    }
   };
 
+  // Status badge styling based on status
+  const getStatusBadge = (status: string) => {
+    const statusLower = (status || 'approved').toLowerCase();
+    
+    switch (statusLower) {
+      case 'pending':
+      case 'under review':
+        return {
+          bg: 'bg-yellow-100',
+          text: 'text-yellow-800',
+          label: 'Under Review'
+        };
+      case 'approved':
+        return {
+          bg: 'bg-green-100',
+          text: 'text-green-800',
+          label: 'Published'
+        };
+      case 'rejected':
+        return {
+          bg: 'bg-red-100',
+          text: 'text-red-800',
+          label: 'Rejected'
+        };
+      default:
+        return {
+          bg: 'bg-blue-100',
+          text: 'text-blue-800',
+          label: 'Published'
+        };
+    }
+  };
+
+  const statusStyle = getStatusBadge(company.status);
+
   return (
-    <div className='bg-red-50 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer overflow-hidden border-l-8 border-gradient-to-b from-pink-500 to-purple-600 group'>
+    <div className='bg-red-50 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden border-l-8 border-gradient-to-b from-pink-500 to-purple-600 group'>
       <div className='p-4 md:p-6 lg:p-8'>
         <div className='flex items-center justify-between mb-4 md:mb-6'>
           <div className='flex items-center gap-3 md:gap-4'>
@@ -226,25 +430,26 @@ const CompanyCard = ({ company }) => {
                 src={company.previewImage || placeholderImg}
                 alt={`${company.companyName} logo`}
                 className='w-full h-full object-contain transition-all duration-500 group-hover:rotate-[-3deg] group-hover:scale-110'
-                onError={(e) => {
-                  e.target.src = placeholderImg;
+                onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+                  const target = e.target as HTMLImageElement;
+                  target.src = placeholderImg;
                 }}
               />
             </div>
             <div className="max-w-[calc(100%-60px)] md:max-w-none">
               <h3 className='text-lg md:text-xl font-bold text-gray-900 line-clamp-2'>
-                {company.companyName}
+                {company.companyName || 'Unnamed Company'}
               </h3>
               <div className='flex items-center text-gray-600 mt-1'>
                 <MapPin className='w-3 h-3 mr-1' />
-                <span className='text-xs md:text-sm'>{company.location}</span>
+                <span className='text-xs md:text-sm'>{company.location || 'Location not specified'}</span>
               </div>
             </div>
           </div>
           <div className='text-right hidden sm:block'>
-            <div className='inline-flex items-center gap-2 bg-pink-100 text-pink-800 px-2 py-1 md:px-3 md:py-1 rounded-full text-xs font-medium'>
+            <div className={`inline-flex items-center gap-2 ${statusStyle.bg} ${statusStyle.text} px-2 py-1 md:px-3 md:py-1 rounded-full text-xs font-medium`}>
               <Building2 className='w-3 h-3' />
-              Published
+              {statusStyle.label}
             </div>
           </div>
         </div>
@@ -252,7 +457,7 @@ const CompanyCard = ({ company }) => {
         {/* Sectors */}
         <div className='mb-4 md:mb-6'>
           <div className='flex flex-wrap gap-1 md:gap-2'>
-            {company.sectors.map((sector, index) => (
+            {(company.sectors && company.sectors.length > 0 ? company.sectors : ['General']).map((sector: string, index: number) => (
               <span
                 key={index}
                 className='px-2 py-1 md:px-3 md:py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded-full'
@@ -263,25 +468,46 @@ const CompanyCard = ({ company }) => {
           </div>
         </div>
 
-        <div className='flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3'>
-          <div className='flex gap-3 md:gap-6'>
+        {/* Date and Actions Row */}
+        <div className='flex flex-col gap-3'>
+          <div className='flex items-center gap-3 md:gap-6'>
             <div className='flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-1 md:px-4 md:py-2'>
               <span className='font-bold text-purple-600 text-xs md:text-sm'>
-                {formatDate(company.publishedDate)}
+                {company.publishedDate ? formatDate(company.publishedDate) : 'Date not available'}
               </span>
               <span className='text-xs text-gray-600 hidden md:block'>Published</span>
             </div>
           </div>
-          <button className='text-purple-600 hover:text-purple-700 font-medium flex items-center gap-2 hover:gap-3 transition-all duration-300 text-sm md:text-base'>
-            Learn More
-            <ArrowRight className='w-3 h-3 md:w-4 md:h-4' />
-          </button>
+
+          {/* Action Buttons */}
+          <div className='flex gap-2 justify-end'>
+            <button
+              onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
+                e.stopPropagation();
+                onPreview(company.publishedId);
+              }}
+              className='px-3 py-2 md:px-4 md:py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors text-xs md:text-sm font-medium flex items-center gap-2'
+            >
+              <Eye className='w-3 h-3 md:w-4 md:h-4' />
+              Preview
+            </button>
+            <button
+              onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
+                e.stopPropagation();
+                onEdit(company.publishedId);
+              }}
+              className='px-3 py-2 md:px-4 md:py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors text-xs md:text-sm font-medium flex items-center gap-2'
+            >
+              <Edit className='w-3 h-3 md:w-4 md:h-4' />
+              Edit
+            </button>
+          </div>
         </div>
 
         {/* Published ID (small text at bottom) */}
         <div className='mt-3 md:mt-4 pt-3 md:pt-4 border-t border-gray-100'>
           <div className='flex justify-between items-center text-xs text-gray-400'>
-            <span className="truncate mr-2">ID: {company.publishedId}</span>
+            <span className="truncate mr-2">ID: {company.publishedId || 'No ID'}</span>
           </div>
         </div>
       </div>
@@ -290,7 +516,7 @@ const CompanyCard = ({ company }) => {
 };
 
 // Loading Component
-const LoadingSpinner = () => (
+const LoadingSpinner: React.FC = () => (
   <div className='flex items-center justify-center py-16'>
     <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600'></div>
     <span className='ml-4 text-gray-600'>Loading companies...</span>
@@ -298,9 +524,9 @@ const LoadingSpinner = () => (
 );
 
 // Error Component
-const ErrorMessage = ({ error, onRetry }) => (
+const ErrorMessage: React.FC<ErrorMessageProps> = ({ error, onRetry }) => (
   <div className='text-center py-16'>
-    <div className='text-6xl mb-4'>⚠️</div>
+    <div className='text-6xl mb-4'>⚠</div>
     <p className='text-xl text-red-600 mb-2'>Error loading companies</p>
     <p className='text-gray-500 mb-4'>{error}</p>
     <button
@@ -313,7 +539,7 @@ const ErrorMessage = ({ error, onRetry }) => (
 );
 
 // Main Content Area Component
-const MainContent = ({
+const MainContent: React.FC<MainContentProps> = ({
   companies,
   currentPage,
   totalPages,
@@ -322,8 +548,16 @@ const MainContent = ({
   onRetry,
   totalCount,
   hasMore,
-  onOpenMobileSidebar
+  onOpenMobileSidebar,
+  onEdit,
+  onPreview,
+  searchTerm,
+  industryFilter,
+  sortBy,
+  onClearFilters
 }) => {
+  const navigate = useNavigate();
+  
   if (loading)
     return (
       <div className='flex-1 bg-yellow-50 px-4 md:px-8 py-8'>
@@ -351,7 +585,7 @@ const MainContent = ({
       {/* Results Header */}
       <div className='flex items-center justify-between mb-6 md:mb-8 flex-wrap gap-3 md:gap-4'>
         <h2 className='text-xl md:text-2xl font-bold text-black'>
-          Companies ({totalCount || companies.length})
+          My Companies ({totalCount || companies.length})
         </h2>
         <div className='flex items-center gap-2 md:gap-4'>
           <span className='text-black font-medium text-sm md:text-base'>
@@ -366,126 +600,438 @@ const MainContent = ({
       </div>
 
       {/* Company Grid */}
-      <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6'>
-        {companies.map((company, index) => (
-          <div key={company.publishedId || index} className='animate-fadeIn'>
-            <CompanyCard company={company} />
-          </div>
-        ))}
-      </div>
-
-      {/* Empty State */}
-      {companies.length === 0 && !loading && (
-        <div className='text-center py-12 md:py-16'>
-          <div className='text-6xl mb-4'>🔍</div>
-          <p className='text-xl text-gray-700 mb-2'>No companies found</p>
-          <p className='text-gray-500 mb-6'>
-            Try adjusting your search criteria or clear filters
-          </p>
-          <button className='bg-yellow-500 text-black px-6 py-3 rounded-lg font-semibold hover:bg-yellow-600 transition-colors'>
-            🎯 Be the First - List Your Company
-          </button>
+      {companies.length > 0 ? (
+        <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6'>
+          {companies.map((company: Company, index: number) => (
+            <div key={company.publishedId || index} className='animate-fadeIn'>
+              <CompanyCard 
+                company={company}
+                onEdit={onEdit}
+                onPreview={onPreview}
+              />
+            </div>
+          ))}
         </div>
+      ) : (
+        <>
+          {/* Check if filters are applied */}
+          {searchTerm || industryFilter !== "All Sectors" || sortBy !== "Sort by Name" ? (
+            // Empty State with Filters Applied
+            <div className='text-center py-12 md:py-16'>
+              <div className='text-6xl mb-4'>🔍</div>
+              <p className='text-xl text-gray-700 mb-2'>No companies match your filters</p>
+              <p className='text-gray-500 mb-6'>
+                Try adjusting your search criteria or clear all filters
+              </p>
+              <button
+                onClick={onClearFilters}
+                className='bg-blue-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-600 transition-colors'
+              >
+                Clear All Filters
+              </button>
+            </div>
+          ) : (
+            // Empty State - No companies at all
+            <div className='text-center py-12 md:py-16'>
+              <div className='text-6xl mb-4'>🏢</div>
+              <p className='text-xl text-gray-700 mb-2'>No companies found</p>
+              <p className='text-gray-500 mb-6'>
+                You haven't created any company listings yet.
+              </p>
+              <button 
+                onClick={() => navigate('/user/companies/template-selection')}
+                className='bg-yellow-500 text-black px-6 py-3 rounded-lg font-semibold hover:bg-yellow-600 transition-colors'
+              >
+                Create Your First Company Listing
+              </button>
+            </div>
+          )}
+        </>
       )}
     </div>
   );
 };
 
-// API Service
+// FIXED API SERVICE - Using correct endpoint
 const apiService = {
-  async fetchCompanies() {
+  async fetchCompanies(userId: string): Promise<ApiResponse> {
+    // Input validation
+    if (!userId || typeof userId !== 'string' || userId.trim() === '') {
+      throw new Error("Valid user ID is required");
+    }
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+
+    try {
+      // FIXED: Use the correct endpoint /dashboard-cards
+      const url = new URL('https://v1lqhhm1ma.execute-api.ap-south-1.amazonaws.com/prod/dashboard-cards');
+      url.searchParams.append('userId', userId.trim());
+      
+      console.log('Fetching companies from:', url.toString());
+      
+      const response = await fetch(url.toString(), {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-User-ID': userId.trim(),
+          'Accept': 'application/json',
+        },
+        signal: controller.signal
+      });
+
+      clearTimeout(timeoutId);
+      console.log('Response status:', response.status);
+
+      if (!response.ok) {
+        let errorText = 'Unknown error occurred';
+        let errorJson = null;
+        
+        try {
+          const contentType = response.headers.get('content-type');
+          if (contentType && contentType.includes('application/json')) {
+            errorJson = await response.json();
+            errorText = errorJson.message || errorJson.error || errorJson.errorMessage || `HTTP ${response.status}`;
+          } else {
+            errorText = await response.text();
+          }
+        } catch (parseError) {
+          console.error("Error parsing error response:", parseError);
+          errorText = `HTTP ${response.status} - Unable to parse error response`;
+        }
+        
+        console.error("API Error Response:", { status: response.status, error: errorText, details: errorJson });
+        
+        // Handle specific status codes
+        switch (response.status) {
+          case 400:
+            throw new Error("Invalid request. Please check your user ID and try again.");
+          case 401:
+            throw new Error("Authentication required. Please log in to view your companies.");
+          case 403:
+            throw new Error("Access denied. You don't have permission to view these companies.");
+          case 404:
+            throw new Error("Service not found. Please contact support if this persists.");
+          case 429:
+            throw new Error("Too many requests. Please wait a moment and try again.");
+          case 500:
+            throw new Error("Server error. Please try again later.");
+          case 502:
+          case 503:
+          case 504:
+            throw new Error("Service temporarily unavailable. Please try again in a few minutes.");
+          default:
+            throw new Error(`Request failed (${response.status}): ${errorText}`);
+        }
+      }
+
+      let data;
+      try {
+        const responseText = await response.text();
+        if (!responseText) {
+          throw new Error("Empty response from server");
+        }
+        data = JSON.parse(responseText);
+      } catch (parseError) {
+        console.error("Error parsing JSON response:", parseError);
+        throw new Error("Invalid response format from server");
+      }
+
+      console.log("API Response:", data);
+
+      // Validate response structure
+      if (typeof data !== 'object' || data === null) {
+        throw new Error("Invalid response format: expected object");
+      }
+
+      // Handle different possible response structures
+      const cards = data.cards || data.items || data.companies || [];
+      
+      // Validate cards array
+      if (!Array.isArray(cards)) {
+        console.warn("Cards is not an array:", cards);
+        return {
+          cards: [],
+          totalCount: 0,
+          hasMore: false,
+          nextKey: null,
+        };
+      }
+
+      // Sanitize card data
+      const sanitizedCards = cards.map((card, index) => {
+        try {
+          return {
+            publishedId: String(card.publishedId || card.id || `temp-${index}`),
+            companyName: String(card.companyName || card.name || 'Unnamed Company'),
+            location: String(card.location || 'Location not specified'),
+            sectors: Array.isArray(card.sectors) ? card.sectors.map(s => String(s)) : (card.sectors ? [String(card.sectors)] : ['General']),
+            publishedDate: card.publishedDate || card.createdAt || card.date || new Date().toISOString(),
+            previewImage: card.previewImage || card.logo || card.image || '',
+            status: String(card.status || 'approved').toLowerCase()
+          };
+        } catch (cardError) {
+          console.error(`Error processing card at index ${index}:`, cardError);
+          return null;
+        }
+      }).filter(Boolean) as Company[]; // Remove null entries
+
+      return {
+        cards: sanitizedCards,
+        totalCount: data.totalCount || sanitizedCards.length,
+        hasMore: Boolean(data.hasMore),
+        nextKey: data.nextKey || null,
+      };
+
+    } catch (error) {
+      clearTimeout(timeoutId);
+      
+      console.error("Error fetching companies:", error);
+      
+      // Handle different types of errors
+      if (error instanceof TypeError && error.message.includes('fetch')) {
+        throw new Error("Network error. Please check your internet connection and try again.");
+      }
+      
+      if (error.name === 'AbortError') {
+        throw new Error("Request timed out. Please try again.");
+      }
+      
+      // Re-throw known errors
+      if (error instanceof Error) {
+        throw error;
+      }
+      
+      // Handle unknown errors
+      throw new Error("An unexpected error occurred while fetching companies");
+    }
+  },
+
+  async fetchPublishedDetails(publishedId: string, userId: string): Promise<PublishedDetailsResponse> {
     try {
       const response = await fetch(
-        "https://v1lqhhm1ma.execute-api.ap-south-1.amazonaws.com/prod/dashboard-cards"
+        `https://v1lqhhm1ma.execute-api.ap-south-1.amazonaws.com/prod/dashboard-cards/published-details/${publishedId}`,
+        {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-User-Id': userId,
+          },
+        }
       );
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorText = await response.text();
+        console.error("Published Details API Error:", errorText);
+        
+        if (response.status === 401) {
+          throw new Error("User not authenticated.");
+        } else if (response.status === 403) {
+          throw new Error("You don't have permission to access this template.");
+        } else if (response.status === 404) {
+          throw new Error("Template not found.");
+        } else {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
       }
 
       const data = await response.json();
-      console.log("API Response:", data);
-
-      // Return the cards array from the response, or use fallback data if API fails
-      return {
-        cards: data.cards || [],
-        totalCount: data.totalCount || 0,
-        hasMore: data.hasMore || false,
-        nextKey: data.nextKey || null,
-      };
+      console.log("Published Details Response:", data);
+      return data;
     } catch (error) {
-      console.error("Error fetching companies:", error);
+      console.error("Error fetching published details:", error);
       throw error;
     }
   },
 };
 
 // Main Company Directory Component
-const CompanyDirectory = () => {
-  // State management
-  const [companies, setCompanies] = useState([]);
-  const [totalCount, setTotalCount] = useState(0);
-  const [hasMore, setHasMore] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [industryFilter, setIndustryFilter] = useState("All Sectors");
-  const [sortBy, setSortBy] = useState("Sort by Name");
-  const [currentPage] = useState(1);
-  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+const CompanyDirectory: React.FC = () => {
+  // Get user from context
+  const { user }: { user: User | null } = useUserAuth();
+  const navigate = useNavigate();
 
-  // Fetch companies from API
-  const fetchCompanies = async () => {
+  // State management
+  const [companies, setCompanies] = useState<Company[]>([]);
+  const [totalCount, setTotalCount] = useState<number>(0);
+  const [hasMore, setHasMore] = useState<boolean>(false);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState<string>("");
+  const [industryFilter, setIndustryFilter] = useState<string>("All Sectors");
+  const [sortBy, setSortBy] = useState<string>("Sort by Name");
+  const [currentPage] = useState<number>(1);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState<boolean>(false);
+
+  // Navigation handlers
+  const handleEdit = async (publishedId: string): Promise<void> => {
     try {
+      if (!user?.email) {
+        throw new Error("User not authenticated");
+      }
+      
+      // Fetch the published details to pass to edit page
+      const details = await apiService.fetchPublishedDetails(publishedId, user.email);
+      
+      // Navigate to edit page with the template data
+      navigate(`/user/companies/edit/${publishedId}`, { 
+        state: { 
+          templateData: details,
+          publishedId: publishedId 
+        } 
+      });
+    } catch (error) {
+      console.error("Error loading template for editing:", error);
+      alert("Failed to load template for editing. Please try again.");
+    }
+  };
+
+  const handlePreview = async (publishedId: string): Promise<void> => {
+    try {
+      if (!user?.email) {
+        throw new Error("User not authenticated");
+      }
+      
+      // Fetch the published details for preview
+      const details = await apiService.fetchPublishedDetails(publishedId, user.email);
+      
+      // Navigate to preview page with the template data
+      navigate(`/user/companies/preview/${publishedId}`, { 
+        state: { 
+          templateData: details,
+          publishedId: publishedId 
+        } 
+      });
+    } catch (error) {
+      console.error("Error loading template for preview:", error);
+      alert("Failed to load template for preview. Please try again.");
+    }
+  };
+
+  // Clear filters function
+  const handleClearFilters = (): void => {
+    setSearchTerm("");
+    setIndustryFilter("All Sectors");
+    setSortBy("Sort by Name");
+  };
+
+  // Fetch companies from API with enhanced error handling
+  const fetchCompanies = async (): Promise<void> => {
+    try {
+      // Enhanced user validation
+      if (!user) {
+        throw new Error("User not authenticated. Please log in to view your companies.");
+      }
+
+      if (!user.email || user.email.trim() === '') {
+        throw new Error("User ID is missing. Please log in again.");
+      }
+
+      console.log('Fetching companies for user:', { 
+        userId: user.email, 
+        userType: typeof user.email,
+        userExists: !!user 
+      });
+
       setLoading(true);
       setError(null);
-      const data = await apiService.fetchCompanies();
-      setCompanies(data.cards);
-      setTotalCount(data.totalCount);
-      setHasMore(data.hasMore);
+      
+      const data = await apiService.fetchCompanies(user.email);
+      
+      console.log('Companies fetch successful:', {
+        cardsCount: data.cards?.length || 0,
+        totalCount: data.totalCount,
+        hasMore: data.hasMore
+      });
+      
+      setCompanies(data.cards || []);
+      setTotalCount(data.totalCount || 0);
+      setHasMore(data.hasMore || false);
+      
     } catch (err) {
-      setError(err.message || "Failed to fetch companies");
+      console.error('Error in fetchCompanies:', err);
+      
+      const errorMessage = err instanceof Error ? err.message : "Failed to fetch companies";
+      setError(errorMessage);
+      
+      // If authentication-related error, redirect to login
+      if (errorMessage.includes("not authenticated") || 
+          errorMessage.includes("User ID") || 
+          errorMessage.includes("log in")) {
+        console.log('Authentication error detected, redirecting to login...');
+
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  // Load data on component mount
+  // Load data on component mount with improved timing
   useEffect(() => {
-    fetchCompanies();
-  }, []);
+    console.log('CompanyDirectory useEffect triggered:', { 
+      user: !!user, 
+      userId: user?.email,
+      timestamp: new Date().toISOString()
+    });
+    
+    // Add a small delay to ensure user context is fully loaded
+    const initializeData = async () => {
+      // Wait a bit for user context to stabilize
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      if (user && user.email && user.email.trim() !== '') {
+        console.log('User validated, fetching companies...');
+        fetchCompanies();
+      } else if (user === null) {
+        // User context has loaded but no user is authenticated
+        console.log('No authenticated user found');
+        setError("Please log in to view your companies");
+        setLoading(false);
+          
+      }
+      // If user is undefined, keep waiting (context is still loading)
+    };
+    
+    initializeData();
+  }, [user]); // Re-run when user changes
 
   // Get unique sectors from companies
-  const industries = [
+  const industries: string[] = [
     "All Sectors",
-    ...Array.from(new Set(companies.flatMap((c) => c.sectors))).sort(),
+    ...Array.from(new Set(companies.flatMap((c: Company) => c.sectors || []))).sort(),
   ];
 
   // Filter and sort companies
-  const filteredCompanies = companies.filter((company) => {
-    const matchesSearch =
-      company.companyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      company.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      company.sectors.some((sector) =>
+  const filteredCompanies = companies.filter((company: Company) => {
+    const matchesSearch = !searchTerm || 
+      (company.companyName && company.companyName.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (company.location && company.location.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (company.sectors && company.sectors.some((sector: string) =>
         sector.toLowerCase().includes(searchTerm.toLowerCase())
-      );
+      ));
+    
     const matchesSector =
       industryFilter === "All Sectors" ||
-      company.sectors.includes(industryFilter);
+      (company.sectors && company.sectors.includes(industryFilter));
+    
     return matchesSearch && matchesSector;
   });
 
   // Sort companies
-  const sortedCompanies = [...filteredCompanies].sort((a, b) => {
+  const sortedCompanies = [...filteredCompanies].sort((a: Company, b: Company) => {
     switch (sortBy) {
       case "Sort by Location":
-        return a.location.localeCompare(b.location);
+        return (a.location || "").localeCompare(b.location || "");
       case "Sort by Date":
-        return new Date(b.publishedDate) - new Date(a.publishedDate);
+        const dateA = a.publishedDate ? new Date(a.publishedDate).getTime() : 0;
+        const dateB = b.publishedDate ? new Date(b.publishedDate).getTime() : 0;
+        return dateB - dateA;
       case "Sort by Sector":
-        return a.sectors[0]?.localeCompare(b.sectors[0] || "") || 0;
+        const sectorA = a.sectors && a.sectors.length > 0 ? a.sectors[0] : "";
+        const sectorB = b.sectors && b.sectors.length > 0 ? b.sectors[0] : "";
+        return sectorA.localeCompare(sectorB);
       default:
-        return a.companyName.localeCompare(b.companyName);
+        return (a.companyName || "").localeCompare(b.companyName || "");
     }
   });
 
@@ -521,6 +1067,12 @@ const CompanyDirectory = () => {
           totalCount={totalCount}
           hasMore={hasMore}
           onOpenMobileSidebar={() => setIsMobileSidebarOpen(true)}
+          onEdit={handleEdit}
+          onPreview={handlePreview}
+          searchTerm={searchTerm}
+          industryFilter={industryFilter}
+          sortBy={sortBy}
+          onClearFilters={handleClearFilters}
         />
       </div>
     </div>
