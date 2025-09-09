@@ -1,34 +1,114 @@
 import { motion } from "motion/react";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Edit2, Save, Upload } from "lucide-react";
+import { toast } from "react-toastify";
 import logo from "../public/images/logos/logo.svg";
 
-export default function Header() {
+export default function Header({ headerData, onStateChange, userId, publishedId, templateSelection }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [logoSrc, setLogoSrc] = useState<string>(logo);
+  const [pendingLogoFile, setPendingLogoFile] = useState(null);
+  const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const [companyName, setCompanyName] = useState("Innovative Labs");
-  const [navItems, setNavItems] = useState<string[]>([
-    "Home",
-    "About",
-    "Product",
-    "Services",
-    "Testimonials",
-    "Blog",
-  ]);
+
+  // Combined state
+  const [headerState, setHeaderState] = useState({
+    logoSrc: logo,
+    companyName: headerData?.name || "Your Company",
+    navItems: [
+      "Home",
+      "About",
+      "Product",
+      "Services",
+      "Testimonials",
+      "Blog",
+    ],
+  });
+
+  // Add this useEffect to notify parent of state changes
+  useEffect(() => {
+    if (onStateChange) {
+      onStateChange(headerState);
+    }
+  }, [headerState, onStateChange]);
 
   const toggleMobileMenu = () => setIsMobileMenuOpen(!isMobileMenuOpen);
   const closeMobileMenu = () => setIsMobileMenuOpen(false);
 
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setLogoSrc(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+
+    // Validate file type and size
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select an image file');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) { // 5MB limit
+      toast.error('File size must be less than 5MB');
+      return;
+    }
+
+    // Store the file for upload on Save
+    setPendingLogoFile(file);
+    
+    // Show immediate local preview
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setHeaderState(prev => ({ ...prev, logoSrc: reader.result as string }));
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Updated Save button handler - uploads image and stores S3 URL
+  const handleSave = async () => {
+    try {
+      setIsUploading(true);
+
+      // If there's a pending logo, upload it first
+      if (pendingLogoFile) {
+        if (!userId || !publishedId || !templateSelection) {
+          console.error('Missing required props:', { userId, publishedId, templateSelection });
+          toast.error('Missing user information. Please refresh and try again.');
+          return;
+        }
+        
+        const formData = new FormData();
+        formData.append('file', pendingLogoFile);
+        formData.append('sectionName', 'header');
+        formData.append('imageField', 'logoSrc'); // This will map to the logo field in your PUT lambda
+        formData.append('templateSelection', templateSelection);
+
+        const uploadResponse = await fetch(`https://o66ziwsye5.execute-api.ap-south-1.amazonaws.com/prod/upload-image/${userId}/${publishedId}`, {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (uploadResponse.ok) {
+          const uploadData = await uploadResponse.json();
+          // Replace local preview with S3 URL
+          setHeaderState(prev => ({ ...prev, logoSrc: uploadData.imageUrl }));
+          setPendingLogoFile(null); // Clear pending file
+          console.log('Logo uploaded to S3:', uploadData.imageUrl);
+        } else {
+          const errorData = await uploadResponse.json();
+          console.error('Logo upload failed:', errorData);
+          toast.error(`Logo upload failed: ${errorData.message || 'Unknown error'}`);
+          return; // Don't exit edit mode
+        }
+      }
+      
+      // Exit edit mode
+      setIsEditing(false);
+      toast.success('Header section saved with S3 URLs ready for publish');
+
+    } catch (error) {
+      console.error('Error saving header section:', error);
+      toast.error('Error saving changes. Please try again.');
+      // Keep in edit mode so user can retry
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -73,10 +153,15 @@ export default function Header() {
             <div className='absolute top-1 right-2 z-20'>
               {isEditing ? (
                 <button
-                  onClick={() => setIsEditing(false)}
-                  className='flex items-center gap-1 px-2 py-1 bg-green-500 text-white rounded shadow hover:bg-green-600 text-xs'
+                  onClick={handleSave}
+                  disabled={isUploading}
+                  className={`flex items-center gap-1 px-2 py-1 ${
+                    isUploading 
+                      ? 'bg-gray-400 cursor-not-allowed' 
+                      : 'bg-green-500 hover:bg-green-600'
+                  } text-white rounded shadow text-xs`}
                 >
-                  <Save size={12} /> Save
+                  <Save size={12} /> {isUploading ? 'Uploading...' : 'Save'}
                 </button>
               ) : (
                 <button
@@ -116,7 +201,7 @@ export default function Header() {
                   transition={{ type: "spring", stiffness: 400, damping: 17 }}
                 >
                   <motion.img
-                    src={logoSrc}
+                    src={headerState.logoSrc}
                     alt='Logo'
                     className='h-4 w-4 sm:h-6 sm:w-6 object-contain rounded-full'
                     animate={{
@@ -132,14 +217,22 @@ export default function Header() {
                 </motion.div>
 
                 {isEditing && (
-                  <motion.button
-                    onClick={() => fileInputRef.current?.click()}
-                    className='absolute -bottom-10 left-0 p-1 bg-gray-200 rounded shadow'
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.9 }}
-                  >
-                    <Upload size={16} />
-                  </motion.button>
+                  <div className="absolute -bottom-14 left-0 bg-white/90 p-2 rounded shadow-lg">
+                    <p className="text-xs mb-1 text-gray-600">Upload Logo:</p>
+                    <motion.button
+                      onClick={() => fileInputRef.current?.click()}
+                      className='flex items-center gap-1 p-1 bg-gray-200 rounded shadow text-xs hover:bg-gray-300'
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.9 }}
+                    >
+                      <Upload size={12} /> Choose File
+                    </motion.button>
+                    {pendingLogoFile && (
+                      <p className="text-xs text-orange-600 mt-1 max-w-[150px] truncate">
+                        Selected: {pendingLogoFile.name}
+                      </p>
+                    )}
+                  </div>
                 )}
                 <input
                   type='file'
@@ -154,29 +247,29 @@ export default function Header() {
               {isEditing ? (
                 <input
                   type='text'
-                  value={companyName}
-                  onChange={(e) => setCompanyName(e.target.value)}
-                  className='px-2 py-1 border rounded'
+                  value={headerState.companyName}
+                  onChange={(e) => setHeaderState(prev => ({ ...prev, companyName: e.target.value }))}
+                  className='px-2 py-1 border rounded bg-white'
                 />
               ) : (
-                <span>{companyName}</span>
+                <span>{headerState.companyName}</span>
               )}
             </motion.div>
 
             {/* Desktop Navigation */}
             <nav className='hidden md:flex items-center space-x-4 mr-20'>
-              {navItems.map((item, index) =>
+              {headerState.navItems.map((item, index) =>
                 isEditing ? (
                   <input
                     key={index}
                     type='text'
                     value={item}
                     onChange={(e) => {
-                      const updated = [...navItems];
+                      const updated = [...headerState.navItems];
                       updated[index] = e.target.value;
-                      setNavItems(updated);
+                      setHeaderState(prev => ({ ...prev, navItems: updated }));
                     }}
-                    className='px-2 py-1 border rounded text-sm w-20'
+                    className='px-2 py-1 border rounded text-sm w-20 bg-white'
                   />
                 ) : (
                   <a
@@ -245,18 +338,18 @@ export default function Header() {
         className='md:hidden dark:bg-gray-900 dark:border-gray-700'
       >
         <div className='px-4 pt-2 pb-3 space-y-1 sm:px-6'>
-          {navItems.map((item, index) =>
+          {headerState.navItems.map((item, index) =>
             isEditing ? (
               <input
                 key={index}
                 type='text'
                 value={item}
                 onChange={(e) => {
-                  const updated = [...navItems];
+                  const updated = [...headerState.navItems];
                   updated[index] = e.target.value;
-                  setNavItems(updated);
+                  setHeaderState(prev => ({ ...prev, navItems: updated }));
                 }}
-                className='w-full px-2 py-1 border rounded text-base'
+                className='w-full px-2 py-1 border rounded text-base bg-white'
               />
             ) : (
               <a

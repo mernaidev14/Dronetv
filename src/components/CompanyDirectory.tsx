@@ -3,6 +3,7 @@ import { Search, MapPin, ChevronDown, ArrowRight, Star, Users, Building2, Menu, 
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { useUserAuth, useTemplate } from "./context/context";
+import { use } from "framer-motion/client";
 
 // TypeScript Interfaces
 interface Company {
@@ -854,6 +855,8 @@ const apiService = {
 const CompanyDirectory: React.FC = () => {
   // Get user from context
   const { user }: { user: User | null } = useUserAuth();
+  
+  
    const { setFinaleDataReview } = useTemplate(); // ✅ bring context setter
   const navigate = useNavigate();
 
@@ -873,14 +876,14 @@ const CompanyDirectory: React.FC = () => {
   // Navigation handlers
   const handleEdit = async (publishedId: string): Promise<void> => {
     try {
-      if (!user?.email) {
+      if (!user?.userData?.email) {
         throw new Error("User not authenticated");
       }
       
       // Fetch the published details
       const details = await apiService.fetchPublishedDetails(
         publishedId,
-        user.email,
+        user.userData.email,
         setFinaleDataReview // ✅ directly store in context
       );
 
@@ -894,7 +897,7 @@ const CompanyDirectory: React.FC = () => {
 // In the handlePreview function, modify the navigation:
 const handlePreview = async (publishedId: string): Promise<void> => {
   try {
-    if (!user?.email) {
+    if (!user?.userData?.email) {
       throw new Error("User not authenticated");
     }
     
@@ -921,21 +924,21 @@ const handlePreview = async (publishedId: string): Promise<void> => {
         throw new Error("User not authenticated. Please log in to view your companies.");
       }
 
-      if (!user.email || user.email.trim() === '') {
+      if (!user.userData.email || user.userData.email.trim() === '') {
         throw new Error("User ID is missing. Please log in again.");
       }
 
       console.log('Fetching companies for user:', { 
-        userId: user.email, 
-        userType: typeof user.email,
+        userId: user.userData.email, 
+        userType: typeof user.userData.email,
         userExists: !!user 
       });
 
       setLoading(true);
       setError(null);
       
-      const data = await apiService.fetchCompanies(user.email);
-      
+      const data = await apiService.fetchCompanies(user.userData.email);
+
       console.log('Companies fetch successful:', {
         cardsCount: data.cards?.length || 0,
         totalCount: data.totalCount,
@@ -968,7 +971,7 @@ const handlePreview = async (publishedId: string): Promise<void> => {
   useEffect(() => {
     console.log('CompanyDirectory useEffect triggered:', { 
       user: !!user, 
-      userId: user?.email,
+      userId: user?.userData?.email,
       timestamp: new Date().toISOString()
     });
     
@@ -976,8 +979,8 @@ const handlePreview = async (publishedId: string): Promise<void> => {
     const initializeData = async () => {
       // Wait a bit for user context to stabilize
       await new Promise(resolve => setTimeout(resolve, 100));
-      
-      if (user && user.email && user.email.trim() !== '') {
+
+      if (user && user.userData?.email && user.userData.email.trim() !== '') {
         console.log('User validated, fetching companies...');
         fetchCompanies();
       } else if (user === null) {

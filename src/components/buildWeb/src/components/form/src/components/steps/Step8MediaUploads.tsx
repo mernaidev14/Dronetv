@@ -138,7 +138,7 @@ const Step8MediaUploads: React.FC<StepProps> = ({
       if (totalFiles === 0) {
         // No files to upload, just save form data
         const simplePayload = {
-          userId: user.email,
+          userId: user.userData.email,
           templateSelection: formData?.templateSelection || null,
           templateDetails: {
             id: formData?.selectedTemplate?.id || null,
@@ -191,7 +191,7 @@ const Step8MediaUploads: React.FC<StepProps> = ({
         });
 
         const batchPayload = {
-          userId: user.email,
+          userId: user.userData.email,
           templateSelection:
             formData?.templateSelection ||
             formData?.selectedTemplate?.value ||

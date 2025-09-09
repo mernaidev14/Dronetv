@@ -2,20 +2,25 @@ import { motion } from "framer-motion";
 import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { Edit2, Save, X, Upload, Loader2, Plus, Trash2 } from "lucide-react";
 import { Button } from "../components/ui/button";
+import { toast } from "react-toastify";
 import BusinessInsider from "../public/images/logos/BusinessInsider.png";
 import Forbes from "../public/images/logos/Forbes.png";
 import TechCrunch from "../public/images/logos/TechCrunch.png";
 import TheNewYorkTimes from "../public/images/logos/TheNewYorkTimes.png";
 import USAToday from "../public/images/logos/USAToday.png";
 
-export default function EditableUsedBy() {
+export default function EditableUsedBy({ onStateChange, userId, publishedId, templateSelection }) {
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const [dataLoaded, setDataLoaded] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
   const sectionRef = useRef(null);
   const fileInputRefs = useRef({});
+
+  // Pending image files for S3 upload
+  const [pendingImageFiles, setPendingImageFiles] = useState({});
 
   // Default content structure
   const defaultCompanies = [
@@ -31,8 +36,16 @@ export default function EditableUsedBy() {
     companies: defaultCompanies,
   };
 
-  const [content, setContent] = useState(defaultContent);
-  const [tempContent, setTempContent] = useState(defaultContent);
+  // Consolidated state
+  const [contentState, setContentState] = useState(defaultContent);
+  const [tempContentState, setTempContentState] = useState(defaultContent);
+
+  // Notify parent of state changes
+  useEffect(() => {
+    if (onStateChange) {
+      onStateChange(contentState);
+    }
+  }, [contentState, onStateChange]);
 
   // Intersection Observer for visibility
   useEffect(() => {
@@ -75,34 +88,14 @@ export default function EditableUsedBy() {
         }, 1200); // Simulate network delay
       });
 
-      setContent(response);
-      setTempContent(response);
+      setContentState(response);
+      setTempContentState(response);
       setDataLoaded(true);
     } catch (error) {
       console.error("Error fetching used-by data:", error);
       // Keep default content on error
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  // Simulate API call to save data to database
-  const saveUsedByData = async (updatedContent) => {
-    setIsSaving(true);
-    try {
-      // Replace this with your actual API call
-      await new Promise((resolve) => {
-        setTimeout(() => {
-          resolve({ success: true });
-        }, 1000); // Simulate network delay
-      });
-
-      return true;
-    } catch (error) {
-      console.error("Error saving used-by data:", error);
-      return false;
-    } finally {
-      setIsSaving(false);
     }
   };
 
@@ -115,31 +108,88 @@ export default function EditableUsedBy() {
 
   const handleEdit = () => {
     setIsEditing(true);
-    setTempContent(content);
+    setTempContentState(contentState);
+    setPendingImageFiles({});
   };
 
+  // Updated Save function with S3 upload
   const handleSave = async () => {
-    const success = await saveUsedByData(tempContent);
-    if (success) {
-      setContent(tempContent);
+    try {
+      setIsUploading(true);
+      
+      // Create a copy of tempContentState to update with S3 URLs
+      let updatedState = { ...tempContentState };
+
+      // Upload all pending images
+      for (const [companyIdStr, file] of Object.entries(pendingImageFiles)) {
+        const companyId = parseInt(companyIdStr);
+        
+        if (!userId || !publishedId || !templateSelection) {
+          toast.error('Missing user information. Please refresh and try again.');
+          return;
+        }
+
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('sectionName', 'usedBy');
+        formData.append('imageField', `company-${companyId}`);
+        formData.append('templateSelection', templateSelection);
+
+        const uploadResponse = await fetch(`https://o66ziwsye5.execute-api.ap-south-1.amazonaws.com/prod/upload-image/${userId}/${publishedId}`, {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (uploadResponse.ok) {
+          const uploadData = await uploadResponse.json();
+          // Update the company image with S3 URL
+          updatedState.companies = updatedState.companies.map(company => 
+            company.id === companyId ? { ...company, image: uploadData.imageUrl } : company
+          );
+          console.log(`Company ${companyId} image uploaded to S3:`, uploadData.imageUrl);
+        } else {
+          const errorData = await uploadResponse.json();
+          toast.error(`Image upload failed: ${errorData.message || 'Unknown error'}`);
+          return;
+        }
+      }
+
+      // Clear pending files
+      setPendingImageFiles({});
+
+      // Save the updated state with S3 URLs
+      setIsSaving(true);
+      await new Promise((resolve) => setTimeout(resolve, 1000)); // Simulate save API call
+      
+      // Update both states with the new URLs
+      setContentState(updatedState);
+      setTempContentState(updatedState);
+      
       setIsEditing(false);
-    } else {
-      alert("Failed to save changes. Please try again.");
+      toast.success('Used By section saved with S3 URLs ready for publish');
+
+    } catch (error) {
+      console.error('Error saving used by section:', error);
+      toast.error('Error saving changes. Please try again.');
+    } finally {
+      setIsUploading(false);
+      setIsSaving(false);
     }
   };
 
   const handleCancel = () => {
-    setTempContent(content);
+    setTempContentState(contentState);
+    setPendingImageFiles({});
     setIsEditing(false);
   };
 
-  // Stable update functions with useCallback
+  // Update functions
   const updateTempContent = useCallback((field, value) => {
-    setTempContent((prev) => ({ ...prev, [field]: value }));
+    setTempContentState((prev) => ({ ...prev, [field]: value }));
   }, []);
 
   const updateCompanyName = useCallback((companyId, newName) => {
-    setTempContent((prev) => ({
+    setTempContentState((prev) => ({
       ...prev,
       companies: prev.companies.map((company) =>
         company.id === companyId ? { ...company, name: newName } : company
@@ -147,27 +197,43 @@ export default function EditableUsedBy() {
     }));
   }, []);
 
+  // Image upload handler with validation
   const handleImageUpload = useCallback((companyId, event) => {
     const file = event.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setTempContent((prev) => ({
-          ...prev,
-          companies: prev.companies.map((company) =>
-            company.id === companyId
-              ? { ...company, image: e.target.result }
-              : company
-          ),
-        }));
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+
+    // Validate file type and size
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select an image file');
+      return;
     }
+
+    if (file.size > 5 * 1024 * 1024) { // 5MB limit
+      toast.error('File size must be less than 5MB');
+      return;
+    }
+
+    // Store the file for upload on Save
+    setPendingImageFiles(prev => ({ ...prev, [companyId]: file }));
+
+    // Show immediate local preview
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setTempContentState((prev) => ({
+        ...prev,
+        companies: prev.companies.map((company) =>
+          company.id === companyId
+            ? { ...company, image: e.target.result }
+            : company
+        ),
+      }));
+    };
+    reader.readAsDataURL(file);
   }, []);
 
   const addCompany = useCallback(() => {
-    setTempContent((prev) => {
-      const newId = Math.max(...prev.companies.map((c) => c.id)) + 1;
+    setTempContentState((prev) => {
+      const newId = Math.max(0, ...prev.companies.map((c) => c.id)) + 1;
       return {
         ...prev,
         companies: [
@@ -179,7 +245,7 @@ export default function EditableUsedBy() {
   }, []);
 
   const removeCompany = useCallback((companyId) => {
-    setTempContent((prev) => ({
+    setTempContentState((prev) => ({
       ...prev,
       companies: prev.companies.filter((company) => company.id !== companyId),
     }));
@@ -208,7 +274,7 @@ export default function EditableUsedBy() {
     };
   }, [updateTempContent, updateCompanyName]);
 
-  const displayContent = isEditing ? tempContent : content;
+  const displayContent = isEditing ? tempContentState : contentState;
 
   return (
     <section ref={sectionRef} className='py-16 bg-white relative'>
@@ -241,21 +307,23 @@ export default function EditableUsedBy() {
                 onClick={handleSave}
                 size='sm'
                 className='bg-green-600 hover:bg-green-700 text-white shadow-lg'
-                disabled={isSaving}
+                disabled={isSaving || isUploading}
               >
-                {isSaving ? (
+                {isUploading ? (
+                  <Loader2 className='w-4 h-4 mr-2 animate-spin' />
+                ) : isSaving ? (
                   <Loader2 className='w-4 h-4 mr-2 animate-spin' />
                 ) : (
                   <Save className='w-4 h-4 mr-2' />
                 )}
-                {isSaving ? "Saving..." : "Save"}
+                {isUploading ? "Uploading..." : isSaving ? "Saving..." : "Save"}
               </Button>
               <Button
                 onClick={handleCancel}
                 variant='outline'
                 size='sm'
                 className='bg-white hover:bg-gray-50 shadow-lg border-2'
-                disabled={isSaving}
+                disabled={isSaving || isUploading}
               >
                 <X className='w-4 h-4 mr-2' />
                 Cancel
@@ -334,6 +402,11 @@ export default function EditableUsedBy() {
                         onChange={(e) => handleImageUpload(company.id, e)}
                         className='hidden'
                       />
+                      {pendingImageFiles[company.id] && (
+                        <p className='text-xs text-orange-600 mt-1'>
+                          Image selected: {pendingImageFiles[company.id].name}
+                        </p>
+                      )}
                     </div>
 
                     {/* Company Name */}

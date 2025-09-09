@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { Button } from "../components/ui/button";
 import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { Edit2, Save, X, Loader2, Upload } from "lucide-react";
+import { toast } from "react-toastify";
 
 import Hero1 from "../public/images/Hero/Hero1.jpg";
 import Hero3 from "../public/images/Hero/Hero3.jpg";
@@ -30,10 +31,23 @@ const imageVariants = {
   },
 };
 
-export default function EditableHero({ heroData }) {
+export default function EditableHero({ heroData, onStateChange, userId, publishedId, templateSelection }) {
   const [isEditing, setIsEditing] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [dataLoaded, setDataLoaded] = useState(false);
+  const [isVisible, setIsVisible] = useState(false);
+  const heroRef = useRef(null);
 
-  // Default content
+  // Pending image files for S3 upload
+  const [pendingImageFiles, setPendingImageFiles] = useState({
+    hero1Image: null,
+    hero3Image: null,
+    customerImages: Array(6).fill(null)
+  });
+
+  // Default content with images
   const defaultContent = {
     badgeText: "Trusted by 500+ Companies",
     heading: heroData?.heading || "Transform Your Business with",
@@ -47,21 +61,21 @@ export default function EditableHero({ heroData }) {
     trustText: "Join 500+ satisfied clients",
     primaryButtonLink: "#contact",
     secondaryButtonLink: "#about",
+    hero1Image: Hero1,
+    hero3Image: Hero3,
+    customerImages: customerImages,
   };
 
   // Consolidated state
   const [heroState, setHeroState] = useState(defaultContent);
   const [tempHeroState, setTempHeroState] = useState(defaultContent);
 
-  const [isLoading, setIsLoading] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-  const [dataLoaded, setDataLoaded] = useState(false);
-  const [isVisible, setIsVisible] = useState(false);
-  const heroRef = useRef(null);
-
-  // Image states
-  const [hero1Image, setHero1Image] = useState(Hero1);
-  const [hero3Image, setHero3Image] = useState(Hero3);
+  // Add this useEffect to notify parent of state changes
+  useEffect(() => {
+    if (onStateChange) {
+      onStateChange(heroState);
+    }
+  }, [heroState, onStateChange]);
 
   // Intersection observer
   useEffect(() => {
@@ -90,17 +104,6 @@ export default function EditableHero({ heroData }) {
     }
   };
 
-  // Fake API save
-  const saveHeroData = async (updatedContent) => {
-    setIsSaving(true);
-    try {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      return true;
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
   useEffect(() => {
     if (isVisible && !dataLoaded && !isLoading) {
       fetchHeroData();
@@ -112,31 +115,194 @@ export default function EditableHero({ heroData }) {
     setTempHeroState(heroState);
   };
 
+  // Fixed Save function with proper S3 URL handling
   const handleSave = async () => {
-    const success = await saveHeroData(tempHeroState);
-    if (success) {
-      setHeroState(tempHeroState);
+    try {
+      setIsUploading(true);
+      
+      // Create a copy of tempHeroState to update with S3 URLs
+      let updatedState = { ...tempHeroState };
+
+      // Upload hero1Image if there's a pending file
+      if (pendingImageFiles.hero1Image) {
+        if (!userId || !publishedId || !templateSelection) {
+          toast.error('Missing user information. Please refresh and try again.');
+          return;
+        }
+
+        const formData = new FormData();
+        formData.append('file', pendingImageFiles.hero1Image);
+        formData.append('sectionName', 'hero');
+        formData.append('imageField', 'hero1Image');
+        formData.append('templateSelection', templateSelection);
+
+        const uploadResponse = await fetch(`https://o66ziwsye5.execute-api.ap-south-1.amazonaws.com/prod/upload-image/${userId}/${publishedId}`, {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (uploadResponse.ok) {
+          const uploadData = await uploadResponse.json();
+          updatedState.hero1Image = uploadData.imageUrl;
+          console.log('Hero1 image uploaded to S3:', uploadData.imageUrl);
+        } else {
+          const errorData = await uploadResponse.json();
+          toast.error(`Hero1 image upload failed: ${errorData.message || 'Unknown error'}`);
+          return;
+        }
+      }
+
+      // Upload hero3Image if there's a pending file
+      if (pendingImageFiles.hero3Image) {
+        const formData = new FormData();
+        formData.append('file', pendingImageFiles.hero3Image);
+        formData.append('sectionName', 'hero');
+        formData.append('imageField', 'hero3Image');
+        formData.append('templateSelection', templateSelection);
+
+        const uploadResponse = await fetch(`https://o66ziwsye5.execute-api.ap-south-1.amazonaws.com/prod/upload-image/${userId}/${publishedId}`, {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (uploadResponse.ok) {
+          const uploadData = await uploadResponse.json();
+          updatedState.hero3Image = uploadData.imageUrl;
+          console.log('Hero3 image uploaded to S3:', uploadData.imageUrl);
+        } else {
+          const errorData = await uploadResponse.json();
+          toast.error(`Hero3 image upload failed: ${errorData.message || 'Unknown error'}`);
+          return;
+        }
+      }
+
+      // Upload customer images if there are pending files
+      for (let i = 0; i < pendingImageFiles.customerImages.length; i++) {
+        if (pendingImageFiles.customerImages[i]) {
+          const formData = new FormData();
+          formData.append('file', pendingImageFiles.customerImages[i]);
+          formData.append('sectionName', 'hero');
+          formData.append('imageField', `customerImage${i}`);
+          formData.append('templateSelection', templateSelection);
+
+          const uploadResponse = await fetch(`https://o66ziwsye5.execute-api.ap-south-1.amazonaws.com/prod/upload-image/${userId}/${publishedId}`, {
+            method: 'POST',
+            body: formData,
+          });
+
+          if (uploadResponse.ok) {
+            const uploadData = await uploadResponse.json();
+            updatedState.customerImages[i] = uploadData.imageUrl;
+            console.log(`Customer image ${i} uploaded to S3:`, uploadData.imageUrl);
+          } else {
+            const errorData = await uploadResponse.json();
+            toast.error(`Customer image ${i} upload failed: ${errorData.message || 'Unknown error'}`);
+            return;
+          }
+        }
+      }
+
+      // Clear pending files
+      setPendingImageFiles({
+        hero1Image: null,
+        hero3Image: null,
+        customerImages: Array(6).fill(null)
+      });
+
+      // Save the updated state with S3 URLs
+      setIsSaving(true);
+      await new Promise((resolve) => setTimeout(resolve, 1000)); // Simulate save API call
+      
+      // Update both states with the new URLs
+      setHeroState(updatedState);
+      setTempHeroState(updatedState);
+      
       setIsEditing(false);
-    } else {
-      alert("Failed to save. Try again.");
+      toast.success('Hero section saved with S3 URLs ready for publish');
+
+    } catch (error) {
+      console.error('Error saving hero section:', error);
+      toast.error('Error saving changes. Please try again.');
+    } finally {
+      setIsUploading(false);
+      setIsSaving(false);
     }
   };
 
   const handleCancel = () => {
     setTempHeroState(heroState);
-    setHero1Image(Hero1);
-    setHero3Image(Hero3);
+    setPendingImageFiles({
+      hero1Image: null,
+      hero3Image: null,
+      customerImages: Array(6).fill(null)
+    });
     setIsEditing(false);
   };
 
-  // Image upload handlers
-  const handleImageUpload = (e, setImage) => {
+  // Image upload handlers with validation
+  const handleImageUpload = (e, field) => {
     const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = () => setImage(reader.result);
-      reader.readAsDataURL(file);
+    if (!file) return;
+
+    // Validate file type and size
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select an image file');
+      return;
     }
+
+    if (file.size > 5 * 1024 * 1024) { // 5MB limit
+      toast.error('File size must be less than 5MB');
+      return;
+    }
+
+    // Store the file for upload on Save
+    setPendingImageFiles(prev => ({ ...prev, [field]: file }));
+
+    // Show immediate local preview
+    const reader = new FileReader();
+    reader.onload = () => {
+      setTempHeroState(prev => ({ 
+        ...prev, 
+        [field]: reader.result 
+      }));
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Customer image upload handler with validation
+  const handleCustomerImageUpload = (e, index) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // Validate file type and size
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select an image file');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) { // 5MB limit
+      toast.error('File size must be less than 5MB');
+      return;
+    }
+
+    // Store the file for upload on Save
+    setPendingImageFiles(prev => {
+      const updatedCustomerFiles = [...prev.customerImages];
+      updatedCustomerFiles[index] = file;
+      return { ...prev, customerImages: updatedCustomerFiles };
+    });
+
+    // Show immediate local preview
+    const reader = new FileReader();
+    reader.onload = () => {
+      const updatedCustomerImages = [...tempHeroState.customerImages];
+      updatedCustomerImages[index] = reader.result;
+      setTempHeroState(prev => ({ 
+        ...prev, 
+        customerImages: updatedCustomerImages 
+      }));
+    };
+    reader.readAsDataURL(file);
   };
 
   // Stable update functions with useCallback
@@ -194,7 +360,6 @@ export default function EditableHero({ heroData }) {
         backgroundSize: "cover",
         backgroundPosition: "center",
         backgroundAttachment: "scroll",
-        // height: 95,
       }}
     >
       {/* Loading overlay */}
@@ -226,21 +391,23 @@ export default function EditableHero({ heroData }) {
               onClick={handleSave}
               size='sm'
               className='bg-green-600 hover:bg-green-700 text-white shadow-md'
-              disabled={isSaving}
+              disabled={isSaving || isUploading}
             >
-              {isSaving ? (
+              {isUploading ? (
+                <Loader2 className='w-4 h-4 mr-2 animate-spin' />
+              ) : isSaving ? (
                 <Loader2 className='w-4 h-4 mr-2 animate-spin' />
               ) : (
                 <Save className='w-4 h-4 mr-2' />
               )}
-              {isSaving ? "Saving..." : "Save"}
+              {isUploading ? "Uploading..." : isSaving ? "Saving..." : "Save"}
             </Button>
             <Button
               onClick={handleCancel}
               variant='outline'
               size='sm'
               className='bg-white/90 backdrop-blur-sm hover:bg-white shadow-md'
-              disabled={isSaving}
+              disabled={isSaving || isUploading}
             >
               <X className='w-4 h-4 mr-2' />
               Cancel
@@ -334,31 +501,65 @@ export default function EditableHero({ heroData }) {
                   field='secondaryBtn'
                   placeholder='Secondary button text'
                 />
+                <EditableText
+                  value={tempHeroState.primaryButtonLink}
+                  field='primaryButtonLink'
+                  placeholder='Primary button link'
+                />
+                <EditableText
+                  value={tempHeroState.secondaryButtonLink}
+                  field='secondaryButtonLink'
+                  placeholder='Secondary button link'
+                />
               </div>
             )}
 
             {/* Customers */}
-            {!isEditing && (
-              <motion.div
-                className='flex flex-col sm:flex-row items-center justify-center lg:justify-start space-y-4 sm:space-y-0 sm:space-x-6 pt-8 px-2 sm:px-0'
-                variants={itemVariants}
-              >
-                <div className='flex -space-x-2'>
-                  {customerImages.map((img, i) => (
-                    <motion.div
-                      key={i}
-                      className='w-10 h-10 sm:w-12 sm:h-12 rounded-full border-2 border-white shadow-lg bg-cover bg-center'
-                      style={{ backgroundImage: `url('${img}')` }}
-                      whileHover={{ scale: 1.2 }}
-                      transition={{ type: "spring", stiffness: 300 }}
-                    />
-                  ))}
-                </div>
+            <motion.div
+              className='flex flex-col sm:flex-row items-center justify-center lg:justify-start space-y-4 sm:space-y-0 sm:space-x-6 pt-8 px-2 sm:px-0'
+              variants={itemVariants}
+            >
+              <div className='flex -space-x-2'>
+                {tempHeroState.customerImages.map((img, i) => (
+                  <motion.div
+                    key={i}
+                    className='w-10 h-10 sm:w-12 sm:h-12 rounded-full border-2 border-white shadow-lg bg-cover bg-center relative'
+                    style={{ backgroundImage: `url('${img}')` }}
+                    whileHover={{ scale: 1.2 }}
+                    transition={{ type: "spring", stiffness: 300 }}
+                  >
+                    {isEditing && (
+                      <label className='absolute inset-0 bg-black/70 opacity-0 hover:opacity-100 flex items-center justify-center rounded-full cursor-pointer transition-opacity'>
+                        <Upload className='w-4 h-4 text-white' />
+                        <input
+                          type='file'
+                          accept='image/*'
+                          className='hidden'
+                          onChange={(e) => handleCustomerImageUpload(e, i)}
+                        />
+                      </label>
+                    )}
+                    {isEditing && pendingImageFiles.customerImages[i] && (
+                      <div className='absolute -bottom-6 left-0 text-xs text-orange-300 bg-black/70 px-1 rounded'>
+                        Pending
+                      </div>
+                    )}
+                  </motion.div>
+                ))}
+              </div>
+              {!isEditing ? (
                 <span className='text-sm sm:text-base text-white font-normal'>
                   {heroState.trustText}
                 </span>
-              </motion.div>
-            )}
+              ) : (
+                <EditableText
+                  value={tempHeroState.trustText}
+                  field='trustText'
+                  placeholder='Trust text'
+                  className='text-sm sm:text-base text-white'
+                />
+              )}
+            </motion.div>
           </motion.div>
 
           {/* Images */}
@@ -372,20 +573,25 @@ export default function EditableHero({ heroData }) {
               <motion.div className='relative' variants={imageVariants}>
                 <div className='relative'>
                   <img
-                    src={hero1Image}
+                    src={isEditing ? tempHeroState.hero1Image : heroState.hero1Image}
                     alt='Innovation showcase'
                     className='w-full h-64 sm:h-80 lg:h-96 object-cover rounded-3xl shadow-2xl'
                   />
                   {isEditing && (
-                    <label className='absolute bottom-2 right-2 bg-black/70 text-white p-2 rounded cursor-pointer'>
+                    <label className='absolute bottom-2 right-2 bg-black/70 text-white p-2 rounded cursor-pointer hover:bg-black/90 transition-colors'>
                       <Upload className='w-4 h-4' />
                       <input
                         type='file'
                         accept='image/*'
                         className='hidden'
-                        onChange={(e) => handleImageUpload(e, setHero1Image)}
+                        onChange={(e) => handleImageUpload(e, 'hero1Image')}
                       />
                     </label>
+                  )}
+                  {isEditing && pendingImageFiles.hero1Image && (
+                    <div className='absolute top-2 left-2 text-xs text-orange-300 bg-black/70 px-2 py-1 rounded'>
+                      Pending upload: {pendingImageFiles.hero1Image.name}
+                    </div>
                   )}
                 </div>
                 <motion.div
@@ -395,20 +601,25 @@ export default function EditableHero({ heroData }) {
                 >
                   <div className='relative'>
                     <img
-                      src={hero3Image}
+                      src={isEditing ? tempHeroState.hero3Image : heroState.hero3Image}
                       alt='Tech innovation'
                       className='w-48 h-24 sm:w-32 sm:h-32 lg:w-40 lg:h-40 object-cover rounded-2xl shadow-xl border-4 border-white'
                     />
                     {isEditing && (
-                      <label className='absolute bottom-1 right-1 bg-black/70 text-white p-1 rounded cursor-pointer'>
-                        <Upload className='w-3 h-3' />
-                        <input
-                          type='file'
-                          accept='image/*'
-                          className='hidden'
-                          onChange={(e) => handleImageUpload(e, setHero3Image)}
-                        />
-                      </label>
+                    <label className='absolute bottom-1 right-1 bg-black/70 text-white p-1 rounded cursor-pointer hover:bg-black/90 transition-colors'>
+                      <Upload className='w-3 h-3' />
+                      <input
+                        type='file'
+                        accept='image/*'
+                        className='hidden'
+                        onChange={(e) => handleImageUpload(e, 'hero3Image')}
+                      />
+                    </label>
+                    )}
+                    {isEditing && pendingImageFiles.hero3Image && (
+                      <div className='absolute -top-6 left-0 text-xs text-orange-300 bg-black/70 px-1 rounded'>
+                        Pending
+                      </div>
                     )}
                   </div>
                 </motion.div>
@@ -425,4 +636,4 @@ export default function EditableHero({ heroData }) {
       </div>
     </section>
   );
-}
+} 
