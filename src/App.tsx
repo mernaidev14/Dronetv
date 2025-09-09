@@ -38,6 +38,8 @@ import Form from "./components/buildWeb/src/components/form/src/main";
 import EditTemp2 from "./components/buildWeb/src/components/template/t2/edit/src/main";
 import EditTemp1 from "./components/buildWeb/src/components/template/t1/edit/src/main";
 import Template1 from "./components/buildWeb/src/components/template/t1/src/main";
+import DashboardPreview from "./components/buildWeb/src/components/template/t2/final/preview/src/main"
+import DashboardEdit from "./components/buildWeb/src/components/template/t2/final/edit/src/main"
 import { CombinedProviders } from "./components/context/context";
 import CompanyDirectory from "./components/CompanyDirectory";
 import Login from "./components/login";
@@ -93,6 +95,8 @@ const AppContent = () => {
           <Route path='/form' element={<Form />} />
           <Route path='/edit/template/t1' element={<EditTemp1 />} />
           <Route path='/edit/template/t2' element={<EditTemp2 />} />
+           <Route path='/user/companies/preview/:pub' element={<DashboardPreview />} />
+           <Route path='/user/companies/edit/:pub' element={<DashboardEdit />} />
           {/* login functionality */}
           <Route path='/login' element={<Login />} />
           <Route path='/forgot-password' element={<ForgotPassword />} />

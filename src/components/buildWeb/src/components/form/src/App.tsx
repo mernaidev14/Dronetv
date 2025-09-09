@@ -147,6 +147,7 @@ function App() {
           
           toast.success("AI generates the data successfully",{toastId: "ai-success"})          
           // Use navigate function instead of Navigate component
+          // console.log("data:",data);
           
             setAIGenData(data);
             // console.log("AIgen:", AIGenData);

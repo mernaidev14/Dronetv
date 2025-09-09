@@ -1,0 +1,206 @@
+import { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+import { Badge } from "./ui/badge";
+import { Button } from "./ui/button";
+import {
+  Monitor,
+  Smartphone,
+  Cloud,
+  BarChart3,
+  Zap,
+  X,
+  CheckCircle,
+} from "lucide-react";
+import { ImageWithFallback } from "./figma/ImageWithFallback";
+import { motion, AnimatePresence } from "motion/react";
+
+export default function Product({ productData }) {
+  const [visibleCount, setVisibleCount] = useState(4);
+  const [selectedProductIndex, setSelectedProductIndex] = useState<number | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const openModal = (index) => {
+    setSelectedProductIndex(index);
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setSelectedProductIndex(null);
+  };
+
+  return (
+    <motion.section
+      id="product"
+      className="py-20 bg-secondary theme-transition"
+      initial={{ opacity: 0 }}
+      whileInView={{ opacity: 1 }}
+      viewport={{ once: true, margin: "-100px" }}
+      transition={{ duration: 0.8 }}
+    >
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Header */}
+        <div className="text-center max-w-3xl mx-auto mb-16">
+          <div className="inline-flex items-center px-4 py-2 bg-red-accent/10 rounded-full text-red-accent mb-4">
+            <Zap className="w-4 h-4 mr-2" />
+            <span className="font-medium">{productData.heading.title}</span>
+          </div>
+          <h2 className="text-3xl md:text-4xl text-foreground mb-4">
+            {productData.heading.heading}
+          </h2>
+
+          <p className="text-lg text-muted-foreground inline">
+            {productData.heading.description}
+          </p>
+          <p className="text-lg text-muted-foreground inline font-bold text-foreground">
+            {" "}
+            {productData.heading.trust}
+          </p>
+        </div>
+
+        {/* Products Grid */}
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
+          {productData.products.slice(0, visibleCount).map((product, index) => {
+            return (
+              <Card
+                key={index}
+                className="group h-full relative overflow-hidden"
+              >
+                <div className="relative h-32 overflow-hidden">
+                  <ImageWithFallback
+                    src={product.image}
+                    alt={product.title}
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+                  <div className="absolute top-2 left-2">
+                    <Badge
+                      className={`${product.categoryColor} border-0 text-xs`}
+                    >
+                      {product.category}
+                    </Badge>
+                  </div>
+                  {product.isPopular && (
+                    <div className="absolute top-2 right-2 bg-red-accent text-white px-2 py-1 rounded-full text-xs font-bold flex items-center">
+                      <Zap className="w-2 h-2 mr-1" /> Bestseller
+                    </div>
+                  )}
+                </div>
+                <CardHeader>
+                  <CardTitle>{product.title}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-muted-foreground">
+                    {product.description}
+                  </p>
+                  <ul className="space-y-1 mt-3">
+                    {product.features.map((f, fi) => (
+                      <li
+                        key={fi}
+                        className="text-xs text-muted-foreground flex items-center"
+                      >
+                        <div className="w-1 h-1 bg-primary rounded-full mr-2" />
+                        <span>{f}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <div className="mt-4 flex gap-2">
+                    <Button size="sm" className="hover:scale-105" onClick={() => openModal(index)}>
+                      View Details
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+
+        {/* Load More / Show Less */}
+        <div className="flex justify-center mt-6">
+          {visibleCount < productData.products.length && (
+            <Button onClick={() => setVisibleCount((prev) => prev + 4)}>
+              Load More
+            </Button>
+          )}
+          {visibleCount >= productData.products.length && productData.products.length > 4 && (
+            <Button
+              onClick={() => setVisibleCount(4)}
+              variant="secondary"
+              className="ml-4"
+            >
+              Show Less
+            </Button>
+          )}
+        </div>
+
+        {/* Benefits */}
+        <div className="mt-16 grid md:grid-cols-3 gap-8">
+          {productData.benefits.map((benefit, index) => (
+            <div key={index} className="text-center h-50 group cursor-pointer">
+              <div
+                className={`w-10 h-10 ${
+                  benefit.color === "gradient"
+                    ? "bg-gradient-to-r from-red-accent to-primary"
+                    : `bg-${benefit.color}`
+                } rounded-xl flex items-center justify-center mx-auto mb-3`}
+              >
+                <span className="font-bold text-sm text-white">{benefit.icon}</span>
+              </div>
+              <h4 className="font-semibold text-foreground mb-2 text-sm">
+                {benefit.title}
+              </h4>
+              <p className="text-muted-foreground text-xs leading-relaxed">
+                {benefit.desc}
+              </p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Modal */}
+      <AnimatePresence>
+        {isModalOpen && selectedProductIndex !== null && (
+          <motion.div
+            className="fixed inset-0 bg-black/50 flex items-center justify-center p-6 z-50"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={closeModal}
+          >
+            <div
+              className="bg-card rounded-xl w-full max-w-3xl p-6 relative overflow-y-auto max-h-[90vh]"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button
+                onClick={closeModal}
+                className="absolute top-4 right-4 bg-white rounded-full p-2"
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              <h2 className="text-2xl font-bold mb-4">
+                {productData.products[selectedProductIndex].title}
+              </h2>
+
+              <p className="text-muted-foreground mb-4">
+                {productData.products[selectedProductIndex].detailedDescription}
+              </p>
+
+              {/* Pricing & Timeline */}
+              <div className="grid grid-cols-2 gap-6">
+                <div>
+                  <h3 className="font-semibold mb-2">Pricing</h3>
+                  <p>{productData.products[selectedProductIndex].pricing}</p>
+                </div>
+                <div>
+                  <h3 className="font-semibold mb-2">Timeline</h3>
+                  <p>{productData.products[selectedProductIndex].timeline}</p>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.section>
+  );
+}

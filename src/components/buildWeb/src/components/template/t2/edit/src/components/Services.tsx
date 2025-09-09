@@ -8,25 +8,27 @@ import {
 import { Button } from "./ui/button";
 import { X, CheckCircle } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
+import { toast } from "react-toastify";
 
-export default function Services({serviceData, onStateChange}) {
+export default function Services({serviceData, onStateChange, userId, publishedId, templateSelection}) {
   const [isEditing, setIsEditing] = useState(false);
   const [activeCategory, setActiveCategory] = useState("All");
   const [selectedServiceIndex, setSelectedServiceIndex] = useState<number | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [visibleCount, setVisibleCount] = useState(3);
+  const [pendingImages, setPendingImages] = useState<Record<number, File>>({});
+  const [isUploading, setIsUploading] = useState(false);
          
   // Merged all state into a single object
+  const [servicesSection, setServicesSection] = useState(serviceData);
   
-  const [servicesSection, setServicesSection] = useState(
-    serviceData
-  );
   // Add this useEffect to notify parent of state changes
   useEffect(() => {
     if (onStateChange) {
       onStateChange(servicesSection);
     }
   }, [servicesSection, onStateChange]);
+  
   // Get categories from services
   const filteredServices =
     activeCategory === "All"
@@ -99,14 +101,84 @@ export default function Services({serviceData, onStateChange}) {
     }));
   };
 
-  const handleImageUpload = (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
+  // Image selection - only shows local preview, no upload yet
+  const handleServiceImageSelect = (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        updateServiceField(index, "image", reader.result as string);
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+
+    // Validate file type and size
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select an image file');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) { // 5MB limit
+      toast.error('File size must be less than 5MB');
+      return;
+    }
+
+    // Store the file for upload on Save
+    setPendingImages(prev => ({ ...prev, [index]: file }));
+    
+    // Show immediate local preview
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      updateServiceField(index, "image", reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Updated Save button handler - uploads images and stores S3 URLs
+  const handleSave = async () => {
+    try {
+      setIsUploading(true);
+
+      // Upload all pending images
+      for (const [indexStr, file] of Object.entries(pendingImages)) {
+        const index = parseInt(indexStr);
+        
+        if (!userId || !publishedId || !templateSelection) {
+          console.error('Missing required props:', { userId, publishedId, templateSelection });
+          toast.error('Missing user information. Please refresh and try again.');
+          return;
+        }
+        
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('sectionName', 'services');
+        formData.append('imageField', `services[${index}].image`);
+        formData.append('templateSelection', templateSelection);
+
+        const uploadResponse = await fetch(`https://o66ziwsye5.execute-api.ap-south-1.amazonaws.com/prod/upload-image/${userId}/${publishedId}`, {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (uploadResponse.ok) {
+          const uploadData = await uploadResponse.json();
+          // Replace local preview with S3 URL
+          updateServiceField(index, "image", uploadData.imageUrl);
+          console.log('Image uploaded to S3:', uploadData.imageUrl);
+        } else {
+          const errorData = await uploadResponse.json();
+          console.error('Image upload failed:', errorData);
+          toast.error(`Image upload failed: ${errorData.message || 'Unknown error'}`);
+          return; // Don't exit edit mode
+        }
+      }
+      
+      // Clear pending images
+      setPendingImages({});
+      // Exit edit mode
+      setIsEditing(false);
+      toast.success('Services section saved with S3 URLs ready for publish');
+
+    } catch (error) {
+      console.error('Error saving services section:', error);
+      toast.error('Error saving changes. Please try again.');
+      // Keep in edit mode so user can retry
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -181,16 +253,25 @@ export default function Services({serviceData, onStateChange}) {
       <div className="max-w-7xl mx-auto px-4">
         {/* Edit/Save Buttons */}
         <div className="flex justify-end mt-6">
-         {isEditing ? (
+          {isEditing ? (
             <motion.button 
-            whileTap={{scale:0.9}}
-            whileHover={{y:-1,scaleX:1.1}}
-            onClick={() => setIsEditing(false)} className="bg-green-600 cursor-pointer hover:font-semibold hover:shadow-2xl shadow-xl text-white px-4 py-2 rounded">Save</motion.button>
+              whileTap={{scale:0.9}}
+              whileHover={{y:-1,scaleX:1.1}}
+              onClick={handleSave}
+              disabled={isUploading}
+              className={`${isUploading ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-600 hover:shadow-2xl'} text-white px-4 py-2 rounded shadow-xl hover:font-semibold`}
+            >
+              {isUploading ? 'Uploading...' : 'Save'}
+            </motion.button>
           ) : (
             <motion.button 
-            whileTap={{scale:0.9}}
-            whileHover={{y:-1,scaleX:1.1}}
-            onClick={() => setIsEditing(true)} className="bg-yellow-500 text-black px-4 py-2 rounded cursor-pointer  hover:shadow-2xl shadow-xl hover:font-semibold">Edit</motion.button>
+              whileTap={{scale:0.9}}
+              whileHover={{y:-1,scaleX:1.1}}
+              onClick={() => setIsEditing(true)} 
+              className="bg-yellow-500 text-black px-4 py-2 rounded cursor-pointer hover:shadow-2xl shadow-xl hover:font-semibold"
+            >
+              Edit
+            </motion.button>
           )}
         </div>
 
@@ -269,8 +350,8 @@ export default function Services({serviceData, onStateChange}) {
           ))}
           {isEditing && (
             <motion.button
-             whileTap={{scale:0.9}}
-             whileHover={{scale:1.1}}
+              whileTap={{scale:0.9}}
+              whileHover={{scale:1.1}}
               onClick={addCategory}
               className="text-green-600 text-sm font-medium"
             >
@@ -290,12 +371,24 @@ export default function Services({serviceData, onStateChange}) {
                   className="w-full h-full object-cover"
                 />
                 {isEditing && (
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="absolute bottom-2 left-2 text-xs bg-white rounded-xl px-5 py-1 w-[50%]"
-                    onChange={(e) => handleImageUpload(index, e)}
-                  />
+                  <motion.div
+                  animate={{opacity:[0,1], scale:[0.8,1]}}
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{scale:0.9}}
+                      transition={{ duration: 0.3 }}
+                  className="absolute bottom-2 left-2 bg-white/80 p-1 rounded">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="text-xs w-full cursor-pointer"
+                      onChange={(e) => handleServiceImageSelect(index, e)}
+                    />
+                    {pendingImages[index] && (
+                      <p className="text-xs text-orange-600 mt-1">
+                        Image selected: {pendingImages[index].name} (will upload on save)
+                      </p>
+                    )}
+                  </motion.div>
                 )}
               </div>
               <CardHeader>
@@ -346,7 +439,7 @@ export default function Services({serviceData, onStateChange}) {
                   </Button>
                   {isEditing && (
                     <Button
-                    className="cursor-pointer hover:scale-105"
+                      className="cursor-pointer hover:scale-105"
                       size="sm"
                       variant="destructive"
                       onClick={() => removeService(index)}
@@ -451,8 +544,8 @@ export default function Services({serviceData, onStateChange}) {
                           className="border-b w-full"
                         />
                         <motion.button
-                        whileHover={{scale:1.1}}
-                     whileTap={{scale:0.9}}
+                          whileHover={{scale:1.1}}
+                          whileTap={{scale:0.9}}
                           onClick={() =>
                             removeFromList(selectedServiceIndex, "benefits", bi)
                           }
@@ -493,8 +586,8 @@ export default function Services({serviceData, onStateChange}) {
                           className="border-b w-full"
                         />
                         <motion.button
-                        whileHover={{scale:1.1}}
-                     whileTap={{scale:0.9}}
+                          whileHover={{scale:1.1}}
+                          whileTap={{scale:0.9}}
                           onClick={() =>
                             removeFromList(selectedServiceIndex, "process", pi)
                           }
@@ -511,8 +604,8 @@ export default function Services({serviceData, onStateChange}) {
               </ol>
               {isEditing && (
                 <motion.button
-                whileHover={{scale:1.1}}
-                     whileTap={{scale:0.9}}
+                  whileHover={{scale:1.1}}
+                  whileTap={{scale:0.9}}
                   onClick={() =>
                     addToList(selectedServiceIndex, "process")
                   }

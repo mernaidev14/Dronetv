@@ -1,10 +1,13 @@
 import { useState, useEffect } from "react";
 import { Button } from "./ui/button";
 import { ArrowRight, Play, CheckCircle } from "lucide-react";
+import {toast} from "react-toastify"
 import { motion } from "motion/react";
 
-export default function Hero({ heroData, onStateChange }) {
-  const [isEditing, setIsEditing,isPublishedTrigured] = useState(false);
+export default function Hero({ heroData, onStateChange, userId, publishedId, templateSelection }) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [pendingImageFile, setPendingImageFile] = useState(null);
+  const [isUploading, setIsUploading] = useState(false);
   
   // Consolidated state
   const [heroState, setHeroState] = useState({
@@ -24,12 +27,13 @@ export default function Hero({ heroData, onStateChange }) {
     heroImage: "https://images.unsplash.com/photo-1698047682129-c3e217ac08b7?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtb2Rlcm4lMjBidXNpbmVzcyUyMHRlYW0lMjBvZmZpY2V8ZW58MXx8fHwxNzU1NjE4MzQ4fDA&ixlib=rb-4.1.0&q=80&w=1080",
     cardText: "Live Support Available"
   });
-    // Add this useEffect to notify parent of state changes
+
+  // Add this useEffect to notify parent of state changes
   useEffect(() => {
     if (onStateChange) {
       onStateChange(heroState);
     }
-  }, [heroState, onStateChange,isPublishedTrigured]);
+  }, [heroState, onStateChange]);
 
   // Update function for simple fields
   const updateField = (field, value) => {
@@ -61,14 +65,81 @@ export default function Hero({ heroData, onStateChange }) {
     }));
   };
 
+  // Image selection - only shows local preview, no upload yet
   const handleHeroImageUpload = (e) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        updateField("heroImage", reader.result);
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+
+    // Validate file type and size
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select an image file');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) { // 5MB limit
+      toast.error('File size must be less than 5MB');
+      return;
+    }
+
+    // Store the file for upload on Save
+    setPendingImageFile(file);
+    
+    // Show immediate local preview
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      updateField("heroImage", reader.result);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Updated Save button handler - uploads image and stores S3 URL
+  const handleSave = async () => {
+    try {
+      setIsUploading(true);
+
+      // If there's a pending image, upload it first
+      if (pendingImageFile) {
+        if (!userId || !publishedId || !templateSelection) {
+          console.error('Missing required props:', { userId, publishedId, templateSelection });
+          toast.error('Missing user information. Please refresh and try again.');
+          return;
+        }
+        
+        const formData = new FormData();
+        formData.append('file', pendingImageFile);
+        formData.append('sectionName', 'hero');
+        formData.append('imageField', 'heroImage'); // This will map to 'backgroundImage' in your PUT lambda
+        formData.append('templateSelection', templateSelection);
+
+        const uploadResponse = await fetch(`https://o66ziwsye5.execute-api.ap-south-1.amazonaws.com/prod/upload-image/${userId}/${publishedId}`, {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (uploadResponse.ok) {
+          const uploadData = await uploadResponse.json();
+          // Replace local preview with S3 URL
+          updateField("heroImage", uploadData.imageUrl);
+          setPendingImageFile(null); // Clear pending file
+          console.log('Image uploaded to S3:', uploadData.imageUrl);
+        } else {
+          const errorData = await uploadResponse.json();
+          console.error('Image upload failed:', errorData);
+          alert(`Image upload failed: ${errorData.message || 'Unknown error'}`);
+          return; // Don't exit edit mode
+        }
+      }
+      
+      // Exit edit mode
+      setIsEditing(false);
+      toast.success('Hero section saved with S3 URLs ready for publish');
+
+    } catch (error) {
+      console.error('Error saving hero section:', error);
+      toast.error('Error saving changes. Please try again.');
+      // Keep in edit mode so user can retry
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -284,6 +355,11 @@ export default function Hero({ heroData, onStateChange }) {
                   onChange={handleHeroImageUpload}
                   className="text-sm border-2 border-dashed border-muted-foreground p-2 rounded w-full"
                 />
+                {pendingImageFile && (
+                  <p className="text-xs text-orange-600 mt-1">
+                    Image selected: {pendingImageFile.name} (will upload on save)
+                  </p>
+                )}
               </div>
             )}
             <motion.div className="relative rounded-2xl overflow-hidden shadow-2xl" whileHover={{ scale: 1.02 }}>
@@ -325,18 +401,27 @@ export default function Hero({ heroData, onStateChange }) {
           </motion.div>
         </div>
 
-        {/* Edit/Save */}
+        {/* Edit/Save Buttons */}
         <div className="flex justify-end mt-6">
           {isEditing ? (
             <motion.button 
-            whileHover={{y:-1,scaleX:1.1}}
-            whileTap={{scale:0.9}}
-            onClick={() => setIsEditing(false)} className="bg-green-600 cursor-pointer hover:font-semibold hover:shadow-2xl shadow-xl text-white px-4 py-2 rounded">Save</motion.button>
+              whileHover={{y:-1,scaleX:1.1}}
+              whileTap={{scale:0.9}}
+              onClick={handleSave}
+              disabled={isUploading}
+              className={`${isUploading ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-600 hover:shadow-2xl'} text-white px-4 py-2 rounded shadow-xl hover:font-semibold`}
+            >
+              {isUploading ? 'Uploading...' : 'Save'}
+            </motion.button>
           ) : (
             <motion.button 
-            whileHover={{y:-1,scaleX:1.1}}
-            whileTap={{scale:0.9}}
-            onClick={() => setIsEditing(true)} className="bg-yellow-500 text-black px-4 py-2 rounded cursor-pointer  hover:shadow-2xl shadow-xl hover:font-semibold">Edit</motion.button>
+              whileHover={{y:-1,scaleX:1.1}}
+              whileTap={{scale:0.9}}
+              onClick={() => setIsEditing(true)} 
+              className="bg-yellow-500 text-black px-4 py-2 rounded cursor-pointer hover:shadow-2xl shadow-xl hover:font-semibold"
+            >
+              Edit
+            </motion.button>
           )}
         </div>
       </div>

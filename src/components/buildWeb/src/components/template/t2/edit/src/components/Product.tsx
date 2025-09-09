@@ -13,12 +13,15 @@ import {
 } from "lucide-react";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 import { motion, AnimatePresence } from "motion/react";
+import { toast } from "react-toastify";
 
-export default function Product({productData, onStateChange}) {
+export default function Product({productData, onStateChange,userId, publishedId, templateSelection}) {
   const [isEditing, setIsEditing] = useState(false);
   const [visibleCount, setVisibleCount] = useState(4);
   const [selectedProductIndex, setSelectedProductIndex] = useState<number | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [pendingImages, setPendingImages] = useState<Record<number, File>>({});
+  const [isUploading, setIsUploading] = useState(false);
 
   // Consolidated state
   const [contentState, setContentState] = useState(productData);
@@ -86,29 +89,86 @@ export default function Product({productData, onStateChange}) {
     }));
   };
 
-  // Handle image upload for a product
-  // Handle image upload for a product
-const handleImageUpload = (index, e) => {
-  const file = e.target.files?.[0];
-  if (file) {
+  // Image selection - only shows local preview, no upload yet
+  const handleProductImageSelect = async (index, e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type and size
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select an image file');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) { // 5MB limit
+      toast.error('File size must be less than 5MB');
+      return;
+    }
+
+    // Store the file for upload on Save
+    setPendingImages(prev => ({ ...prev, [index]: file }));
+    
+    // Show immediate local preview
     const reader = new FileReader();
     reader.onloadend = () => {
-      // Create a new array with the updated product
-      const updatedProducts = [...contentState.products];
-      updatedProducts[index] = {
-        ...updatedProducts[index],
-        image: reader.result
-      };
-      
-      // Update the state
-      setContentState(prev => ({
-        ...prev,
-        products: updatedProducts
-      }));
+      updateProductField(index, "image", reader.result);
     };
     reader.readAsDataURL(file);
-  }
-};
+  };
+
+  // Updated Save button handler - uploads images and stores S3 URLs
+  const handleSave = async () => {
+    try {
+      setIsUploading(true);
+
+      // Upload all pending images
+      for (const [indexStr, file] of Object.entries(pendingImages)) {
+        const index = parseInt(indexStr);
+        
+        if (!userId || !publishedId || !templateSelection) {
+          console.error('Missing required props:', { userId, publishedId, templateSelection });
+          toast.error('Missing user information. Please refresh and try again.');
+          return;
+        }
+        
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('sectionName', 'products');
+        formData.append('imageField', `products[${index}].image`);
+        formData.append('templateSelection', templateSelection);
+
+        const uploadResponse = await fetch(`https://o66ziwsye5.execute-api.ap-south-1.amazonaws.com/prod/upload-image/${userId}/${publishedId}`, {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (uploadResponse.ok) {
+          const uploadData = await uploadResponse.json();
+          // Replace local preview with S3 URL
+          updateProductField(index, "image", uploadData.imageUrl);
+          console.log('Image uploaded to S3:', uploadData.imageUrl);
+        } else {
+          const errorData = await uploadResponse.json();
+          console.error('Image upload failed:', errorData);
+          toast.error(`Image upload failed: ${errorData.message || 'Unknown error'}`);
+          return; // Don't exit edit mode
+        }
+      }
+      
+      // Clear pending images
+      setPendingImages({});
+      // Exit edit mode
+      setIsEditing(false);
+      toast.success('Products section saved with S3 URLs ready for publish');
+
+    } catch (error) {
+      console.error('Error saving products section:', error);
+      toast.error('Error saving changes. Please try again.');
+      // Keep in edit mode so user can retry
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   // Add a new product
 const addProduct = () => {
@@ -195,16 +255,25 @@ const addProduct = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Edit/Save Buttons */}
         <div className="flex justify-end mt-6">
-         {isEditing ? (
+          {isEditing ? (
             <motion.button 
-            whileTap={{scale:0.9}}
-            whileHover={{y:-1,scaleX:1.1}}
-            onClick={() => setIsEditing(false)} className="bg-green-600 cursor-pointer hover:font-semibold hover:shadow-2xl shadow-xl text-white px-4 py-2 rounded">Save</motion.button>
+              whileTap={{scale:0.9}}
+              whileHover={{y:-1,scaleX:1.1}}
+              onClick={handleSave}
+              disabled={isUploading}
+              className={`${isUploading ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-600 hover:shadow-2xl'} text-white px-4 py-2 rounded shadow-xl hover:font-semibold`}
+            >
+              {isUploading ? 'Uploading...' : 'Save'}
+            </motion.button>
           ) : (
             <motion.button 
-            whileTap={{scale:0.9}}
-            whileHover={{y:-1,scaleX:1.1}}
-            onClick={() => setIsEditing(true)} className="bg-yellow-500 text-black px-4 py-2 rounded cursor-pointer  hover:shadow-2xl shadow-xl hover:font-semibold">Edit</motion.button>
+              whileTap={{scale:0.9}}
+              whileHover={{y:-1,scaleX:1.1}}
+              onClick={() => setIsEditing(true)} 
+              className="bg-yellow-500 text-black px-4 py-2 rounded cursor-pointer  hover:shadow-2xl shadow-xl hover:font-semibold"
+            >
+              Edit
+            </motion.button>
           )}
         </div>
 
@@ -278,12 +347,25 @@ const addProduct = () => {
                     className="w-full h-full object-cover"
                   />
                   {isEditing && (
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className="absolute bottom-2 px-5 py-1 w-[70%] inline z-10 text-black hover:text-white hover:bg-black bg-gray-200 rounded-xl left-2 text-xs"
-                      onChange={(e) => handleImageUpload(index, e)}
-                    />
+                    <motion.div
+                      animate={{opacity:[0,1], scale:[0.8,1]}}
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{scale:0.9}}
+                      transition={{ duration: 0.3 }}
+                      className="absolute mx-2 bottom-2 left-2  z-50 bg-white/80 p-1 rounded"
+                    >
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="text-xs w-full cursor-pointer"
+                        onChange={(e) => handleProductImageSelect(index, e)}
+                      />
+                      {pendingImages[index] && (
+                        <p className="text-xs text-orange-600 mt-1">
+                          Image selected: {pendingImages[index].name} (will upload on save)
+                        </p>
+                      )}
+                    </motion.div>
                   )}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
                   <div className="absolute top-2 left-2">
@@ -466,9 +548,7 @@ const addProduct = () => {
                   >
                     <option value="red-accent">Red</option>
                     <option value="primary">Primary</option>
-                    <option value="gradient">Gradient</option>
-                    <option value="orange">Orange</option>
-                    <option value="green">Green</option>
+                   
                     {/* Add more as needed */}
                   </select>
                   <button

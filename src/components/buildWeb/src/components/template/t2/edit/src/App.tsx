@@ -10,11 +10,11 @@ import Contact from "./components/Contact";
 import Footer from "./components/Footer";
 import { ThemeProvider } from "./components/ThemeProvider";
 import { useTemplate } from "../../../../../../../context/context";
-import { useEffect, useState, useCallback } from "react"; // Add useCallback
+import { useEffect, useState, useCallback } from "react";
 import Publish from "./components/publish";
 
 export default function App() {
-  const { AIGenData, isPublishedTrigured, setFinalTemplate } = useTemplate();
+  const { AIGenData, setFinalTemplate } = useTemplate();
   const [componentStates, setComponentStates] = useState({});
 
   // Memoize the collectComponentState function
@@ -25,24 +25,20 @@ export default function App() {
     }));
   }, []);
 
-
-
-  // When isPublishedTrigured becomes true, update finalTemplate
+  // Update finalTemplate whenever componentStates changes
   useEffect(() => {
-    if (isPublishedTrigured) {
-      setFinalTemplate(prev => ({
-        ...prev,
-        publishedId: AIGenData.publishedId,
-         userId: AIGenData.userId,
-         draftId: AIGenData.draftId,
-         templateSelection: AIGenData.templateSelection,
-        content: {
-          ...prev.content,
-          ...componentStates
-        }
-      }));
-    }
-  }, [isPublishedTrigured, componentStates, setFinalTemplate]);
+    setFinalTemplate(prev => ({
+      ...prev,
+      publishedId: AIGenData.publishedId,
+      userId: AIGenData.userId,
+      draftId: AIGenData.draftId,
+      templateSelection: AIGenData.templateSelection,
+      content: {
+        ...prev.content,
+        ...componentStates
+      }
+    }));
+  }, [componentStates, setFinalTemplate, AIGenData]);
 
   return (
     <ThemeProvider>
@@ -55,22 +51,37 @@ export default function App() {
           <Hero 
             heroData={AIGenData.content.hero}
             onStateChange={useCallback((state) => collectComponentState('hero', state), [collectComponentState])}
+            publishedId={AIGenData.publishedId}
+            userId={AIGenData.userId}
+            templateSelection={AIGenData.templateSelection}
           />
           <About 
             aboutData={AIGenData.content.about}
             onStateChange={useCallback((state) => collectComponentState('about', state), [collectComponentState])}
+            publishedId={AIGenData.publishedId}
+            userId={AIGenData.userId}
+            templateSelection={AIGenData.templateSelection}
           />
           <Services 
             serviceData={AIGenData.content.services}
             onStateChange={useCallback((state) => collectComponentState('services', state), [collectComponentState])}
+            publishedId={AIGenData.publishedId}
+            userId={AIGenData.userId}
+            templateSelection={AIGenData.templateSelection}
           />
           <Product 
             productData={AIGenData.content.products}
             onStateChange={useCallback((state) => collectComponentState('products', state), [collectComponentState])}
+            publishedId={AIGenData.publishedId}
+            userId={AIGenData.userId}
+            templateSelection={AIGenData.templateSelection} 
           />
           <Blog 
             blogData={AIGenData.content.blog}
             onStateChange={useCallback((state) => collectComponentState('blog', state), [collectComponentState])}
+            publishedId={AIGenData.publishedId}
+            userId={AIGenData.userId}
+            templateSelection={AIGenData.templateSelection}
           />
           <Testimonials 
             testimonialsData={AIGenData.content.testimonials}
@@ -79,13 +90,17 @@ export default function App() {
           <Clients 
             clientData={AIGenData.content.clients}
             onStateChange={useCallback((state) => collectComponentState('clients', state), [collectComponentState])}
+            publishedId={AIGenData.publishedId}
+            userId={AIGenData.userId}
+            templateSelection={AIGenData.templateSelection}
           />
           <Contact 
             onStateChange={useCallback((state) => collectComponentState('contact', state), [collectComponentState])}
           />
           <Publish/>
         </main>
-        <Footer 
+        <Footer
+          footerData={AIGenData.content.services} 
           onStateChange={useCallback((state) => collectComponentState('footer', state), [collectComponentState])}
         />
       </div>

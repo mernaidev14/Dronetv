@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { Search, MapPin, ChevronDown, ArrowRight, Star, Users, Building2, Menu, X, Eye, Edit } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useUserAuth } from "./context/context"; // Import your user context
+import { toast } from "react-toastify";
+import { useUserAuth, useTemplate } from "./context/context";
 
 // TypeScript Interfaces
 interface Company {
@@ -806,8 +807,11 @@ const apiService = {
       throw new Error("An unexpected error occurred while fetching companies");
     }
   },
-
-  async fetchPublishedDetails(publishedId: string, userId: string): Promise<PublishedDetailsResponse> {
+  async fetchPublishedDetails(
+  publishedId: string,
+  userId: string,
+  setFinaleDataReview: (data: PublishedDetailsResponse) => void
+): Promise<PublishedDetailsResponse> {
     try {
       const response = await fetch(
         `https://v1lqhhm1ma.execute-api.ap-south-1.amazonaws.com/prod/dashboard-cards/published-details/${publishedId}`,
@@ -836,7 +840,8 @@ const apiService = {
       }
 
       const data = await response.json();
-      console.log("Published Details Response:", data);
+      // console.log("Published Details Response:", data);
+         setFinaleDataReview(data)
       return data;
     } catch (error) {
       console.error("Error fetching published details:", error);
@@ -849,7 +854,9 @@ const apiService = {
 const CompanyDirectory: React.FC = () => {
   // Get user from context
   const { user }: { user: User | null } = useUserAuth();
+   const { setFinaleDataReview } = useTemplate(); // ✅ bring context setter
   const navigate = useNavigate();
+
 
   // State management
   const [companies, setCompanies] = useState<Company[]>([]);
@@ -862,7 +869,7 @@ const CompanyDirectory: React.FC = () => {
   const [sortBy, setSortBy] = useState<string>("Sort by Name");
   const [currentPage] = useState<number>(1);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState<boolean>(false);
-
+ 
   // Navigation handlers
   const handleEdit = async (publishedId: string): Promise<void> => {
     try {
@@ -870,43 +877,34 @@ const CompanyDirectory: React.FC = () => {
         throw new Error("User not authenticated");
       }
       
-      // Fetch the published details to pass to edit page
-      const details = await apiService.fetchPublishedDetails(publishedId, user.email);
-      
-      // Navigate to edit page with the template data
-      navigate(`/user/companies/edit/${publishedId}`, { 
-        state: { 
-          templateData: details,
-          publishedId: publishedId 
-        } 
-      });
+      // Fetch the published details
+      const details = await apiService.fetchPublishedDetails(
+        publishedId,
+        user.email,
+        setFinaleDataReview // ✅ directly store in context
+      );
+
+      // ✅ Navigate to edit page
+      navigate(`/user/companies/edit/${publishedId}`);
     } catch (error) {
       console.error("Error loading template for editing:", error);
-      alert("Failed to load template for editing. Please try again.");
+      toast.error("Failed to load template for editing. Please try again.");
     }
   };
-
-  const handlePreview = async (publishedId: string): Promise<void> => {
-    try {
-      if (!user?.email) {
-        throw new Error("User not authenticated");
-      }
-      
-      // Fetch the published details for preview
-      const details = await apiService.fetchPublishedDetails(publishedId, user.email);
-      
-      // Navigate to preview page with the template data
-      navigate(`/user/companies/preview/${publishedId}`, { 
-        state: { 
-          templateData: details,
-          publishedId: publishedId 
-        } 
-      });
-    } catch (error) {
-      console.error("Error loading template for preview:", error);
-      alert("Failed to load template for preview. Please try again.");
+// In the handlePreview function, modify the navigation:
+const handlePreview = async (publishedId: string): Promise<void> => {
+  try {
+    if (!user?.email) {
+      throw new Error("User not authenticated");
     }
-  };
+    
+    // Include user ID in the URL as a query parameter
+    navigate(`/user/companies/preview/${publishedId}`);
+  } catch (error) {
+    console.error("Error loading template for preview:", error);
+    alert("Failed to load template for preview. Please try again.");
+  }
+};
 
   // Clear filters function
   const handleClearFilters = (): void => {

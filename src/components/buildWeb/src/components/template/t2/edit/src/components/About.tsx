@@ -1,4 +1,4 @@
-import { useState,useEffect } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "motion/react";
 import {
   CheckCircle,
@@ -11,15 +11,18 @@ import {
   Shield,
   Lightbulb,
 } from "lucide-react";
+import { toast } from "react-toastify";
 
-export default function About({ aboutData, onStateChange }) {
+export default function About({ aboutData, onStateChange, userId, publishedId, templateSelection }) {
   const [isEditing, setIsEditing] = useState(false);
+  const [pendingImageFile, setPendingImageFile] = useState(null);
+  const [isUploading, setIsUploading] = useState(false);
 
   // Map the emoji icons to Lucide React components
   const iconMap = {
-    "🛡️": Shield, // You'll need to import Shield from lucide-react
-    "💡": Lightbulb, // You'll need to import Lightbulb from lucide-react
-    "🎯": Target, // You'll need to import Target from lucide-react
+    "🛡️": Shield,
+    "💡": Lightbulb,
+    "🎯": Target,
     // Add more mappings as needed
   };
 
@@ -85,12 +88,13 @@ export default function About({ aboutData, onStateChange }) {
       "https://images.unsplash.com/photo-1748346918817-0b1b6b2f9bab?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwcm9mZXNzaW9uYWwlMjBvZmZpY2UlMjBzcGFjZSUyMG1vZGVybnxlbnwxfHx8fDE3NTU2MTgzNjR8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
   });
 
-    // Add this useEffect to notify parent of state changes
+  // Add this useEffect to notify parent of state changes
   useEffect(() => {
     if (onStateChange) {
       onStateChange(aboutState);
     }
   }, [aboutState, onStateChange]);
+
   // Update function for simple fields
   const updateField = (field, value) => {
     setAboutState((prev) => ({ ...prev, [field]: value }));
@@ -122,15 +126,81 @@ export default function About({ aboutData, onStateChange }) {
     }));
   };
 
-  // Handle image upload
+  // Image selection - only shows local preview, no upload yet
   const handleImageUpload = (e) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        updateField("imageUrl", reader.result);
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+
+    // Validate file type and size
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select an image file');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) { // 5MB limit
+      toast.error('File size must be less than 5MB');
+      return;
+    }
+
+    // Store the file for upload on Save
+    setPendingImageFile(file);
+    
+    // Show immediate local preview
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      updateField("imageUrl", reader.result);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Updated Save button handler - uploads image and stores S3 URL
+  const handleSave = async () => {
+    try {
+      setIsUploading(true);
+
+      // If there's a pending image, upload it first
+      if (pendingImageFile) {
+        if (!userId || !publishedId || !templateSelection) {
+          console.error('Missing required props:', { userId, publishedId, templateSelection });
+          toast.error('Missing user information. Please refresh and try again.');
+          return;
+        }
+        
+        const formData = new FormData();
+        formData.append('file', pendingImageFile);
+        formData.append('sectionName', 'about');
+        formData.append('imageField', 'imageUrl'); // This will map to 'imageUrl' in your PUT lambda
+        formData.append('templateSelection', templateSelection);
+
+        const uploadResponse = await fetch(`https://o66ziwsye5.execute-api.ap-south-1.amazonaws.com/prod/upload-image/${userId}/${publishedId}`, {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (uploadResponse.ok) {
+          const uploadData = await uploadResponse.json();
+          // Replace local preview with S3 URL
+          updateField("imageUrl", uploadData.imageUrl);
+          setPendingImageFile(null); // Clear pending file
+          console.log('Image uploaded to S3:', uploadData.imageUrl);
+        } else {
+          const errorData = await uploadResponse.json();
+          console.error('Image upload failed:', errorData);
+          toast.error(`Image upload failed: ${errorData.message || 'Unknown error'}`);
+          return; // Don't exit edit mode
+        }
+      }
+      
+      // Exit edit mode
+      setIsEditing(false);
+      toast.success('About section saved with S3 URLs ready for publish');
+
+    } catch (error) {
+      console.error('Error saving about section:', error);
+      toast.error('Error saving changes. Please try again.');
+      // Keep in edit mode so user can retry
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -141,16 +211,17 @@ export default function About({ aboutData, onStateChange }) {
         <div className="flex justify-end mt-6">
           {isEditing ? (
             <motion.button
-            whileTap={{scale:0.9}}
+              whileTap={{scale:0.9}}
               whileHover={{ y: -1, scaleX: 1.1 }}
-              onClick={() => setIsEditing(false)}
-              className="bg-green-600 cursor-pointer hover:font-semibold hover:shadow-2xl shadow-xl text-white px-4 py-2 rounded"
+              onClick={handleSave}
+              disabled={isUploading}
+              className={`${isUploading ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-600 hover:shadow-2xl'} text-white px-4 py-2 rounded shadow-xl hover:font-semibold`}
             >
-              Save
+              {isUploading ? 'Uploading...' : 'Save'}
             </motion.button>
           ) : (
             <motion.button
-            whileTap={{scale:0.9}}
+              whileTap={{scale:0.9}}
               whileHover={{ y: -1, scaleX: 1.1 }}
               onClick={() => setIsEditing(true)}
               className="bg-yellow-500 text-black px-4 py-2 rounded cursor-pointer  hover:shadow-2xl shadow-xl hover:font-semibold"
@@ -175,11 +246,18 @@ export default function About({ aboutData, onStateChange }) {
             />
             {isEditing && (
               <div className="absolute bottom-4 left-4 bg-white/80 p-2 rounded shadow">
+                <p className="text-sm mb-1">Change About Image:</p>
                 <input
                   type="file"
                   accept="image/*"
                   onChange={handleImageUpload}
+                  className="text-sm border-2 border-dashed border-muted-foreground p-2 rounded w-full"
                 />
+                {pendingImageFile && (
+                  <p className="text-xs text-orange-600 mt-1">
+                    Image selected: {pendingImageFile.name} (will upload on save)
+                  </p>
+                )}
               </div>
             )}
           </motion.div>
@@ -246,8 +324,8 @@ export default function About({ aboutData, onStateChange }) {
               ))}
               {isEditing && (
                 <motion.button
-                whileTap={{scale:0.9}}
-                whileHover={{scale:1.1}}
+                  whileTap={{scale:0.9}}
+                  whileHover={{scale:1.1}}
                   onClick={addFeature}
                   className="text-green-600 cursor-pointer text-sm mt-2"
                 >

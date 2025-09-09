@@ -3,64 +3,83 @@ import { motion } from "motion/react";
 import { useState, useEffect } from "react";
 import { Button } from "./ui/button";
 
-export default function Footer({onStateChange}) {
+export default function Footer({onStateChange,footerData}) {
   const [isEditing, setIsEditing] = useState(false);
 
   // Merged all state into a single object
-  const [footerContent, setFooterContent] = useState({
-    companyInfo: {
-      logoText: "C",
-      companyName: "Company",
-      description: "We help businesses transform and grow with innovative solutions, expert guidance, and proven strategies that deliver exceptional results.",
-      email: "hello@company.com",
-      phone: "+1 (555) 123-4567"
-    },
-    footerLinks: {
-      Company: [
-        { name: "About Us", href: "#about" },
-        { name: "Our Team", href: "#" },
-        { name: "Careers", href: "#" },
-        { name: "Contact", href: "#contact" }
+    const [footerContent, setFooterContent] = useState({
+      companyInfo: {
+        logoText: "C",
+        companyName: "Company",
+        description: "We help businesses transform and grow with innovative solutions, expert guidance, and proven strategies that deliver exceptional results.",
+        email: "hello@company.com",
+        phone: "+1 (555) 123-4567"
+      },
+      footerLinks: {
+        Company: [
+          { name: "About Us", href: "#about" },
+          { name: "Our Team", href: "#" },
+          { name: "Careers", href: "#" },
+          { name: "Contact", href: "#contact" }
+        ],
+        Services: footerData?.services ? footerData.services.map(service => ({
+          name: service.title,
+          href: "#services"
+        })) : [
+          { name: "Strategy Consulting", href: "#services" },
+          { name: "Team Development", href: "#services" },
+          { name: "Digital Transformation", href: "#services" },
+          { name: "Performance Optimization", href: "#services" }
+        ],
+        Resources: [
+          { name: "Blog", href: "#" },
+          { name: "Case Studies", href: "#" },
+          { name: "Whitepapers", href: "#" },
+          { name: "Documentation", href: "#" }
+        ],
+        Legal: [
+          { name: "Privacy Policy", href: "#" },
+          { name: "Terms of Service", href: "#" },
+          { name: "Cookie Policy", href: "#" },
+          { name: "GDPR", href: "#" }
+        ]
+      },
+      socialLinks: [
+        { name: "Facebook", icon: Facebook, href: "#" },
+        { name: "Twitter", icon: Twitter, href: "#" },
+        { name: "LinkedIn", icon: Linkedin, href: "#" },
+        { name: "Instagram", icon: Instagram, href: "#" }
       ],
-      Services: [
-        { name: "Strategy Consulting", href: "#services" },
-        { name: "Team Development", href: "#services" },
-        { name: "Digital Transformation", href: "#services" },
-        { name: "Performance Optimization", href: "#services" }
-      ],
-      Resources: [
-        { name: "Blog", href: "#" },
-        { name: "Case Studies", href: "#" },
-        { name: "Whitepapers", href: "#" },
-        { name: "Documentation", href: "#" }
-      ],
-      Legal: [
-        { name: "Privacy Policy", href: "#" },
-        { name: "Terms of Service", href: "#" },
-        { name: "Cookie Policy", href: "#" },
-        { name: "GDPR", href: "#" }
-      ]
-    },
-    socialLinks: [
-      { name: "Facebook", icon: Facebook, href: "#" },
-      { name: "Twitter", icon: Twitter, href: "#" },
-      { name: "LinkedIn", icon: Linkedin, href: "#" },
-      { name: "Instagram", icon: Instagram, href: "#" }
-    ],
-    newsletter: {
-      title: "Stay updated",
-      description: "Get the latest news and insights delivered to your inbox.",
-      buttonText: "Subscribe"
-    },
-    bottomFooter: {
-      copyright: "© 2024 Company. All rights reserved.",
-      links: [
-        { name: "Privacy Policy", href: "#" },
-        { name: "Terms of Service", href: "#" },
-        { name: "Cookies", href: "#" }
-      ]
+      newsletter: {
+        title: "Stay updated",
+        description: "Get the latest news and insights delivered to your inbox.",
+        buttonText: "Subscribe"
+      },
+      bottomFooter: {
+        copyright: "© 2024 Company. All rights reserved.",
+        links: [
+          { name: "Privacy Policy", href: "#" },
+          { name: "Terms of Service", href: "#" },
+          { name: "Cookies", href: "#" }
+        ]
+      }
+    });
+ 
+  // Update footer content when footerData changes
+  useEffect(() => {
+    if (footerData?.services) {
+      setFooterContent(prev => ({
+        ...prev,
+        footerLinks: {
+          ...prev.footerLinks,
+          Services: footerData.services.map(service => ({
+            name: service.title,
+            href: "#services"
+          }))
+        }
+      }));
     }
-  });
+  }, [footerData]);
 
     // Add this useEffect to notify parent of state changes
   useEffect(() => {

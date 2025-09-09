@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
- import {toast } from 'react-toastify';
+import { toast } from 'react-toastify';
+
 // User Authentication Types and Context
 interface User {
   email: string;
@@ -69,7 +70,11 @@ interface TemplateContextType {
   setIsPublishedTriggered: React.Dispatch<React.SetStateAction<boolean>>;
   finalTemplate: any | [];
   setFinalTemplate: React.Dispatch<React.SetStateAction<any | []>>;
-  publishTemplate: () => void;
+  publishTemplate: () => void;  
+
+  finaleDataReview: any |[];
+  setFinaleDataReview: React.Dispatch<React.SetStateAction<any | []>>;
+  editPublishTemplate: () => void;
 }
 
 const TemplateContext = createContext<TemplateContextType | undefined>(undefined);
@@ -83,41 +88,102 @@ export const TemplateProvider: React.FC<TemplateProviderProps> = ({ children }) 
   const [isPublishedTriggered, setIsPublishedTriggered] = useState<boolean>(false);
   const [finalTemplate, setFinalTemplate] = useState<any | []>({});
   const [AIGenData, setAIGenData] = useState<any>({});
+  const [finaleDataReview, setFinaleDataReview] = useState<any | []>({})
 
   const navigate = useNavigate();
-
+//pulish final template
   async function fetchAPI() {
-    const response = await fetch(
-      `https://3l8nvxqw1a.execute-api.ap-south-1.amazonaws.com/prod/api/draft/${AIGenData.userId}/update/${AIGenData.publishedId}`,
-      {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(finalTemplate)
-      }
-    );
-    
-    const res = await response.json();
+    if (Object.keys(finalTemplate).length === 0) {
+      toast.error("No content to publish");
+      return;
+    }
 
-    if (response.ok) {
-      console.log("response:", res);
-      toast.success("your site is successfully published and now it is in under-review")
+    try {
+      const response = await fetch(
+        `https://3l8nvxqw1a.execute-api.ap-south-1.amazonaws.com/prod/api/draft/${AIGenData.userId ||finaleDataReview.userId}/update/${AIGenData.publishedId || finaleDataReview.publishedId}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(finalTemplate),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log("Upload successful:", result);
+      toast.success("Your site is successfully published and now it is under review");
       navigate("/user/companies");
-    }else{
-      toast.error("somthing want wrong...")
+      setAIGenData({});
+    } catch (error) {
+      console.error("Upload failed:", error);
+      toast.error("Something went wrong...");
     }
   }
 
+  //edit and publish final template
+
+  async function editFetchAPI() {
+    if (Object.keys(finalTemplate).length === 0) {
+      toast.error("No content to publish");
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `https://3l8nvxqw1a.execute-api.ap-south-1.amazonaws.com/prod/api/draft/${finaleDataReview.userId}/update/${finaleDataReview.publishedId}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(finalTemplate),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log("Upload successful:", result);
+      toast.success("Your site is successfully published and now it is under review");
+      navigate("/user/companies");
+      setFinaleDataReview({});
+    } catch (error) {
+      console.error("Upload failed:", error);
+      toast.error("Something went wrong...");
+    }
+  }
+  
   function publishTemplate() {
     setIsPublishedTriggered(true);
-    fetchAPI();
+    // Add a small delay to ensure state updates are processed
+    setTimeout(() => {
+      fetchAPI();
+    }, 100);
   }
+  function editPublishTemplate() {
+    setIsPublishedTriggered(true);
+    // Add a small delay to ensure state updates are processed
+    setTimeout(() => {
+      editFetchAPI();
+    }, 100);
+  }
+
 
   useEffect(() => {
     console.log("finalData:", finalTemplate);
   }, [finalTemplate]);
-
+  
+  useEffect(() => {
+    console.log("final preview data:", finaleDataReview);
+  }, [finaleDataReview])
+  
   return (
     <TemplateContext.Provider value={{ 
       draftDetails, 
@@ -128,7 +194,10 @@ export const TemplateProvider: React.FC<TemplateProviderProps> = ({ children }) 
       setIsPublishedTriggered, 
       finalTemplate, 
       setFinalTemplate, 
-      publishTemplate 
+      publishTemplate,
+      setFinaleDataReview,
+      finaleDataReview,
+      editPublishTemplate 
     }}>
       {children}
     </TemplateContext.Provider>
