@@ -61,18 +61,60 @@ export default function App() {
         userId={AIGenData.userId}
         templateSelection={AIGenData.templateSelection}
       />
-      <UsedBy />
-      <About aboutData={AIGenData.content.about} />
-      <Services serviceData={AIGenData.content.services} />
-      <Products productData={AIGenData.content.products} />
-      <Blog onSelectBlog={setSelectedBlog} blogData={AIGenData.content.blog} />
-      {selectedBlog && (
-        <BlogModal blog={selectedBlog} onClose={() => setSelectedBlog(null)} />
-      )}
-      <Testimonials content={AIGenData.content.testimonials} />
-      <Contact />
+      <UsedBy
+        onStateChange={useCallback((state) => collectComponentState("usedBy", state), [collectComponentState])}
+        publishedId={AIGenData.publishedId}
+        userId={AIGenData.userId}
+        templateSelection={AIGenData.templateSelection}
+      />
+      <About 
+        aboutData={AIGenData.content.about}
+        onStateChange={useCallback((state) => collectComponentState("about", state), [collectComponentState])}
+        publishedId={AIGenData.publishedId}
+        userId={AIGenData.userId}
+        templateSelection={AIGenData.templateSelection}
+      
+      />
+      <Services 
+      serviceData={AIGenData.content.services}
+      onStateChange={useCallback((state) => collectComponentState("services", state), [collectComponentState])}
+      publishedId={AIGenData.publishedId}
+      userId={AIGenData.userId}
+      templateSelection={AIGenData.templateSelection}
+      />
+      <Products 
+      productData={AIGenData.content.products} 
+      onStateChange={useCallback((state) => collectComponentState("products", state), [collectComponentState])}
+      publishedId={AIGenData.publishedId}
+      userId={AIGenData.userId}
+      templateSelection={AIGenData.templateSelection}
+      />
+      <Blog 
+      blogData={AIGenData.content.blog}
+      onStateChange={useCallback((state) => collectComponentState("blog", state), [collectComponentState])}
+      publishedId={AIGenData.publishedId}
+      userId={AIGenData.userId}
+      templateSelection={AIGenData.templateSelection}
+      />
+      
+      <Testimonials 
+      content={AIGenData.content.testimonials}
+      onStateChange={useCallback((state) => collectComponentState("testimonials", state), [collectComponentState])}
+      publishedId={AIGenData.publishedId}
+      userId={AIGenData.userId}
+      templateSelection={AIGenData.templateSelection}
+       />
+      <Contact
+      content={AIGenData.content.contact}
+      onStateChange={useCallback((state) => collectComponentState("contact", state), [collectComponentState])}
+      publishedId={AIGenData.publishedId}
+      userId={AIGenData.userId}
+      templateSelection={AIGenData.templateSelection}
+      />
       <Publish />
-      <Footer />
+      <Footer 
+      onStateChange={useCallback((state) => collectComponentState("footer", state), [collectComponentState])}
+      />
     </div>
   );
 }

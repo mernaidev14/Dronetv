@@ -1,6 +1,7 @@
 import { motion } from "motion/react";
 import { useEffect, useState, useRef, useCallback, useMemo } from "react";
-import { Edit2, Save, X, Upload, Loader2 } from "lucide-react";
+import { Edit2, Save, X, Upload, Loader2, Plus, Trash2 } from "lucide-react";
+import { toast } from "react-toastify";
 import img from "../public/images/About/About.jpg";
 
 // Custom Button component
@@ -47,89 +48,72 @@ const Badge = ({ children, className }) => (
   </span>
 );
 
-export default function EditableAbout({ aboutData }) {
-  // Consolidated state
-  const [aboutState, setAboutState] = useState({
-    aboutTitle: "About Our Company",
-    company: aboutData?.story || "Company Name",
-    industry: aboutData?.industry || "industry",
-    established: aboutData?.established || "established",
-    headquarters: aboutData?.headquarters || "Headquaters",
-
-    aboutDesc1:
-      "We are a forward-thinking company dedicated to helping businesses achieve their full potential through innovative solutions and strategic partnerships.",
-    aboutDesc2:
-      aboutData?.story ||
-      "Founded with the vision of transforming how companies operate in the digital age, we combine cutting-edge technology with deep industry expertise to deliver exceptional results for our clients.",
-    features: [
-      "10+ years of industry experience",
-      "Award-winning team of experts",
-      "Proven track record of success",
-      "Customer-first approach",
-    ],
-    metric1Num: "15+",
-    metric1Label: "Years Experience",
-    metric2Num: "200+",
-    metric2Label: "Projects Completed",
-    visionBadge: "Our Vision",
-    visionTitle: "Shaping the Future Together",
-    visionDesc:
-      aboutData?.vision ||
-      "We envision a world where technology and human ingenuity combine to create sustainable solutions that empower businesses to thrive while making a positive impact on society and the environment.",
-
-    missionTitle: "Our Mission",
-    missionDesc:
-      aboutData?.mission ||
-      "To empower businesses of all sizes with innovative solutions that drive growth, foster sustainability, and create lasting value for stakeholders, communities, and the world at large.",
-    imageUrl:
-      "https://images.unsplash.com/photo-1748346918817-0b1b6b2f9bab?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwcm9mZXNzaW9uYWwlMjBvZmZpY2UlMjBzcGFjZSUyMG1vZGVybnxlbnwxfHx8fDE3NTU2MTgzNjR8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
-  });
-
-  const useScrollAnimation = () => {
-    const [ref, setRef] = useState(null);
-    const [isVisible, setIsVisible] = useState(false);
-
-    useEffect(() => {
-      if (!ref) return;
-
-      const observer = new IntersectionObserver(
-        ([entry]) => {
-          setIsVisible(entry.isIntersecting);
-        },
-        { threshold: 0.1 }
-      );
-
-      observer.observe(ref);
-      return () => observer.unobserve(ref);
-    }, [ref]);
-
-    return [setRef, isVisible];
-  };
-
-  const [aboutRef, aboutVisible] = useScrollAnimation();
+export default function EditableAbout({ aboutData, onStateChange, userId, publishedId, templateSelection }) {
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);  
+  const [isUploading, setIsUploading] = useState(false);
   const [dataLoaded, setDataLoaded] = useState(false);
+  const [isVisible, setIsVisible] = useState(false);
+  const sectionRef = useRef(null);
   const fileInputRef = useRef(null);
+  
+  // Pending image file for S3 upload
+  const [pendingImageFile, setPendingImageFile] = useState(null);
 
-  // Default/initial content structure
+  // Default content structure based on the provided JSON
   const defaultContent = {
-    badgeText: "About Company",
-    title: "About Company",
-    company: "Company Name",
-    industry: "Industry",
-    established: "Year",
-    headquarters: "Location",
-    description: "Company description will appear here...",
-    mission: "Company mission statement...",
-    vision: "Company vision statement...",
-    buttonText: "Learn More",
-    image: img,
+    companyName: aboutData?.companyName || "",
+    industry: aboutData?.industry || "Drone Technology Solutions",
+    established: aboutData?.established || "",
+    headquarters: aboutData?.headquarters || "",
+    description1: aboutData?.description1 || "Founded in 2020 by [Founder's Name], [Company Name] was born from a vision to provide reliable and innovative drone services. Driven by a passion for cutting-edge technology and a commitment",
+    description2: aboutData?.description2 || "to safety, we aimed to redefine aerial data acquisition. Our early projects focused on building a strong foundation of expertise",
+    mission: aboutData?.mission || "To provide safe, reliable, and innovative drone technology solutions that empower businesses and improve lives.",
+    vision: aboutData?.vision || "To be the leading provider of cutting-edge drone technology, shaping the future of aerial data acquisition and analysis.",
+    officeImage: aboutData?.officeImage || img,
+    certifications: aboutData?.certifications || [
+      "DGCA Remote Pilot License",
+      "Professional Drone Operations Certification",
+      "Advanced Aerial Photography Training"
+    ],
+    achievements: aboutData?.achievements || [
+      "500+ Successful Drone Operations Completed",
+      "DGCA Certified Pilots and Operations",
+      "99.8% Project Success Rate Achieved"
+    ]
   };
 
-  const [content, setContent] = useState(defaultContent);
-  const [tempContent, setTempContent] = useState(defaultContent);
+  // Consolidated state
+  const [aboutState, setAboutState] = useState(defaultContent);
+  const [tempAboutState, setTempAboutState] = useState(defaultContent);
+
+  // Notify parent of state changes
+  useEffect(() => {
+    if (onStateChange) {
+      onStateChange(aboutState);
+    }
+  }, [aboutState, onStateChange]);
+
+  // Intersection Observer for visibility
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsVisible(entry.isIntersecting);
+      },
+      { threshold: 0.1 }
+    );
+
+    if (sectionRef.current) {
+      observer.observe(sectionRef.current);
+    }
+
+    return () => {
+      if (sectionRef.current) {
+        observer.unobserve(sectionRef.current);
+      }
+    };
+  }, []);
 
   // Simulate API call to fetch data from database
   const fetchAboutData = async () => {
@@ -138,28 +122,12 @@ export default function EditableAbout({ aboutData }) {
       // Replace this with your actual API call
       const response = await new Promise((resolve) => {
         setTimeout(() => {
-          resolve({
-            id: 1,
-            badgeText: "About Company",
-            title: "About Company",
-            company: "Innovative Labs",
-            industry: "Technology & Innovation",
-            established: "2015",
-            headquarters: "Silicon Valley",
-            description:
-              "Our company offers innovative solutions designed to meet your unique business needs. With a team of experts, we ensure quality, reliability, and on-time delivery in every project. From planning to execution, we provide end-to-end services that drive sustainable growth.",
-            mission:
-              "To create cutting-edge solutions that empower businesses through innovation and technology.",
-            vision:
-              "To be a global leader in driving innovation that shapes a smarter, sustainable future.",
-            buttonText: "Learn More",
-            image: img,
-          });
+          resolve(defaultContent);
         }, 1500); // Simulate network delay
       });
 
-      setContent(response);
-      setTempContent(response);
+      setAboutState(response);
+      setTempAboutState(response);
       setDataLoaded(true);
     } catch (error) {
       console.error("Error fetching about data:", error);
@@ -169,70 +137,165 @@ export default function EditableAbout({ aboutData }) {
     }
   };
 
-  // Simulate API call to save data to database
-  const saveAboutData = async (updatedContent) => {
-    setIsSaving(true);
-    try {
-      // Replace this with your actual API call
-      await new Promise((resolve) => {
-        setTimeout(() => {
-          resolve({ success: true });
-        }, 1000); // Simulate network delay
-      });
+  // Fetch data when component becomes visible
+  useEffect(() => {
+    if (isVisible && !dataLoaded && !isLoading) {
+      fetchAboutData();
+    }
+  }, [isVisible, dataLoaded, isLoading]);
 
-      return true;
+  const handleEdit = () => {
+    setIsEditing(true);
+    setTempAboutState(aboutState);
+    setPendingImageFile(null);
+  };
+
+  // Updated Save function with S3 upload
+  const handleSave = async () => {
+    try {
+      setIsUploading(true);
+      
+      // Create a copy of tempAboutState to update with S3 URLs
+      let updatedState = { ...tempAboutState };
+
+      // Upload office image if there's a pending file
+      if (pendingImageFile) {
+        if (!userId || !publishedId || !templateSelection) {
+          toast.error('Missing user information. Please refresh and try again.');
+          return;
+        }
+
+        const formData = new FormData();
+        formData.append('file', pendingImageFile);
+        formData.append('sectionName', 'about');
+        formData.append('imageField', 'officeImage');
+        formData.append('templateSelection', templateSelection);
+
+        const uploadResponse = await fetch(`https://o66ziwsye5.execute-api.ap-south-1.amazonaws.com/prod/upload-image/${userId}/${publishedId}`, {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (uploadResponse.ok) {
+          const uploadData = await uploadResponse.json();
+          updatedState.officeImage = uploadData.imageUrl;
+          console.log('Office image uploaded to S3:', uploadData.imageUrl);
+        } else {
+          const errorData = await uploadResponse.json();
+          toast.error(`Image upload failed: ${errorData.message || 'Unknown error'}`);
+          return;
+        }
+      }
+
+      // Clear pending file
+      setPendingImageFile(null);
+
+      // Save the updated state with S3 URLs
+      setIsSaving(true);
+      await new Promise((resolve) => setTimeout(resolve, 1000)); // Simulate save API call
+      
+      // Update both states with the new URLs
+      setAboutState(updatedState);
+      setTempAboutState(updatedState);
+      
+      setIsEditing(false);
+      toast.success('About section saved with S3 URLs ready for publish');
+
     } catch (error) {
-      console.error("Error saving about data:", error);
-      return false;
+      console.error('Error saving about section:', error);
+      toast.error('Error saving changes. Please try again.');
     } finally {
+      setIsUploading(false);
       setIsSaving(false);
     }
   };
 
-  // Fetch data when component becomes visible
-  useEffect(() => {
-    if (aboutVisible && !dataLoaded && !isLoading) {
-      fetchAboutData();
-    }
-  }, [aboutVisible, dataLoaded, isLoading]);
-
-  const handleEdit = () => {
-    setIsEditing(true);
-    setTempContent(content);
-  };
-
-  const handleSave = async () => {
-    const success = await saveAboutData(tempContent);
-    if (success) {
-      setContent(tempContent);
-      setIsEditing(false);
-    } else {
-      alert("Failed to save changes. Please try again.");
-    }
-  };
-
   const handleCancel = () => {
-    setTempContent(content);
+    setTempAboutState(aboutState);
+    setPendingImageFile(null);
     setIsEditing(false);
   };
 
   // Stable update function with useCallback
   const updateTempContent = useCallback((field, value) => {
-    setTempContent((prev) => ({ ...prev, [field]: value }));
+    setTempAboutState((prev) => ({ ...prev, [field]: value }));
   }, []);
 
+  // Update functions for arrays
+  const updateCertification = useCallback((index, value) => {
+    setTempAboutState((prev) => {
+      const updatedCertifications = [...prev.certifications];
+      updatedCertifications[index] = value;
+      return { ...prev, certifications: updatedCertifications };
+    });
+  }, []);
+
+  const updateAchievement = useCallback((index, value) => {
+    setTempAboutState((prev) => {
+      const updatedAchievements = [...prev.achievements];
+      updatedAchievements[index] = value;
+      return { ...prev, achievements: updatedAchievements };
+    });
+  }, []);
+
+  // Add new items to arrays
+  const addCertification = useCallback(() => {
+    setTempAboutState((prev) => ({
+      ...prev,
+      certifications: [...prev.certifications, "New Certification"],
+    }));
+  }, []);
+
+  const addAchievement = useCallback(() => {
+    setTempAboutState((prev) => ({
+      ...prev,
+      achievements: [...prev.achievements, "New Achievement"],
+    }));
+  }, []);
+
+  // Remove items from arrays
+  const removeCertification = useCallback((index) => {
+    setTempAboutState((prev) => ({
+      ...prev,
+      certifications: prev.certifications.filter((_, i) => i !== index),
+    }));
+  }, []);
+
+  const removeAchievement = useCallback((index) => {
+    setTempAboutState((prev) => ({
+      ...prev,
+      achievements: prev.achievements.filter((_, i) => i !== index),
+    }));
+  }, []);
+
+  // Image upload handler with validation
   const handleImageUpload = useCallback((event) => {
     const file = event.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setTempContent((prev) => ({
-          ...prev,
-          image: e.target.result,
-        }));
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+
+    // Validate file type and size
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select an image file');
+      return;
     }
+
+    if (file.size > 5 * 1024 * 1024) { // 5MB limit
+      toast.error('File size must be less than 5MB');
+      return;
+    }
+
+    // Store the file for upload on Save
+    setPendingImageFile(file);
+
+    // Show immediate local preview
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setTempAboutState((prev) => ({
+        ...prev,
+        officeImage: e.target.result,
+      }));
+    };
+    reader.readAsDataURL(file);
   }, []);
 
   // Memoized EditableText component to prevent recreation
@@ -243,9 +306,14 @@ export default function EditableAbout({ aboutData }) {
       multiline = false,
       className = "",
       placeholder = "",
+      onChange = null, // Allow custom onChange handler
     }) => {
       const handleChange = (e) => {
-        updateTempContent(field, e.target.value);
+        if (onChange) {
+          onChange(e); // Use custom handler if provided
+        } else {
+          updateTempContent(field, e.target.value); // Use default handler
+        }
       };
 
       const baseClasses =
@@ -275,12 +343,12 @@ export default function EditableAbout({ aboutData }) {
     };
   }, [updateTempContent]);
 
-  const displayContent = isEditing ? tempContent : content;
+  const displayContent = isEditing ? tempAboutState : aboutState;
 
   return (
     <section
       id='about'
-      ref={aboutRef}
+      ref={sectionRef}
       className='py-20 bg-blue-50 scroll-mt-20 relative'
     >
       {/* Loading Overlay */}
@@ -312,21 +380,23 @@ export default function EditableAbout({ aboutData }) {
                 onClick={handleSave}
                 size='sm'
                 className='bg-green-600 hover:bg-green-700 text-white shadow-md'
-                disabled={isSaving}
+                disabled={isSaving || isUploading}
               >
-                {isSaving ? (
+                {isUploading ? (
+                  <Loader2 className='w-4 h-4 mr-2 animate-spin' />
+                ) : isSaving ? (
                   <Loader2 className='w-4 h-4 mr-2 animate-spin' />
                 ) : (
                   <Save className='w-4 h-4 mr-2' />
                 )}
-                {isSaving ? "Saving..." : "Save"}
+                {isUploading ? "Uploading..." : isSaving ? "Saving..." : "Save"}
               </Button>
               <Button
                 onClick={handleCancel}
                 variant='outline'
                 size='sm'
                 className='bg-white hover:bg-gray-50 shadow-md'
-                disabled={isSaving}
+                disabled={isSaving || isUploading}
               >
                 <X className='w-4 h-4 mr-2' />
                 Cancel
@@ -340,87 +410,54 @@ export default function EditableAbout({ aboutData }) {
         <div className='grid lg:grid-cols-2 gap-12 items-center'>
           <motion.div
             initial={{ opacity: 0, x: -60 }}
-            animate={aboutVisible ? { opacity: 1, x: 0 } : {}}
+            animate={isVisible ? { opacity: 1, x: 0 } : {}}
             transition={{ duration: 0.8 }}
           >
-            {isEditing ? (
-              <div className='mb-4'>
-                <label className='block text-sm font-medium text-gray-700 mb-1'>
-                  Badge Text
-                </label>
-                <EditableText
-                  value={displayContent.badgeText}
-                  field='badgeText'
-                  className='text-sm font-medium'
-                  placeholder='Badge text'
-                />
-              </div>
-            ) : (
-              <Badge className='bg-yellow-400 text-gray-900 mb-4'>
-                {displayContent.badgeText}
-              </Badge>
-            )}
+            <Badge className='bg-yellow-400 text-gray-900 mb-4'>
+              About Company
+            </Badge>
 
-            {isEditing ? (
-              <div className='mb-6'>
-                <label className='block text-sm font-medium text-gray-700 mb-1'>
-                  Section Title
-                </label>
-                <EditableText
-                  value={displayContent.title}
-                  field='title'
-                  className='text-3xl font-bold text-gray-900'
-                  placeholder='Section title'
-                />
-              </div>
-            ) : (
-              <h2 className='text-3xl font-bold text-gray-900 mb-6'>
-                {displayContent.title}
-              </h2>
-            )}
+            <h2 className='text-3xl font-bold text-gray-900 mb-6'>
+              About {displayContent.companyName}
+            </h2>
 
             <div className='space-y-4 text-gray-700'>
               <div className='grid grid-cols-1 gap-4 text-sm'>
-                {isEditing && (
-                  <label className='block text-sm font-medium text-gray-700 -mb-2'>
-                    Company Details
-                  </label>
-                )}
                 <div className='grid grid-cols-2 gap-4'>
                   <div>
                     <strong>Company:</strong>{" "}
                     {isEditing ? (
                       <EditableText
-                        value={aboutState.company}
-                        field='company'
+                        value={displayContent.companyName}
+                        field='companyName'
                         placeholder='Company name'
                       />
                     ) : (
-                      aboutState.company
+                      displayContent.companyName
                     )}
                   </div>
                   <div>
                     <strong>Industry:</strong>{" "}
                     {isEditing ? (
                       <EditableText
-                        value={aboutState.industry}
+                        value={displayContent.industry}
                         field='industry'
                         placeholder='Industry'
                       />
                     ) : (
-                      aboutState.industry
+                      displayContent.industry
                     )}
                   </div>
                   <div>
                     <strong>Established:</strong>{" "}
                     {isEditing ? (
                       <EditableText
-                        value={aboutState.established}
+                        value={displayContent.established}
                         field='established'
                         placeholder='Year established'
                       />
                     ) : (
-                      aboutState.established
+                      displayContent.established
                     )}
                   </div>
                   <div>
@@ -444,17 +481,29 @@ export default function EditableAbout({ aboutData }) {
                     Description
                   </label>
                   <EditableText
-                    value={aboutState.aboutDesc1}
-                    field='description'
+                    value={displayContent.description1}
+                    field='description1'
                     multiline={true}
                     className='text-gray-600 leading-relaxed'
-                    placeholder='Company description'
+                    placeholder='Company description part 1'
+                  />
+                  <EditableText
+                    value={displayContent.description2}
+                    field='description2'
+                    multiline={true}
+                    className='text-gray-600 leading-relaxed mt-2'
+                    placeholder='Company description part 2'
                   />
                 </div>
               ) : (
-                <p className='text-gray-600 leading-relaxed'>
-                  {aboutState.aboutDesc1}
-                </p>
+                <>
+                  <p className='text-gray-600 leading-relaxed'>
+                    {displayContent.description1}
+                  </p>
+                  <p className='text-gray-600 leading-relaxed'>
+                    {displayContent.description2}
+                  </p>
+                </>
               )}
 
               <div className='space-y-2'>
@@ -463,14 +512,14 @@ export default function EditableAbout({ aboutData }) {
                   {isEditing ? (
                     <div>
                       <EditableText
-                        value={aboutState.missionDesc}
+                        value={displayContent.mission}
                         field='mission'
                         multiline={true}
                         placeholder='Mission statement'
                       />
                     </div>
                   ) : (
-                    aboutState.missionDesc
+                    displayContent.mission
                   )}
                 </div>
                 <div>
@@ -478,40 +527,107 @@ export default function EditableAbout({ aboutData }) {
                   {isEditing ? (
                     <div>
                       <EditableText
-                        value={aboutState.visionDesc}
+                        value={displayContent.vision}
                         field='vision'
                         multiline={true}
                         placeholder='Vision statement'
                       />
                     </div>
                   ) : (
-                    aboutState.visionDesc
+                    displayContent.vision
                   )}
                 </div>
               </div>
-            </div>
 
-            {isEditing ? (
-              <div className='mt-6'>
-                <label className='block text-sm font-medium text-gray-700 mb-1'>
-                  Button Text
-                </label>
-                <EditableText
-                  value={displayContent.buttonText}
-                  field='buttonText'
-                  placeholder='Button text'
-                />
+              {/* Certifications - FIXED */}
+              <div className="mt-6">
+                <h3 className="font-semibold mb-2">Certifications</h3>
+                {isEditing ? (
+                  <div className="space-y-2">
+                    {displayContent.certifications.map((cert, index) => (
+                      <div key={index} className="flex items-center gap-2">
+                        <input
+                          type="text"
+                          value={cert}
+                          onChange={(e) => updateCertification(index, e.target.value)}
+                          className="w-full bg-white/80 border-2 border-dashed border-blue-300 rounded focus:border-blue-500 focus:outline-none p-1"
+                          placeholder="Certification"
+                        />
+                        <Button
+                          onClick={() => removeCertification(index)}
+                          size="sm"
+                          variant="outline"
+                          className="bg-red-50 hover:bg-red-100 text-red-700"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    ))}
+                    <Button
+                      onClick={addCertification}
+                      size="sm"
+                      variant="outline"
+                      className="bg-green-50 hover:bg-green-100 text-green-700"
+                    >
+                      <Plus className="w-3 h-3 mr-1" /> Add Certification
+                    </Button>
+                  </div>
+                ) : (
+                  <ul className="list-disc list-inside space-y-1">
+                    {displayContent.certifications.map((cert, index) => (
+                      <li key={index}>{cert}</li>
+                    ))}
+                  </ul>
+                )}
               </div>
-            ) : (
-              <Button className='bg-yellow-400 text-gray-900 hover:bg-yellow-300 rounded-full mt-6'>
-                {displayContent.buttonText}
-              </Button>
-            )}
+
+              {/* Achievements - FIXED */}
+              <div className="mt-6">
+                <h3 className="font-semibold mb-2">Achievements</h3>
+                {isEditing ? (
+                  <div className="space-y-2">
+                    {displayContent.achievements.map((achievement, index) => (
+                      <div key={index} className="flex items-center gap-2">
+                        <input
+                          type="text"
+                          value={achievement}
+                          onChange={(e) => updateAchievement(index, e.target.value)}
+                          className="w-full bg-white/80 border-2 border-dashed border-blue-300 rounded focus:border-blue-500 focus:outline-none p-1"
+                          placeholder="Achievement"
+                        />
+                        <Button
+                          onClick={() => removeAchievement(index)}
+                          size="sm"
+                          variant="outline"
+                          className="bg-red-50 hover:bg-red-100 text-red-700"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    ))}
+                    <Button
+                      onClick={addAchievement}
+                      size="sm"
+                      variant="outline"
+                      className="bg-green-50 hover:bg-green-100 text-green-700"
+                    >
+                      <Plus className="w-3 h-3 mr-1" /> Add Achievement
+                    </Button>
+                  </div>
+                ) : (
+                  <ul className="list-disc list-inside space-y-1">
+                    {displayContent.achievements.map((achievement, index) => (
+                      <li key={index}>{achievement}</li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </div>
           </motion.div>
 
           <motion.div
             initial={{ opacity: 0, x: 60 }}
-            animate={aboutVisible ? { opacity: 1, x: 0 } : {}}
+            animate={isVisible ? { opacity: 1, x: 0 } : {}}
             transition={{ duration: 0.8, delay: 0.2 }}
             className='relative'
           >
@@ -533,12 +649,17 @@ export default function EditableAbout({ aboutData }) {
                   onChange={handleImageUpload}
                   className='hidden'
                 />
+                {pendingImageFile && (
+                  <p className='text-xs text-orange-600 mt-1 bg-white p-1 rounded'>
+                    Image selected: {pendingImageFile.name}
+                  </p>
+                )}
               </div>
             )}
             <img
-              src={displayContent.image}
-              alt='About Company'
-              className='rounded-2xl shadow-2xl w-full'
+              src={displayContent.officeImage || "https://via.placeholder.com/500x300?text=Office+Image"}
+              alt='Office'
+              className='rounded-2xl shadow-2xl w-full h-full object-cover'
             />
           </motion.div>
         </div>

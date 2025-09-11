@@ -1,112 +1,228 @@
-import { useState, useEffect } from "react";
-import { Edit2, Check, X, Plus, Trash2 } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Edit2, Check, X, Plus, Trash2, Upload, Loader2, Save } from "lucide-react";
+import { Button } from "../components/ui/button";
+import { toast } from "react-toastify";
 
-export default function EditableTestimonials({ content }) {
-  // Extract testimonials data from the content prop
-  const testimonialsData = content || {};
-
-  // Initialize with data from JSON if available, otherwise use default
-  const initialTestimonials = testimonialsData.testimonials || [];
-  const initialHeadline = testimonialsData.headline || {
-    title: "What Our Clients Say",
-    description:
-      "Real experiences from clients who have transformed their operations with our solutions.",
+export default function EditableTestimonials({ 
+  content, 
+  onStateChange, 
+  userId, 
+  publishedId, 
+  templateSelection 
+}) {
+  // Initialize with data from props or use default structure
+  const initialData = content || {
+    headline: {
+      title: "What Our Clients Say",
+      description: "Real experiences from clients who have transformed their operations with our solutions.",
+    },
+    testimonials: [],
+    stats: []
   };
-  const initialStats = testimonialsData.stats || [];
 
-  const [testimonials, setTestimonials] = useState(initialTestimonials);
-  const [headline, setHeadline] = useState(initialHeadline);
-  const [stats, setStats] = useState(initialStats);
-  const [current, setCurrent] = useState(0);
   const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [current, setCurrent] = useState(0);
   const [editingId, setEditingId] = useState(null);
   const [editingField, setEditingField] = useState(null);
   const [tempValue, setTempValue] = useState("");
-  const [isEditingTitle, setIsEditingTitle] = useState(false);
-  const [isEditingDescription, setIsEditingDescription] = useState(false);
   const [editingStatIndex, setEditingStatIndex] = useState(null);
   const [editingStatField, setEditingStatField] = useState(null);
+  const [pendingImages, setPendingImages] = useState<Record<number, File>>({});
+  
+  const [testimonialsData, setTestimonialsData] = useState(initialData);
+  const [tempData, setTempData] = useState(initialData);
+  
+  const fileInputRefs = useRef({});
+
+  // Update state when content prop changes
+  useEffect(() => {
+    if (content) {
+      setTestimonialsData(content);
+      setTempData(content);
+    }
+  }, [content]);
+
+  // Notify parent of state changes
+  useEffect(() => {
+    if (onStateChange) {
+      onStateChange(testimonialsData);
+    }
+  }, [testimonialsData, onStateChange]);
 
   useEffect(() => {
     if (!isEditing) {
       const interval = setInterval(
-        () => setCurrent((c) => (c + 1) % testimonials.length),
+        () => setCurrent((c) => (c + 1) % tempData.testimonials.length),
         5000
       );
       return () => clearInterval(interval);
     }
-  }, [testimonials.length, isEditing]);
+  }, [tempData.testimonials.length, isEditing]);
 
-  const handleEdit = (id, field, currentValue) => {
-    setEditingId(id);
-    setEditingField(field);
-    setTempValue(currentValue);
+  const handleEdit = () => {
     setIsEditing(true);
+    setTempData(testimonialsData);
   };
 
-  const handleSave = () => {
-    if (editingId && editingField) {
-      setTestimonials((prev) =>
-        prev.map((testimonial) =>
-          testimonial.id === editingId
-            ? { ...testimonial, [editingField]: tempValue }
+  const handleCancel = () => {
+    setTempData(testimonialsData);
+    setPendingImages({});
+    setIsEditing(false);
+  };
+
+  // Updated Save button handler - uploads images and stores S3 URLs
+  const handleSave = async () => {
+    try {
+      setIsUploading(true);
+
+      // Create a copy of tempData to update with S3 URLs
+      let updatedData = { ...tempData };
+
+      // Upload all pending images
+      for (const [testimonialIdStr, file] of Object.entries(pendingImages)) {
+        const testimonialId = parseInt(testimonialIdStr);
+        
+        if (!userId || !publishedId || !templateSelection) {
+          console.error('Missing required props:', { userId, publishedId, templateSelection });
+          toast.error('Missing user information. Please refresh and try again.');
+          return;
+        }
+        
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('sectionName', 'testimonials');
+        formData.append('imageField', `testimonials[${testimonialId}].image`);
+        formData.append('templateSelection', templateSelection);
+
+        const uploadResponse = await fetch(`https://o66ziwsye5.execute-api.ap-south-1.amazonaws.com/prod/upload-image/${userId}/${publishedId}`, {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (uploadResponse.ok) {
+          const uploadData = await uploadResponse.json();
+          // Update the testimonial image in our local copy
+          updatedData.testimonials = updatedData.testimonials.map((testimonial, index) => 
+            index === testimonialId ? { ...testimonial, image: uploadData.imageUrl } : testimonial
+          );
+          console.log('Image uploaded to S3:', uploadData.imageUrl);
+        } else {
+          const errorData = await uploadResponse.json();
+          console.error('Image upload failed:', errorData);
+          toast.error(`Image upload failed: ${errorData.message || 'Unknown error'}`);
+          return; // Don't exit edit mode
+        }
+      }
+      
+      // Clear pending images
+      setPendingImages({});
+      
+      // Simulate save delay
+      setIsSaving(true);
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Update both states with the new content including S3 URLs
+      setTestimonialsData(updatedData);
+      setTempData(updatedData);
+      
+      // Exit edit mode
+      setIsEditing(false);
+      toast.success('Testimonials section saved with S3 URLs ready for publish');
+
+    } catch (error) {
+      console.error('Error saving testimonials section:', error);
+      toast.error('Error saving changes. Please try again.');
+      // Keep in edit mode so user can retry
+    } finally {
+      setIsUploading(false);
+      setIsSaving(false);
+    }
+  };
+
+  const handleImageUpload = (testimonialIndex, event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    // Validate file type and size
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select an image file');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) { // 5MB limit
+      toast.error('File size must be less than 5MB');
+      return;
+    }
+
+    // Store the file for upload on Save
+    setPendingImages(prev => ({ ...prev, [testimonialIndex]: file }));
+
+    // Show immediate local preview
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setTempData(prev => ({
+        ...prev,
+        testimonials: prev.testimonials.map((testimonial, index) =>
+          index === testimonialIndex
+            ? { ...testimonial, image: e.target.result }
             : testimonial
-        )
-      );
-    }
-    cancelEdit();
+        ),
+      }));
+    };
+    reader.readAsDataURL(file);
   };
 
-  const handleStatEdit = (index, field, currentValue) => {
-    setEditingStatIndex(index);
-    setEditingStatField(field);
-    setTempValue(currentValue);
-    setIsEditing(true);
+  const updateHeadlineField = (field, value) => {
+    setTempData(prev => ({
+      ...prev,
+      headline: {
+        ...prev.headline,
+        [field]: value
+      }
+    }));
   };
 
-  const handleStatSave = () => {
-    if (editingStatIndex !== null && editingStatField) {
-      setStats((prev) =>
-        prev.map((stat, index) =>
-          index === editingStatIndex
-            ? { ...stat, [editingStatField]: tempValue }
-            : stat
-        )
-      );
-    }
-    cancelStatEdit();
+  const updateTestimonialField = (index, field, value) => {
+    setTempData(prev => ({
+      ...prev,
+      testimonials: prev.testimonials.map((testimonial, i) =>
+        i === index ? { ...testimonial, [field]: value } : testimonial
+      )
+    }));
   };
 
-  const cancelEdit = () => {
-    setEditingId(null);
-    setEditingField(null);
-    setTempValue("");
-    setIsEditing(false);
-  };
-
-  const cancelStatEdit = () => {
-    setEditingStatIndex(null);
-    setEditingStatField(null);
-    setTempValue("");
-    setIsEditing(false);
+  const updateStatField = (index, field, value) => {
+    setTempData(prev => ({
+      ...prev,
+      stats: prev.stats.map((stat, i) =>
+        i === index ? { ...stat, [field]: value } : stat
+      )
+    }));
   };
 
   const addTestimonial = () => {
     const newTestimonial = {
       name: "New Client",
       rating: 5.0,
-      image:
-        "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=400&q=80",
+      image: "https://tamilnaducouncil.ac.in/wp-content/uploads/2020/04/dummy-avatar.jpg",
       role: "Position",
       quote: "Add testimonial quote here.",
     };
-    setTestimonials((prev) => [...prev, newTestimonial]);
+    setTempData(prev => ({
+      ...prev,
+      testimonials: [...prev.testimonials, newTestimonial]
+    }));
   };
 
   const deleteTestimonial = (index) => {
-    if (testimonials.length > 1) {
-      setTestimonials((prev) => prev.filter((_, i) => i !== index));
-      if (current >= testimonials.length - 1) {
+    if (tempData.testimonials.length > 1) {
+      setTempData(prev => ({
+        ...prev,
+        testimonials: prev.testimonials.filter((_, i) => i !== index)
+      }));
+      if (current >= tempData.testimonials.length - 1) {
         setCurrent(0);
       }
     }
@@ -117,45 +233,72 @@ export default function EditableTestimonials({ content }) {
       value: "New Value",
       label: "New Label",
     };
-    setStats((prev) => [...prev, newStat]);
+    setTempData(prev => ({
+      ...prev,
+      stats: [...prev.stats, newStat]
+    }));
   };
 
   const deleteStat = (index) => {
-    if (stats.length > 1) {
-      setStats((prev) => prev.filter((_, i) => i !== index));
+    if (tempData.stats.length > 1) {
+      setTempData(prev => ({
+        ...prev,
+        stats: prev.stats.filter((_, i) => i !== index)
+      }));
     }
   };
 
-  const handleTitleEdit = () => {
-    setIsEditingTitle(true);
-    setTempValue(headline.title);
+  const startEditField = (id, field, currentValue) => {
+    setEditingId(id);
+    setEditingField(field);
+    setTempValue(currentValue);
   };
 
-  const handleDescriptionEdit = () => {
-    setIsEditingDescription(true);
-    setTempValue(headline.description);
+  const saveFieldEdit = () => {
+    if (editingId !== null && editingField) {
+      updateTestimonialField(editingId, editingField, tempValue);
+    }
+    cancelEdit();
   };
 
-  const saveTitleEdit = () => {
-    setHeadline((prev) => ({ ...prev, title: tempValue }));
-    setIsEditingTitle(false);
+  const startStatEdit = (index, field, currentValue) => {
+    setEditingStatIndex(index);
+    setEditingStatField(field);
+    setTempValue(currentValue);
+  };
+
+  const saveStatEdit = () => {
+    if (editingStatIndex !== null && editingStatField) {
+      updateStatField(editingStatIndex, editingStatField, tempValue);
+    }
+    cancelStatEdit();
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditingField(null);
     setTempValue("");
   };
 
-  const saveDescriptionEdit = () => {
-    setHeadline((prev) => ({ ...prev, description: tempValue }));
-    setIsEditingDescription(false);
+  const cancelStatEdit = () => {
+    setEditingStatIndex(null);
+    setEditingStatField(null);
     setTempValue("");
   };
 
-  const cancelTitleEdit = () => {
-    setIsEditingTitle(false);
-    setTempValue("");
-  };
-
-  const cancelDescriptionEdit = () => {
-    setIsEditingDescription(false);
-    setTempValue("");
+  const renderStars = (rating) => {
+    const stars = [];
+    for (let i = 1; i <= 5; i++) {
+      stars.push(
+        <span
+          key={i}
+          className={i <= rating ? "text-yellow-400" : "text-gray-300"}
+        >
+          ★
+        </span>
+      );
+    }
+    return stars;
   };
 
   const EditableText = ({ value, onEdit, isLarge = false, className = "" }) => (
@@ -201,7 +344,7 @@ export default function EditableTestimonials({ content }) {
             />
           )}
           <button
-            onClick={handleSave}
+            onClick={saveFieldEdit}
             className='p-1 text-green-600 hover:text-green-800'
           >
             <Check size={16} />
@@ -226,7 +369,7 @@ export default function EditableTestimonials({ content }) {
           <span>{value}</span>
         )}
         <button
-          onClick={() => handleEdit(index, field, value)}
+          onClick={() => startEditField(index, field, value)}
           className='opacity-0 group-hover:opacity-100 absolute -right-6 top-0 p-1 text-gray-400 hover:text-blue-600 transition-all duration-200'
         >
           <Edit2 size={14} />
@@ -251,7 +394,7 @@ export default function EditableTestimonials({ content }) {
             autoFocus
           />
           <button
-            onClick={handleStatSave}
+            onClick={saveStatEdit}
             className='p-1 text-green-600 hover:text-green-800'
           >
             <Check size={16} />
@@ -270,7 +413,7 @@ export default function EditableTestimonials({ content }) {
       <div className={`group relative ${className}`}>
         <span>{value}</span>
         <button
-          onClick={() => handleStatEdit(index, field, value)}
+          onClick={() => startStatEdit(index, field, value)}
           className='opacity-0 group-hover:opacity-100 absolute -right-6 top-0 p-1 text-gray-400 hover:text-blue-600 transition-all duration-200'
         >
           <Edit2 size={14} />
@@ -279,112 +422,95 @@ export default function EditableTestimonials({ content }) {
     );
   };
 
-  const renderStars = (rating) => {
-    const stars = [];
-    for (let i = 1; i <= 5; i++) {
-      stars.push(
-        <span
-          key={i}
-          className={i <= rating ? "text-yellow-400" : "text-gray-300"}
-        >
-          ★
-        </span>
-      );
-    }
-    return stars;
-  };
-
   return (
     <section
       id='testimonials'
       className='bg-gray-50 py-16 scroll-mt-20 relative'
     >
-      {/* Edit Mode Toggle */}
+      {/* Edit Controls */}
       <div className='absolute top-4 right-4 z-10'>
-        <button
-          onClick={() => setIsEditing(!isEditing)}
-          className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
-            isEditing
-              ? "bg-blue-600 text-white shadow-lg"
-              : "bg-white text-gray-700 border border-gray-300 hover:border-blue-300"
-          }`}
-        >
-          {isEditing ? "Exit Edit Mode" : "Edit Content"}
-        </button>
+        {!isEditing ? (
+          <Button
+            onClick={handleEdit}
+            variant="outline"
+            size="sm"
+            className="bg-white hover:bg-gray-50 shadow-md"
+          >
+            <Edit2 className="w-4 h-4 mr-2" />
+            Edit
+          </Button>
+        ) : (
+          <div className="flex gap-2">
+            <Button
+              onClick={handleSave}
+              size="sm"
+              className="bg-green-600 hover:bg-green-700 text-white shadow-md"
+              disabled={isSaving || isUploading}
+            >
+              {isUploading ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : isSaving ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Save className="w-4 h-4 mr-2" />
+              )}
+              {isUploading ? "Uploading..." : isSaving ? "Saving..." : "Save"}
+            </Button>
+            <Button
+              onClick={handleCancel}
+              variant="outline"
+              size="sm"
+              className="bg-white hover:bg-gray-50 shadow-md"
+              disabled={isSaving || isUploading}
+            >
+              <X className="w-4 h-4 mr-2" />
+              Cancel
+            </Button>
+          </div>
+        )}
       </div>
 
       <div className='max-w-6xl mx-auto px-6'>
         <div className='text-center mb-12'>
           {/* Editable Title */}
-          {isEditingTitle ? (
+          {isEditing ? (
             <div className='flex items-center justify-center gap-2 mb-4'>
               <input
                 type='text'
-                value={tempValue}
-                onChange={(e) => setTempValue(e.target.value)}
+                value={tempData.headline.title}
+                onChange={(e) => updateHeadlineField("title", e.target.value)}
                 className='text-3xl font-bold text-gray-900 px-2 py-1 border border-blue-300 rounded text-center'
-                autoFocus
               />
-              <button
-                onClick={saveTitleEdit}
-                className='p-1 text-green-600 hover:text-green-800'
-              >
-                <Check size={18} />
-              </button>
-              <button
-                onClick={cancelTitleEdit}
-                className='p-1 text-red-600 hover:text-red-800'
-              >
-                <X size={18} />
-              </button>
             </div>
           ) : (
             <div className='mb-4'>
-              <EditableText
-                value={headline.title}
-                onEdit={handleTitleEdit}
-                isLarge={true}
-                className='text-3xl font-bold text-gray-900 inline-block'
-              />
+              <h2 className='text-3xl font-bold text-gray-900'>
+                {tempData.headline.title}
+              </h2>
             </div>
           )}
 
           {/* Editable Description */}
-          {isEditingDescription ? (
+          {isEditing ? (
             <div className='flex items-center justify-center gap-2'>
               <textarea
-                value={tempValue}
-                onChange={(e) => setTempValue(e.target.value)}
+                value={tempData.headline.description}
+                onChange={(e) => updateHeadlineField("description", e.target.value)}
                 className='text-gray-600 max-w-2xl px-2 py-1 border border-blue-300 rounded resize-none'
                 rows={2}
-                autoFocus
               />
-              <button
-                onClick={saveDescriptionEdit}
-                className='p-1 text-green-600 hover:text-green-800'
-              >
-                <Check size={18} />
-              </button>
-              <button
-                onClick={cancelDescriptionEdit}
-                className='p-1 text-red-600 hover:text-red-800'
-              >
-                <X size={18} />
-              </button>
             </div>
           ) : (
-            <EditableText
-              value={headline.description}
-              onEdit={handleDescriptionEdit}
-              className='text-gray-600 max-w-2xl mx-auto'
-            />
+            <p className='text-gray-600 max-w-2xl mx-auto'>
+              {tempData.headline.description}
+            </p>
           )}
         </div>
 
         {/* Stats Section */}
-        {stats.length > 0 && (
+        {tempData.stats.length > 0 && (
           <div className='grid grid-cols-2 md:grid-cols-4 gap-6 mb-12'>
-            {stats.map((stat, index) => (
+            {tempData.stats.map((stat, index) => (
               <div
                 key={index}
                 className='bg-white p-6 rounded-lg shadow-sm text-center relative'
@@ -422,11 +548,11 @@ export default function EditableTestimonials({ content }) {
             className='flex transition-transform duration-500 ease-in-out'
             style={{ transform: `translateX(-${current * 100}%)` }}
           >
-            {testimonials.map((testimonial, index) => (
+            {tempData.testimonials.map((testimonial, index) => (
               <div key={index} className='w-full flex-shrink-0'>
                 <div className='mx-4 bg-white shadow-lg border-0 rounded-lg relative'>
                   {/* Delete Button */}
-                  {isEditing && testimonials.length > 1 && (
+                  {isEditing && tempData.testimonials.length > 1 && (
                     <button
                       onClick={() => deleteTestimonial(index)}
                       className='absolute top-2 right-2 p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-full z-10'
@@ -437,12 +563,34 @@ export default function EditableTestimonials({ content }) {
 
                   <div className='p-8 text-center'>
                     <div className='mb-6'>
-                      <div className='w-16 h-16 bg-indigo-600 rounded-full flex items-center justify-center mx-auto mb-4 overflow-hidden'>
+                      <div className='w-16 h-16 bg-indigo-600 rounded-full flex items-center justify-center mx-auto mb-4 overflow-hidden relative'>
                         <img
                           src={testimonial.image}
                           alt={testimonial.name}
                           className='w-full h-full object-cover'
                         />
+                        {isEditing && (
+                          <>
+                            <input
+                              type='file'
+                              accept='image/*'
+                              ref={(el) => (fileInputRefs.current[index] = el)}
+                              onChange={(e) => handleImageUpload(index, e)}
+                              className='hidden'
+                            />
+                            <button
+                              onClick={() => fileInputRefs.current[index]?.click()}
+                              className='absolute bottom-0 right-0 bg-white/80 p-1 rounded-full'
+                            >
+                              <Upload size={12} />
+                            </button>
+                            {pendingImages[index] && (
+                              <p className='absolute -bottom-6 text-xs text-orange-600 bg-white/80 p-1 rounded'>
+                                Image selected: {pendingImages[index].name}
+                              </p>
+                            )}
+                          </>
+                        )}
                       </div>
                       <h3 className='font-semibold text-xl text-gray-900 mb-2'>
                         <EditableField
@@ -495,9 +643,9 @@ export default function EditableTestimonials({ content }) {
           )}
 
           {/* Pagination Dots */}
-          {testimonials.length > 0 && (
+          {tempData.testimonials.length > 0 && (
             <div className='flex space-x-2'>
-              {testimonials.map((_, index) => (
+              {tempData.testimonials.map((_, index) => (
                 <button
                   key={index}
                   onClick={() => setCurrent(index)}
@@ -535,6 +683,9 @@ export default function EditableTestimonials({ content }) {
               <li>
                 • <strong>Add/Edit stats:</strong> Edit the statistics section
                 below the headline
+              </li>
+              <li>
+                • <strong>Upload images:</strong> Click the upload icon on testimonial images
               </li>
               <li>
                 • <strong>Navigate:</strong> Use the dots below to switch

@@ -137,6 +137,9 @@ function App() {
   
     const API = "https://3l8nvxqw1a.execute-api.ap-south-1.amazonaws.com/prod/api/draft";
   //  const Dummyapi = "https://3l8nvxqw1a.execute-api.ap-south-1.amazonaws.com/prod/api/draft/alok-12345/draft-alok-aerospace-2025-002?template=template-2";
+
+  console.log("draftDetails:",draftDetails);
+  
     async function handleClick() {
       try {
         const response = await fetch(`${API}/${draftDetails.userId}/${draftDetails.draftId}?template=template-${draftDetails.templateSelection}`);

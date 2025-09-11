@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
-import { motion, useMotionValue } from "framer-motion";
+import { motion } from "framer-motion";
 import { Card, CardContent } from "../components/ui/card";
 import { Badge } from "../components/ui/badge";
 import {
@@ -11,21 +11,24 @@ import {
   Plus,
   Trash2,
   Star,
+  CheckCircle,
 } from "lucide-react";
 import { Button } from "../components/ui/button";
+import { toast } from "react-toastify";
 
-export default function EditableProducts({ productData }) {
+export default function EditableProducts({ productData, onStateChange, userId, publishedId, templateSelection }) {
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const [dataLoaded, setDataLoaded] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
   const [selected, setSelected] = useState("All");
-  const [showAll, setShowAll] = useState(false);
-  const [isHovered, setIsHovered] = useState(false);
+  const [selectedProductIndex, setSelectedProductIndex] = useState<number | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [pendingImages, setPendingImages] = useState<Record<number, File>>({});
   const sectionRef = useRef(null);
   const fileInputRefs = useRef({});
-  const containerRef = useRef(null);
 
   // Extract data from productData prop or use defaults
   const defaultContent = useMemo(() => {
@@ -76,9 +79,6 @@ export default function EditableProducts({ productData }) {
   const [content, setContent] = useState(defaultContent);
   const [tempContent, setTempContent] = useState(defaultContent);
 
-  const x = useMotionValue(0);
-  const animationRef = useRef();
-
   // Update content when productData changes
   useEffect(() => {
     if (productData) {
@@ -87,6 +87,13 @@ export default function EditableProducts({ productData }) {
       setDataLoaded(true);
     }
   }, [productData, defaultContent]);
+
+  // Notify parent of state changes
+  useEffect(() => {
+    if (onStateChange) {
+      onStateChange(content);
+    }
+  }, [content, onStateChange]);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -113,15 +120,71 @@ export default function EditableProducts({ productData }) {
     }
   };
 
-  const saveProductsData = async (updatedContent) => {
-    setIsSaving(true);
+  // Updated Save button handler - uploads images and stores S3 URLs
+  const handleSave = async () => {
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      return true;
+      setIsUploading(true);
+
+      // Create a copy of tempContent to update with S3 URLs
+      let updatedContent = { ...tempContent };
+
+      // Upload all pending images
+      for (const [productIdStr, file] of Object.entries(pendingImages)) {
+        const productId = parseInt(productIdStr);
+        
+        if (!userId || !publishedId || !templateSelection) {
+          console.error('Missing required props:', { userId, publishedId, templateSelection });
+          toast.error('Missing user information. Please refresh and try again.');
+          return;
+        }
+        
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('sectionName', 'products');
+        formData.append('imageField', `products[${productId}].image`);
+        formData.append('templateSelection', templateSelection);
+
+        const uploadResponse = await fetch(`https://o66ziwsye5.execute-api.ap-south-1.amazonaws.com/prod/upload-image/${userId}/${publishedId}`, {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (uploadResponse.ok) {
+          const uploadData = await uploadResponse.json();
+          // Update the product image in our local copy
+          updatedContent.products = updatedContent.products.map(product => 
+            product.id === productId ? { ...product, image: uploadData.imageUrl } : product
+          );
+          console.log('Image uploaded to S3:', uploadData.imageUrl);
+        } else {
+          const errorData = await uploadResponse.json();
+          console.error('Image upload failed:', errorData);
+          toast.error(`Image upload failed: ${errorData.message || 'Unknown error'}`);
+          return; // Don't exit edit mode
+        }
+      }
+      
+      // Clear pending images
+      setPendingImages({});
+      
+      // Simulate save delay
+      setIsSaving(true);
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Update both states with the new content including S3 URLs
+      setContent(updatedContent);
+      setTempContent(updatedContent);
+      
+      // Exit edit mode
+      setIsEditing(false);
+      toast.success('Products section saved with S3 URLs ready for publish');
+
     } catch (error) {
-      console.error("Error saving products data:", error);
-      return false;
+      console.error('Error saving products section:', error);
+      toast.error('Error saving changes. Please try again.');
+      // Keep in edit mode so user can retry
     } finally {
+      setIsUploading(false);
       setIsSaving(false);
     }
   };
@@ -138,84 +201,94 @@ export default function EditableProducts({ productData }) {
       ? displayContent.products
       : displayContent.products.filter((p) => p.category === selected);
 
-  // Create seamless loop by tripling the items instead of doubling
-  const loopedItems = showAll
-    ? filtered
-    : [...filtered, ...filtered, ...filtered];
-
-  // Reset animation position when filter changes
-  useEffect(() => {
-    x.set(0);
-  }, [selected, x]);
-
-  // Improved animation logic
-  useEffect(() => {
-    if (showAll || isEditing || filtered.length === 0) return;
-
-    const cardWidth = 320; // min-w-[320px]
-    const gap = 24; // space-x-6
-    const itemWidth = cardWidth + gap;
-    const totalWidth = filtered.length * itemWidth;
-
-    let startTime = Date.now();
-
-    const animate = () => {
-      if (!isHovered) {
-        const elapsed = Date.now() - startTime;
-        const speed = 0.5; // pixels per millisecond
-        const currentX = -(elapsed * speed) % totalWidth;
-        x.set(currentX);
-      } else {
-        startTime = Date.now() - Math.abs(x.get() / 0.5); // Adjust start time when paused
-      }
-      animationRef.current = requestAnimationFrame(animate);
-    };
-
-    animationRef.current = requestAnimationFrame(animate);
-
-    return () => {
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current);
-      }
-    };
-  }, [isHovered, x, filtered.length, showAll, isEditing, selected]);
-
   const handleEdit = () => {
     setIsEditing(true);
     setTempContent(content);
   };
 
-  const handleSave = async () => {
-    const success = await saveProductsData(tempContent);
-    if (success) {
-      setContent(tempContent);
-      setIsEditing(false);
-    } else {
-      alert("Failed to save changes. Please try again.");
-    }
-  };
-
   const handleCancel = () => {
     setTempContent(content);
+    setPendingImages({});
     setIsEditing(false);
   };
 
   const handleImageUpload = (productId, event) => {
     const file = event.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setTempContent((prev) => ({
-          ...prev,
-          products: prev.products.map((product) =>
-            product.id === productId
-              ? { ...product, image: e.target.result }
-              : product
-          ),
-        }));
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+
+    // Validate file type and size
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select an image file');
+      return;
     }
+
+    if (file.size > 5 * 1024 * 1024) { // 5MB limit
+      toast.error('File size must be less than 5MB');
+      return;
+    }
+
+    // Store the file for upload on Save
+    setPendingImages(prev => ({ ...prev, [productId]: file }));
+
+    // Show immediate local preview
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setTempContent((prev) => ({
+        ...prev,
+        products: prev.products.map((product) =>
+          product.id === productId
+            ? { ...product, image: e.target.result }
+            : product
+        ),
+      }));
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const updateProductField = (productId, field, value) => {
+    setTempContent((prev) => ({
+      ...prev,
+      products: prev.products.map((product) =>
+        product.id === productId ? { ...product, [field]: value } : product
+      ),
+    }));
+  };
+
+  const updateFeature = (productId, fIndex, value) => {
+    setTempContent((prev) => ({
+      ...prev,
+      products: prev.products.map((product) =>
+        product.id === productId
+          ? {
+              ...product,
+              features: product.features.map((f, fi) => fi === fIndex ? value : f)
+            }
+          : product
+      ),
+    }));
+  };
+
+  const addFeature = (productId) => {
+    setTempContent((prev) => ({
+      ...prev,
+      products: prev.products.map((product) =>
+        product.id === productId ? { ...product, features: [...product.features, "New Feature"] } : product
+      ),
+    }));
+  };
+
+  const removeFeature = (productId, fIndex) => {
+    setTempContent((prev) => ({
+      ...prev,
+      products: prev.products.map((product) =>
+        product.id === productId
+          ? {
+              ...product,
+              features: product.features.filter((_, fi) => fi !== fIndex)
+            }
+          : product
+      ),
+    }));
   };
 
   const addProduct = () => {
@@ -228,9 +301,9 @@ export default function EditableProducts({ productData }) {
           id: newId,
           title: "New Product",
           description: "Product description",
+          detailedDescription: "Detailed product description",
           category: "Technology",
-          image:
-            "https://images.unsplash.com/photo-1473968512647-3e447244af8f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=1080&q=80",
+          image: null,
           features: ["Feature 1", "Feature 2"],
           isPopular: false,
           categoryColor: "bg-gray-100 text-gray-800",
@@ -247,15 +320,6 @@ export default function EditableProducts({ productData }) {
       products: prev.products.filter((product) => product.id !== productId),
     }));
   };
-
-  const updateProduct = useCallback((productId, field, value) => {
-    setTempContent((prev) => ({
-      ...prev,
-      products: prev.products.map((product) =>
-        product.id === productId ? { ...product, [field]: value } : product
-      ),
-    }));
-  }, []);
 
   const addCategory = () => {
     const newCategory = prompt("Enter new category name:");
@@ -280,6 +344,17 @@ export default function EditableProducts({ productData }) {
     }));
   };
 
+  const openModal = (productId) => {
+    const index = tempContent.products.findIndex(p => p.id === productId);
+    setSelectedProductIndex(index);
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setSelectedProductIndex(null);
+  };
+
   const EditableText = useMemo(
     () =>
       ({
@@ -290,7 +365,7 @@ export default function EditableProducts({ productData }) {
         placeholder = "",
       }) => {
         const baseClasses =
-          "w-full bg-white border-2 border-dashed border-yellow-400 rounded focus:border-yellow-500 focus:outline-none";
+          "w-full bg-white/80 border-2 border-dashed border-blue-300 rounded focus:border-blue-500 focus:outline-none";
         if (multiline) {
           return (
             <textarea
@@ -307,7 +382,7 @@ export default function EditableProducts({ productData }) {
             type='text'
             value={value}
             onChange={(e) => onChange(e.target.value)}
-            className={`${baseClasses} p-2 ${className}`}
+            className={`${baseClasses} p-1 ${className}`}
             placeholder={placeholder}
           />
         );
@@ -315,19 +390,50 @@ export default function EditableProducts({ productData }) {
     []
   );
 
-  const renderBenefits = () => {
-    if (!displayContent.benefits || displayContent.benefits.length === 0)
-      return null;
+  const updateBenefitField = (index, field, value) => {
+  setTempContent(prev => ({
+    ...prev,
+    benefits: prev.benefits.map((benefit, i) =>
+      i === index ? { ...benefit, [field]: value } : benefit
+    ),
+  }));
+};
 
-    return (
-      <div className='mt-16 grid grid-cols-1 md:grid-cols-3 gap-8'>
-        {displayContent.benefits.map((benefit, index) => (
+const addBenefit = () => {
+  setTempContent(prev => ({
+    ...prev,
+    benefits: [
+      ...prev.benefits,
+      {
+        icon: "⭐", // Default icon, you can use emoji or SVG string
+        title: "New Benefit",
+        desc: "Benefit description",
+        color: "primary",
+      },
+    ],
+  }));
+};
+
+const removeBenefit = (index) => {
+  setTempContent(prev => ({
+    ...prev,
+    benefits: prev.benefits.filter((_, i) => i !== index),
+  }));
+};
+
+  const renderBenefits = () => {
+  const benefits = isEditing ? tempContent.benefits : displayContent.benefits;
+  if (!benefits || benefits.length === 0) return null;
+
+  return (
+    <div className='mt-16 grid grid-cols-1 md:grid-cols-3 gap-8'>
+      {benefits.map((benefit, index) => (
+        <div
+          key={index}
+          className='text-center p-6 bg-white rounded-lg shadow-sm relative'
+        >
           <div
-            key={index}
-            className='text-center p-6 bg-white rounded-lg shadow-sm'
-          >
-            <div
-              className={`inline-flex items-center justify-center w-12 h-12 rounded-full mb-4 text-2xl font-bold
+            className={`inline-flex items-center justify-center w-12 h-12 rounded-full mb-4 text-2xl font-bold
               ${
                 benefit.color === "red-accent"
                   ? "bg-red-100 text-red-600"
@@ -335,20 +441,68 @@ export default function EditableProducts({ productData }) {
                   ? "bg-yellow-100 text-yellow-400"
                   : "bg-gradient-to-r from-purple-500 to-yellow-400 text-white"
               }`}
-            >
-              {benefit.icon}
-            </div>
-            <h4 className='font-semibold text-lg mb-2'>{benefit.title}</h4>
-            <p className='text-gray-600 text-sm'>{benefit.desc}</p>
+          >
+            {isEditing ? (
+              <input
+                value={benefit.icon}
+                onChange={e => updateBenefitField(index, "icon", e.target.value)}
+                className="w-full text-2xl text-center bg-transparent border-b"
+                placeholder="Icon (emoji or SVG)"
+              />
+            ) : (
+              benefit.icon
+            )}
           </div>
-        ))}
-      </div>
-    );
-  };
+          {isEditing ? (
+            <input
+              value={benefit.title}
+              onChange={e => updateBenefitField(index, "title", e.target.value)}
+              className="font-semibold text-lg mb-2 w-full text-center bg-transparent border-b"
+              placeholder="Benefit Title"
+            />
+          ) : (
+            <h4 className='font-semibold text-lg mb-2'>{benefit.title}</h4>
+          )}
+          {isEditing ? (
+            <textarea
+              value={benefit.desc}
+              onChange={e => updateBenefitField(index, "desc", e.target.value)}
+              className="text-gray-600 text-sm w-full bg-transparent border-b"
+              placeholder="Benefit Description"
+              rows={2}
+            />
+          ) : (
+            <p className='text-gray-600 text-sm'>{benefit.desc}</p>
+          )}
+          {isEditing && (
+            <Button
+              size="sm"
+              variant="destructive"
+              className="absolute top-2 right-2"
+              onClick={() => removeBenefit(index)}
+            >
+              <Trash2 className="w-4 h-4" />
+            </Button>
+          )}
+        </div>
+      ))}
+      {isEditing && (
+        <Button
+          onClick={addBenefit}
+          size="sm"
+          variant="outline"
+          className="mt-4"
+        >
+          <Plus className="w-4 h-4 mr-1" /> Add Benefit
+        </Button>
+      )}
+    </div>
+  );
+};
 
   if (isLoading) {
     return (
-      <section className='max-w-7xl mx-auto py-20 bg-gray-50'>
+      <section ref={sectionRef} className='max-w-7xl mx-auto py-20 bg-gray-50'>
         <div className='container mx-auto px-4 text-center'>
           <Loader2 className='w-8 h-8 animate-spin mx-auto mb-4' />
           <p>Loading products...</p>
@@ -363,6 +517,49 @@ export default function EditableProducts({ productData }) {
       className='max-w-7xl mx-auto py-20 bg-gray-50 relative overflow-hidden'
     >
       <div className='container mx-auto px-4'>
+        {/* Edit Controls */}
+        <div className="absolute top-4 right-4 z-10">
+          {!isEditing ? (
+            <Button
+              onClick={handleEdit}
+              variant="outline"
+              size="sm"
+              className="bg-white hover:bg-gray-50 shadow-md"
+            >
+              <Edit2 className="w-4 h-4 mr-2" />
+              Edit
+            </Button>
+          ) : (
+            <div className="flex gap-2">
+              <Button
+                onClick={handleSave}
+                size="sm"
+                className="bg-green-600 hover:bg-green-700 text-white shadow-md"
+                disabled={isSaving || isUploading}
+              >
+                {isUploading ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : isSaving ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Save className="w-4 h-4 mr-2" />
+                )}
+                {isUploading ? "Uploading..." : isSaving ? "Saving..." : "Save"}
+              </Button>
+              <Button
+                onClick={handleCancel}
+                variant="outline"
+                size="sm"
+                className="bg-white hover:bg-gray-50 shadow-md"
+                disabled={isSaving || isUploading}
+              >
+                <X className="w-4 h-4 mr-2" />
+                Cancel
+              </Button>
+            </div>
+          )}
+        </div>
+
         <div className='flex justify-between items-center mb-8'>
           <div>
             {isEditing ? (
@@ -413,29 +610,6 @@ export default function EditableProducts({ productData }) {
               </p>
             )}
           </div>
-
-          <div className='flex gap-2'>
-            {!isEditing && (
-              <Button onClick={handleEdit} variant='outline'>
-                <Edit2 className='w-4 h-4 mr-2' /> Edit
-              </Button>
-            )}
-            {isEditing && (
-              <>
-                <Button onClick={handleSave} disabled={isSaving}>
-                  {isSaving ? (
-                    <Loader2 className='w-4 h-4 mr-2 animate-spin' />
-                  ) : (
-                    <Save className='w-4 h-4 mr-2' />
-                  )}
-                  Save
-                </Button>
-                <Button onClick={handleCancel} variant='outline'>
-                  <X className='w-4 h-4 mr-2' /> Cancel
-                </Button>
-              </>
-            )}
-          </div>
         </div>
 
         {/* Categories */}
@@ -445,7 +619,6 @@ export default function EditableProducts({ productData }) {
               key={cat}
               onClick={() => {
                 setSelected(cat);
-                setShowAll(false);
               }}
               className={`px-6 py-2 rounded-full transition-colors ${
                 selected === cat
@@ -475,145 +648,174 @@ export default function EditableProducts({ productData }) {
         </div>
       </div>
 
-      {/* Full-width animation container */}
-      <div className='w-full overflow-hidden'>
-        <div
-          ref={containerRef}
-          className='w-full'
-          onMouseEnter={() => setIsHovered(true)}
-          onMouseLeave={() => setIsHovered(false)}
-        >
-          <motion.div className='flex gap-6 pl-6' style={{ x }}>
-            {loopedItems.map((product, index) => (
-              <Card
-                key={`${product.id}-${index}`}
-                className='flex-shrink-0 w-80 shadow-md rounded-xl overflow-hidden relative bg-white hover:shadow-lg transition-shadow duration-300'
-              >
-                {product.isPopular && (
-                  <div className='absolute top-4 right-4 z-10'>
-                    <Badge className='bg-yellow-400 text-white'>
-                      <Star className='w-3 h-3 mr-1' fill='currentColor' />
-                      Popular
-                    </Badge>
-                  </div>
-                )}
+      {/* Products Grid */}
+      <div className='container mx-auto px-4'>
+        <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6'>
+          {filtered.map((product) => (
+            <Card
+              key={product.id}
+              className='shadow-md rounded-xl overflow-hidden relative bg-white hover:shadow-lg transition-shadow duration-300'
+            >
+              {product.isPopular && (
+                <div className='absolute top-4 right-4 z-10'>
+                  <Badge className='bg-yellow-400 text-white'>
+                    <Star className='w-3 h-3 mr-1' fill='currentColor' />
+                    Popular
+                  </Badge>
+                </div>
+              )}
 
-                <CardContent className='p-0'>
-                  <div className='relative'>
-                    <img
-                      src={product.image}
-                      alt={product.title}
-                      className='w-full h-48 object-cover'
-                    />
-                    {isEditing && (
-                      <>
-                        <input
-                          type='file'
-                          accept='image/*'
-                          ref={(el) => (fileInputRefs.current[product.id] = el)}
-                          onChange={(e) => handleImageUpload(product.id, e)}
-                          className='hidden'
-                        />
-                        <Button
-                          size='sm'
-                          variant='outline'
-                          className='absolute top-2 right-2'
-                          onClick={() =>
-                            fileInputRefs.current[product.id]?.click()
-                          }
-                        >
-                          <Upload className='w-4 h-4' />
-                        </Button>
-                      </>
-                    )}
-                  </div>
-
-                  <div className='p-6'>
-                    <div className='flex items-center justify-between mb-3'>
-                      <Badge
-                        className={
-                          product.categoryColor || "bg-gray-100 text-gray-800"
+              <CardContent className='p-0'>
+                <div className='relative'>
+                  <img
+                    src={product.image || "https://via.placeholder.com/320x180?text=Product+Image"}
+                    alt={product.title}
+                    className='w-full h-48 object-cover'
+                  />
+                  {isEditing && (
+                    <>
+                      <input
+                        type='file'
+                        accept='image/*'
+                        ref={(el) => (fileInputRefs.current[product.id] = el)}
+                        onChange={(e) => handleImageUpload(product.id, e)}
+                        className='hidden'
+                      />
+                      <Button
+                        size='sm'
+                        variant='outline'
+                        className='absolute top-2 right-2 bg-white/80'
+                        onClick={() =>
+                          fileInputRefs.current[product.id]?.click()
                         }
                       >
-                        {product.category}
-                      </Badge>
+                        <Upload className='w-4 h-4' />
+                      </Button>
+                      {pendingImages[product.id] && (
+                        <p className='absolute bottom-2 left-2 text-xs text-orange-600 bg-white/80 p-1 rounded'>
+                          Image selected: {pendingImages[product.id].name}
+                        </p>
+                      )}
+                    </>
+                  )}
+                </div>
+
+                <div className='p-6'>
+                  <div className='flex items-center justify-between mb-3'>
+                    <Badge
+                      className={
+                        product.categoryColor || "bg-gray-100 text-gray-800"
+                      }
+                    >
+                      {isEditing ? (
+                        <input
+                          value={product.category}
+                          onChange={(e) => updateProductField(product.id, "category", e.target.value)}
+                          className="w-full bg-white/80 border-2 border-dashed border-blue-300 rounded focus:border-blue-500 focus:outline-none p-1 text-xs"
+                        />
+                      ) : (
+                        product.category
+                      )}
+                    </Badge>
+                  </div>
+
+                  {isEditing ? (
+                    <EditableText
+                      value={product.title}
+                      onChange={(val) =>
+                        updateProductField(product.id, "title", val)
+                      }
+                      className='text-xl font-bold mb-3'
+                    />
+                  ) : (
+                    <h3 className='text-xl font-bold mb-3'>
+                      {product.title}
+                    </h3>
+                  )}
+
+                  {isEditing ? (
+                    <EditableText
+                      value={product.description}
+                      onChange={(val) =>
+                        updateProductField(product.id, "description", val)
+                      }
+                      multiline
+                      className='text-gray-600 mb-4'
+                    />
+                  ) : (
+                    <p className='text-gray-600 mb-4'>
+                      {product.description}
+                    </p>
+                  )}
+
+                  {product.features && product.features.length > 0 && (
+                    <div className='mb-4'>
+                      <h4 className='font-semibold mb-2 text-sm'>
+                        Features:
+                      </h4>
+                      <ul className='text-sm text-gray-600 space-y-1'>
+                        {product.features.map((feature, idx) => (
+                          <li key={idx} className='flex items-center'>
+                            <div className='w-1.5 h-1.5 bg-yellow-400 rounded-full mr-2 flex-shrink-0'></div>
+                            {isEditing ? (
+                              <div className="flex items-center gap-2 w-full">
+                                <input
+                                  value={feature}
+                                  onChange={(e) => updateFeature(product.id, idx, e.target.value)}
+                                  className="w-full bg-white/80 border-2 border-dashed border-blue-300 rounded focus:border-blue-500 focus:outline-none p-1 text-xs"
+                                />
+                                <Button
+                                  onClick={() => removeFeature(product.id, idx)}
+                                  size="sm"
+                                  variant="outline"
+                                  className="bg-red-50 hover:bg-red-100 text-red-700"
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                </Button>
+                              </div>
+                            ) : (
+                              feature
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                      {isEditing && (
+                        <Button
+                          onClick={() => addFeature(product.id)}
+                          size="sm"
+                          variant="outline"
+                          className="bg-green-50 hover:bg-green-100 text-green-700 mt-2"
+                        >
+                          <Plus className="w-3 h-3 mr-1" />
+                          Add Feature
+                        </Button>
+                      )}
                     </div>
+                  )}
 
-                    {isEditing ? (
-                      <EditableText
-                        value={product.title}
-                        onChange={(val) =>
-                          updateProduct(product.id, "title", val)
-                        }
-                        className='text-xl font-bold mb-3'
-                      />
-                    ) : (
-                      <h3 className='text-xl font-bold mb-3'>
-                        {product.title}
-                      </h3>
-                    )}
-
-                    {isEditing ? (
-                      <EditableText
-                        value={product.description}
-                        onChange={(val) =>
-                          updateProduct(product.id, "description", val)
-                        }
-                        multiline
-                        className='text-gray-600 mb-4'
-                      />
-                    ) : (
-                      <p className='text-gray-600 mb-4'>
-                        {product.description}
-                      </p>
-                    )}
-
-                    {product.features && product.features.length > 0 && (
-                      <div className='mb-4'>
-                        <h4 className='font-semibold mb-2 text-sm'>
-                          Features:
-                        </h4>
-                        <ul className='text-sm text-gray-600 space-y-1'>
-                          {product.features.map((feature, idx) => (
-                            <li key={idx} className='flex items-center'>
-                              <div className='w-1.5 h-1.5 bg-yellow-400 rounded-full mr-2 flex-shrink-0'></div>
-                              {feature}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-
-                    {(product.pricing || product.timeline) && (
-                      <div className='border-t pt-4 mt-4'>
-                        {product.pricing && (
-                          <p className='font-semibold text-yellow-400 mb-1'>
-                            {product.pricing}
-                          </p>
-                        )}
-                        {product.timeline && (
-                          <p className='text-sm text-gray-500'>
-                            {product.timeline}
-                          </p>
-                        )}
-                      </div>
-                    )}
-
+                  <div className="flex gap-2">
+                    <Button 
+                      size="sm" 
+                      className="hover:scale-105" 
+                      onClick={() => openModal(product.id)}
+                    >
+                      View Details
+                    </Button>
                     {isEditing && (
                       <Button
                         onClick={() => removeProduct(product.id)}
                         size='sm'
                         variant='destructive'
-                        className='mt-3 w-full'
+                        className="hover:scale-105"
                       >
-                        <Trash2 className='w-4 h-4 mr-1' /> Delete
+                        <Trash2 className='w-4 h-4 mr-1' /> Remove
                       </Button>
                     )}
                   </div>
-                </CardContent>
-              </Card>
-            ))}
-          </motion.div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
         </div>
       </div>
 
@@ -627,6 +829,71 @@ export default function EditableProducts({ productData }) {
         {/* Benefits Section */}
         {renderBenefits()}
       </div>
+
+      {/* Modal */}
+      {isModalOpen && selectedProductIndex !== null && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-6 z-50">
+          <div className="bg-white rounded-xl w-full max-w-3xl p-6 relative overflow-y-auto max-h-[90vh]">
+            <button
+              onClick={closeModal}
+              className="absolute top-4 right-4 bg-gray-500 text-white rounded-full p-2"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            {isEditing ? (
+              <EditableText
+                value={tempContent.products[selectedProductIndex].title}
+                onChange={(val) => updateProductField(tempContent.products[selectedProductIndex].id, "title", val)}
+                className="text-2xl font-bold mb-4"
+              />
+            ) : (
+              <h2 className="text-2xl font-bold mb-4">
+                {tempContent.products[selectedProductIndex].title}
+              </h2>
+            )}
+
+            {isEditing ? (
+              <EditableText
+                value={tempContent.products[selectedProductIndex].detailedDescription}
+                onChange={(val) => updateProductField(tempContent.products[selectedProductIndex].id, "detailedDescription", val)}
+                multiline
+                className="mb-4"
+              />
+            ) : (
+              <p className="text-gray-600 mb-4">
+                {tempContent.products[selectedProductIndex].detailedDescription}
+              </p>
+            )}
+
+            {/* Pricing & Timeline */}
+            <div className="grid grid-cols-2 gap-6">
+              <div>
+                <h3 className="font-semibold mb-2">Pricing</h3>
+                {isEditing ? (
+                  <EditableText
+                    value={tempContent.products[selectedProductIndex].pricing}
+                    onChange={(val) => updateProductField(tempContent.products[selectedProductIndex].id, "pricing", val)}
+                  />
+                ) : (
+                  <p>{tempContent.products[selectedProductIndex].pricing}</p>
+                )}
+              </div>
+              <div>
+                <h3 className="font-semibold mb-2">Timeline</h3>
+                {isEditing ? (
+                  <EditableText
+                    value={tempContent.products[selectedProductIndex].timeline}
+                    onChange={(val) => updateProductField(tempContent.products[selectedProductIndex].id, "timeline", val)}
+                  />
+                ) : (
+                  <p>{tempContent.products[selectedProductIndex].timeline}</p>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

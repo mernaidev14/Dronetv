@@ -8,28 +8,32 @@ const iconMap = {
   Facebook: Facebook,
   Twitter: Twitter,
   Linkedin: Linkedin,
+  LinkedIn: Linkedin, // Added alias for LinkedIn
   Instagram: Instagram,
   Mail: Mail,
   Phone: Phone,
 };
-
 export default function Footer({onStateChange,footerData}) {
   const [isEditing, setIsEditing] = useState(false);
 
   // Merged all state into a single object
   const [footerContent, setFooterContent] = useState(() => {
-    // Convert icon strings to actual components
+    // Process the footer data to ensure icons are proper components
     const processedData = {...footerData};
+    
     if (processedData.socialLinks) {
       processedData.socialLinks = processedData.socialLinks.map(link => ({
         ...link,
-        icon: typeof link.icon === 'string' ? iconMap[link.icon] || Facebook : link.icon
+        // Use the name to determine the icon if icon is not a valid string
+        icon: (typeof link.icon === 'string' && iconMap[link.icon]) ? 
+              iconMap[link.icon] : 
+              iconMap[link.name] || Facebook // Fallback to name or Facebook
       }));
     }
+    
     return processedData;
   });
- 
-  // Update footer content when footerData changes
+ // Update footer content when footerData changes
   useEffect(() => {
     if (footerData?.services) {
       setFooterContent(prev => ({

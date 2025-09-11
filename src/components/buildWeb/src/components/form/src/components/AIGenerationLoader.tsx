@@ -47,7 +47,7 @@ export const AIGenerationLoader: React.FC<AIGenerationLoaderProps> = ({ onComple
   }, [onComplete, steps.length]);
 
   return (
-    <div className="fixed inset-0 bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 flex items-center justify-center z-50">
+    <div className="fixed inset-0 bg-indigo-900 flex items-center justify-center z-50">
       <div className="max-w-md w-full mx-4">
         {/* Main Content */}
         <div className="text-center mb-8">
@@ -76,7 +76,7 @@ export const AIGenerationLoader: React.FC<AIGenerationLoaderProps> = ({ onComple
           </div>
           <div className="w-full bg-slate-700 rounded-full h-3">
             <div
-              className="bg-gradient-to-r from-blue-500 to-purple-600 h-3 rounded-full transition-all duration-300 ease-out"
+              className="bg-blue-500  h-3 rounded-full transition-all duration-300 ease-out"
               style={{ width: `${progress}%` }}
             />
           </div>

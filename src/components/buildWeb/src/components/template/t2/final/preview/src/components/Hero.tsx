@@ -96,8 +96,8 @@ export default function Hero({ heroData }) {
 
             {/* Stats */}
             <motion.div className="grid grid-cols-3 gap-8 pt-8" variants={itemVariants}>
-              {heroData.stats.map((s) => (
-                <div key={s.id} className="group">
+              {heroData.stats.map((s,index) => (
+                <div key={index} className="group">
                   <div className={`text-2xl font-bold group-hover:text-${s.color}`}>{s.value}</div>
                   <div className="text-muted-foreground">{s.label}</div>
                   <div className={`w-8 h-1 bg-${s.color}/30 group-hover:bg-${s.color} mt-1`} />

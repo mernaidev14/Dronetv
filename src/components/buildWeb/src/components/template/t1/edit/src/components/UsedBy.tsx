@@ -75,7 +75,7 @@ export default function EditableUsedBy({ onStateChange, userId, publishedId, tem
       const response = await new Promise((resolve) => {
         setTimeout(() => {
           resolve({
-            id: 1,
+          
             title: "USED BY",
             companies: [
               { image: BusinessInsider, name: "Business Insider", id: 1 },

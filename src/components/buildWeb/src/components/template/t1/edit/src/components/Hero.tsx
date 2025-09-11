@@ -373,7 +373,7 @@ export default function EditableHero({ heroData, onStateChange, userId, publishe
       )}
 
       {/* Edit controls */}
-      <div className='fixed top-40 right-4 z-50'>
+      <div className='absolute top-40 right-4 z-50'>
         {!isEditing ? (
           <Button
             onClick={handleEdit}

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import logo from "../public/images/logos/logo.svg";
 import {
   Mail,
@@ -14,48 +14,22 @@ import {
   X,
   Plus,
   Trash2,
+  Twitter,
 } from "lucide-react";
+import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
+import { motion } from "motion/react";
+import { toast } from "react-toastify";
 
-const Button = ({
-  children,
-  className = "",
-  size = "default",
-  onClick,
-  ...props
-}) => {
-  const sizeClasses = {
-    sm: "px-3 py-1.5 text-sm",
-    default: "px-4 py-2",
-    lg: "px-6 py-3 text-lg",
-  };
-
-  return (
-    <button
-      className={`inline-flex items-center justify-center rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-blue-600 text-white hover:bg-blue-700 ${sizeClasses[size]} ${className}`}
-      onClick={onClick}
-      {...props}
-    >
-      {children}
-    </button>
-  );
-};
-
-const Input = ({ className = "", ...props }) => {
-  return (
-    <input
-      className={`flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
-      {...props}
-    />
-  );
-};
-
-export default function EditableFooter() {
-  const [isEditing, setIsEditing] = useState(false);
-  const [footerData, setFooterData] = useState({
+export default function EditableFooter({ 
+  content, 
+  onStateChange, 
+}) {
+  // Initialize with data from props or use default structure
+  const initialData = content || {
     brand: {
       name: "Innovative Labs",
-      description:
-        "Innovative solutions for modern businesses. Transform your operations with our expert guidance and cutting-edge technology.",
+      description: "Innovative solutions for modern businesses. Transform your operations with our expert guidance and cutting-edge technology.",
       logoUrl: logo,
     },
     newsletter: {
@@ -126,21 +100,50 @@ export default function EditableFooter() {
       { id: 4, text: "Sitemap", href: "#sitemap" },
     ],
     copyright: "© 2024 Innovative Labs. All rights reserved.",
-  });
+  };
 
-  const getSocialIcon = (iconName) => {
-    const icons = {
-      Facebook: Facebook,
-      Github: Github,
-      Linkedin: Linkedin,
-      Instagram: Instagram,
-    };
-    const IconComponent = icons[iconName] || Facebook;
-    return <IconComponent className='w-4 h-4' />;
+  const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [footerData, setFooterData] = useState(initialData);
+  const [tempData, setTempData] = useState(initialData);
+
+  // Update state when content prop changes
+  useEffect(() => {
+    if (content) {
+      setFooterData(content);
+      setTempData(content);
+    }
+  }, [content]);
+
+  // Notify parent of state changes
+  useEffect(() => {
+    if (onStateChange) {
+      onStateChange(footerData);
+    }
+  }, [footerData, onStateChange]);
+
+  const handleEdit = () => {
+    setIsEditing(true);
+    setTempData(footerData);
+  };
+
+  const handleCancel = () => {
+    setTempData(footerData);
+    setIsEditing(false);
+  };
+
+  const handleSave = () => {
+    setIsSaving(true);
+    setTimeout(() => {
+      setFooterData(tempData);
+      setIsEditing(false);
+      setIsSaving(false);
+      toast.success('Footer saved successfully');
+    }, 500);
   };
 
   const updateNestedField = (path, value) => {
-    setFooterData((prev) => {
+    setTempData((prev) => {
       const newData = JSON.parse(JSON.stringify(prev));
       const keys = path.split(".");
       let current = newData;
@@ -155,7 +158,7 @@ export default function EditableFooter() {
   };
 
   const addSectionLink = (sectionId) => {
-    setFooterData((prev) => ({
+    setTempData((prev) => ({
       ...prev,
       sections: prev.sections.map((section) =>
         section.id === sectionId
@@ -176,7 +179,7 @@ export default function EditableFooter() {
   };
 
   const removeSectionLink = (sectionId, linkId) => {
-    setFooterData((prev) => ({
+    setTempData((prev) => ({
       ...prev,
       sections: prev.sections.map((section) =>
         section.id === sectionId
@@ -190,7 +193,7 @@ export default function EditableFooter() {
   };
 
   const updateSectionLink = (sectionId, linkId, field, value) => {
-    setFooterData((prev) => ({
+    setTempData((prev) => ({
       ...prev,
       sections: prev.sections.map((section) =>
         section.id === sectionId
@@ -203,6 +206,103 @@ export default function EditableFooter() {
           : section
       ),
     }));
+  };
+
+  const addSection = () => {
+    setTempData((prev) => ({
+      ...prev,
+      sections: [
+        ...prev.sections,
+        {
+          id: Date.now(),
+          title: "New Section",
+          links: [{ id: 1, text: "New Link", href: "#" }],
+        },
+      ],
+    }));
+  };
+
+  const removeSection = (sectionId) => {
+    if (tempData.sections.length > 1) {
+      setTempData((prev) => ({
+        ...prev,
+        sections: prev.sections.filter((section) => section.id !== sectionId),
+      }));
+    }
+  };
+
+  const updateSocialMedia = (index, field, value) => {
+    setTempData((prev) => ({
+      ...prev,
+      socialMedia: prev.socialMedia.map((social, i) =>
+        i === index ? { ...social, [field]: value } : social
+      ),
+    }));
+  };
+
+  const addSocialMedia = () => {
+    setTempData((prev) => ({
+      ...prev,
+      socialMedia: [
+        ...prev.socialMedia,
+        {
+          id: Date.now(),
+          name: "New Social",
+          icon: "Facebook",
+          href: "#",
+          hoverColor: "hover:bg-blue-600",
+        },
+      ],
+    }));
+  };
+
+  const removeSocialMedia = (id) => {
+    if (tempData.socialMedia.length > 1) {
+      setTempData((prev) => ({
+        ...prev,
+        socialMedia: prev.socialMedia.filter((social) => social.id !== id),
+      }));
+    }
+  };
+
+  const updateLegalLink = (index, field, value) => {
+    setTempData((prev) => ({
+      ...prev,
+      legalLinks: prev.legalLinks.map((link, i) =>
+        i === index ? { ...link, [field]: value } : link
+      ),
+    }));
+  };
+
+  const addLegalLink = () => {
+    setTempData((prev) => ({
+      ...prev,
+      legalLinks: [
+        ...prev.legalLinks,
+        { id: Date.now(), text: "New Link", href: "#" },
+      ],
+    }));
+  };
+
+  const removeLegalLink = (id) => {
+    if (tempData.legalLinks.length > 1) {
+      setTempData((prev) => ({
+        ...prev,
+        legalLinks: prev.legalLinks.filter((link) => link.id !== id),
+      }));
+    }
+  };
+
+  const getSocialIcon = (iconName) => {
+    const icons = {
+      Facebook: Facebook,
+      Github: Github,
+      Linkedin: Linkedin,
+      Instagram: Instagram,
+      Twitter: Twitter,
+    };
+    const IconComponent = icons[iconName] || Facebook;
+    return <IconComponent className='w-4 h-4' />;
   };
 
   const EditableField = ({
@@ -235,43 +335,95 @@ export default function EditableFooter() {
     );
   };
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1,
+        delayChildren: 0.2
+      }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { y: 20, opacity: 0 },
+    visible: {
+      y: 0,
+      opacity: 1,
+      transition: {
+        duration: 0.6,
+        ease: "easeOut"
+      }
+    }
+  };
+
   return (
     <>
       {/* Footer Preview/Edit */}
-      <footer className='bg-gray-900 border-t border-gray-800 relative'>
+      <motion.footer 
+        className='bg-gray-900 border-t border-gray-800 relative'
+        initial={{ opacity: 0 }}
+        whileInView={{ opacity: 1 }}
+        viewport={{ once: true }}
+        transition={{ duration: 0.8 }}
+      >
         <div className='max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8 lg:py-12 relative'>
           {/* Edit Toggle - positioned in top right */}
           <div className='absolute top-4 right-4 z-10'>
-            <Button
-              onClick={() => setIsEditing(!isEditing)}
-              className={`${
-                isEditing
-                  ? "bg-green-600 hover:bg-green-700"
-                  : "bg-yellow-400 hover:bg-yellow-400"
-              } text-xs`}
-              size='sm'
-            >
-              {isEditing ? (
-                <>
-                  <Save className='w-3 h-3 mr-1' />
+            {!isEditing ? (
+              <Button
+                onClick={handleEdit}
+                className="bg-yellow-400 hover:bg-yellow-500 text-black"
+                size='sm'
+              >
+                <Edit2 className='w-3 h-3 mr-1' />
+                Edit
+              </Button>
+            ) : (
+              <div className="flex gap-2">
+                <Button
+                  onClick={handleSave}
+                  className="bg-green-600 hover:bg-green-700 text-white"
+                  size='sm'
+                  disabled={isSaving}
+                >
+                  {isSaving ? (
+                    <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white mr-1"></div>
+                  ) : (
+                    <Save className='w-3 h-3 mr-1' />
+                  )}
                   Save
-                </>
-              ) : (
-                <>
-                  <Edit2 className='w-3 h-3 mr-1' />
-                  Edit
-                </>
-              )}
-            </Button>
+                </Button>
+                <Button
+                  onClick={handleCancel}
+                  className="bg-gray-600 hover:bg-gray-700 text-white"
+                  size='sm'
+                >
+                  <X className='w-3 h-3 mr-1' />
+                  Cancel
+                </Button>
+              </div>
+            )}
           </div>
+          
           {/* Main Footer Content */}
-          <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-12 text-center md:text-left'>
+          <motion.div 
+            className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-12 text-center md:text-left'
+            variants={containerVariants}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+          >
             {/* Brand Section */}
-            <div className='col-span-1 md:col-span-2 lg:col-span-1'>
+            <motion.div 
+              className='col-span-1 md:col-span-2 lg:col-span-1'
+              variants={itemVariants}
+            >
               <div className='flex items-center justify-center md:justify-start space-x-3 mb-4'>
                 <span className='flex flex-row gap-2 text-xl font-bold text-red-500'>
                   <img
-                    src={footerData.brand.logoUrl}
+                    src={tempData.brand.logoUrl}
                     alt='Logo'
                     className='h-4 w-4 sm:h-6 sm:w-6 object-contain'
                     style={{
@@ -280,7 +432,7 @@ export default function EditableFooter() {
                   />
                   {isEditing ? (
                     <EditableField
-                      value={footerData.brand.name}
+                      value={tempData.brand.name}
                       onChange={(value) =>
                         updateNestedField("brand.name", value)
                       }
@@ -288,7 +440,7 @@ export default function EditableFooter() {
                       className='bg-gray-800 border-gray-600'
                     />
                   ) : (
-                    footerData.brand.name
+                    tempData.brand.name
                   )}
                 </span>
               </div>
@@ -299,7 +451,7 @@ export default function EditableFooter() {
                     Logo URL:
                   </label>
                   <EditableField
-                    value={footerData.brand.logoUrl}
+                    value={tempData.brand.logoUrl}
                     onChange={(value) =>
                       updateNestedField("brand.logoUrl", value)
                     }
@@ -310,7 +462,7 @@ export default function EditableFooter() {
                     Description:
                   </label>
                   <EditableField
-                    value={footerData.brand.description}
+                    value={tempData.brand.description}
                     onChange={(value) =>
                       updateNestedField("brand.description", value)
                     }
@@ -320,7 +472,7 @@ export default function EditableFooter() {
                 </div>
               ) : (
                 <p className='text-gray-300 text-sm leading-relaxed mb-6'>
-                  {footerData.brand.description}
+                  {tempData.brand.description}
                 </p>
               )}
 
@@ -332,7 +484,7 @@ export default function EditableFooter() {
                       Newsletter Title:
                     </label>
                     <EditableField
-                      value={footerData.newsletter.title}
+                      value={tempData.newsletter.title}
                       onChange={(value) =>
                         updateNestedField("newsletter.title", value)
                       }
@@ -342,14 +494,14 @@ export default function EditableFooter() {
                   </div>
                 ) : (
                   <h4 className='font-medium text-white text-sm'>
-                    {footerData.newsletter.title}
+                    {tempData.newsletter.title}
                   </h4>
                 )}
 
                 <div className='flex flex-col sm:flex-row gap-2 justify-center md:justify-start'>
                   <Input
                     type='email'
-                    placeholder={footerData.newsletter.placeholder}
+                    placeholder={tempData.newsletter.placeholder}
                     className='h-10 text-sm flex-1 bg-gray-800 border-gray-700 text-white placeholder-gray-400 focus:border-blue-500'
                     disabled={isEditing}
                   />
@@ -367,7 +519,7 @@ export default function EditableFooter() {
                       Email Placeholder:
                     </label>
                     <EditableField
-                      value={footerData.newsletter.placeholder}
+                      value={tempData.newsletter.placeholder}
                       onChange={(value) =>
                         updateNestedField("newsletter.placeholder", value)
                       }
@@ -377,29 +529,45 @@ export default function EditableFooter() {
                   </div>
                 )}
               </div>
-            </div>
+            </motion.div>
 
             {/* Dynamic Sections */}
-            {footerData.sections.map((section, sectionIndex) => (
-              <div key={section.id} className='col-span-1'>
+            {tempData.sections.map((section, sectionIndex) => (
+              <motion.div 
+                key={section.id} 
+                className='col-span-1'
+                variants={itemVariants}
+              >
                 <div className='flex items-center justify-center md:justify-start mb-4'>
                   {isEditing ? (
-                    <EditableField
-                      value={section.title}
-                      onChange={(value) => {
-                        const newSections = [...footerData.sections];
-                        newSections[sectionIndex] = {
-                          ...newSections[sectionIndex],
-                          title: value,
-                        };
-                        setFooterData((prev) => ({
-                          ...prev,
-                          sections: newSections,
-                        }));
-                      }}
-                      placeholder='Section title'
-                      className='font-semibold text-white'
-                    />
+                    <div className="flex items-center w-full">
+                      <EditableField
+                        value={section.title}
+                        onChange={(value) => {
+                          const newSections = [...tempData.sections];
+                          newSections[sectionIndex] = {
+                            ...newSections[sectionIndex],
+                            title: value,
+                          };
+                          setTempData((prev) => ({
+                            ...prev,
+                            sections: newSections,
+                          }));
+                        }}
+                        placeholder='Section title'
+                        className='font-semibold text-white flex-1'
+                      />
+                      {tempData.sections.length > 1 && (
+                        <Button
+                          onClick={() => removeSection(section.id)}
+                          size="sm"
+                          variant="destructive"
+                          className="ml-2"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
+                      )}
+                    </div>
                   ) : (
                     <h4 className='font-semibold text-white'>
                       {section.title}
@@ -471,11 +639,32 @@ export default function EditableFooter() {
                     </li>
                   )}
                 </ul>
-              </div>
+              </motion.div>
             ))}
 
+            {/* Add Section Button */}
+            {isEditing && (
+              <motion.div 
+                className="col-span-1 flex items-center justify-center"
+                variants={itemVariants}
+              >
+                <Button
+                  onClick={addSection}
+                  size="sm"
+                  variant="outline"
+                  className="text-green-600 border-green-600 hover:bg-green-600 hover:text-white"
+                >
+                  <Plus className="w-4 h-4 mr-1" />
+                  Add Section
+                </Button>
+              </motion.div>
+            )}
+
             {/* Contact & Social Media */}
-            <div className='col-span-1'>
+            <motion.div 
+              className='col-span-1'
+              variants={itemVariants}
+            >
               <h4 className='font-semibold text-white mb-4'>Get in Touch</h4>
 
               {/* Contact Info */}
@@ -484,7 +673,7 @@ export default function EditableFooter() {
                   <Mail className='w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0' />
                   {isEditing ? (
                     <EditableField
-                      value={footerData.contact.email}
+                      value={tempData.contact.email}
                       onChange={(value) =>
                         updateNestedField("contact.email", value)
                       }
@@ -492,7 +681,7 @@ export default function EditableFooter() {
                       className='flex-1 text-xs'
                     />
                   ) : (
-                    <span>{footerData.contact.email}</span>
+                    <span>{tempData.contact.email}</span>
                   )}
                 </div>
 
@@ -500,7 +689,7 @@ export default function EditableFooter() {
                   <Phone className='w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0' />
                   {isEditing ? (
                     <EditableField
-                      value={footerData.contact.phone}
+                      value={tempData.contact.phone}
                       onChange={(value) =>
                         updateNestedField("contact.phone", value)
                       }
@@ -508,7 +697,7 @@ export default function EditableFooter() {
                       className='flex-1 text-xs'
                     />
                   ) : (
-                    <span>{footerData.contact.phone}</span>
+                    <span>{tempData.contact.phone}</span>
                   )}
                 </div>
 
@@ -516,7 +705,7 @@ export default function EditableFooter() {
                   <MapPin className='w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0' />
                   {isEditing ? (
                     <EditableField
-                      value={footerData.contact.address}
+                      value={tempData.contact.address}
                       onChange={(value) =>
                         updateNestedField("contact.address", value)
                       }
@@ -524,7 +713,7 @@ export default function EditableFooter() {
                       className='flex-1 text-xs'
                     />
                   ) : (
-                    <span>{footerData.contact.address}</span>
+                    <span>{tempData.contact.address}</span>
                   )}
                 </div>
               </div>
@@ -535,8 +724,8 @@ export default function EditableFooter() {
                   Follow Us
                 </h5>
                 <div className='flex justify-center md:justify-start space-x-3 flex-wrap gap-2'>
-                  {footerData.socialMedia.map((social) => (
-                    <div key={social.id} className='flex flex-col gap-1'>
+                  {tempData.socialMedia.map((social, index) => (
+                    <div key={social.id} className='flex flex-col gap-1 items-center'>
                       <a
                         href={social.href}
                         className={`w-9 h-9 bg-gray-800 ${social.hoverColor} rounded-lg flex items-center justify-center transition-all duration-200 text-gray-300 hover:text-white hover:scale-105`}
@@ -545,139 +734,89 @@ export default function EditableFooter() {
                         {getSocialIcon(social.icon)}
                       </a>
                       {isEditing && (
-                        <EditableField
-                          value={social.href}
-                          onChange={(value) => {
-                            setFooterData((prev) => ({
-                              ...prev,
-                              socialMedia: prev.socialMedia.map((s) =>
-                                s.id === social.id ? { ...s, href: value } : s
-                              ),
-                            }));
-                          }}
-                          placeholder='URL'
-                          className='text-xs w-20'
-                        />
+                        <div className="flex flex-col items-center">
+                          <EditableField
+                            value={social.name}
+                            onChange={(value) => updateSocialMedia(index, "name", value)}
+                            placeholder='Name'
+                            className='text-xs w-20 text-center'
+                          />
+                          <EditableField
+                            value={social.href}
+                            onChange={(value) => updateSocialMedia(index, "href", value)}
+                            placeholder='URL'
+                            className='text-xs w-20 text-center'
+                          />
+                          <Button
+                            onClick={() => removeSocialMedia(social.id)}
+                            size="sm"
+                            variant="destructive"
+                            className="mt-1"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </Button>
+                        </div>
                       )}
                     </div>
                   ))}
+                  {isEditing && (
+                    <Button
+                      onClick={addSocialMedia}
+                      size="sm"
+                      variant="outline"
+                      className="text-green-600 border-green-600 hover:bg-green-600 hover:text-white h-9 w-9"
+                    >
+                      <Plus className="w-4 h-4" />
+                    </Button>
+                  )}
                 </div>
               </div>
-            </div>
-          </div>
-
-          {/* Resources Section - Mobile Only */}
-          <div className='mt-8 pt-6 border-t border-gray-800 md:hidden text-center'>
-            <div className='grid grid-cols-2 gap-6'>
-              <div>
-                <h4 className='font-semibold text-white mb-4'>Resources</h4>
-                <ul className='space-y-3 text-sm'>
-                  <li>
-                    <a
-                      href='#blog'
-                      className='text-gray-300 hover:text-blue-400 transition-colors duration-200'
-                    >
-                      Blog
-                    </a>
-                  </li>
-                  <li>
-                    <a
-                      href='#docs'
-                      className='text-gray-300 hover:text-blue-400 transition-colors duration-200'
-                    >
-                      Documentation
-                    </a>
-                  </li>
-                  <li>
-                    <a
-                      href='#help'
-                      className='text-gray-300 hover:text-blue-400 transition-colors duration-200'
-                    >
-                      Help Center
-                    </a>
-                  </li>
-                </ul>
-              </div>
-
-              <div>
-                <h4 className='font-semibold text-white mb-4'>Legal</h4>
-                <ul className='space-y-3 text-sm'>
-                  <li>
-                    <a
-                      href='#privacy'
-                      className='text-gray-300 hover:text-blue-400 transition-colors duration-200'
-                    >
-                      Privacy Policy
-                    </a>
-                  </li>
-                  <li>
-                    <a
-                      href='#terms'
-                      className='text-gray-300 hover:text-blue-400 transition-colors duration-200'
-                    >
-                      Terms of Service
-                    </a>
-                  </li>
-                  <li>
-                    <a
-                      href='#cookies'
-                      className='text-gray-300 hover:text-blue-400 transition-colors duration-200'
-                    >
-                      Cookie Policy
-                    </a>
-                  </li>
-                </ul>
-              </div>
-            </div>
-          </div>
+            </motion.div>
+          </motion.div>
 
           {/* Bottom Copyright Section */}
-          <div className='mt-8 pt-6 border-t border-gray-800'>
+          <motion.div 
+            className='mt-8 pt-6 border-t border-gray-800'
+            variants={itemVariants}
+          >
             <div className='flex flex-col space-y-4 sm:flex-row sm:justify-between sm:items-center sm:space-y-0 text-center md:text-left'>
               <div className='text-sm text-gray-400'>
                 {isEditing ? (
                   <EditableField
-                    value={footerData.copyright}
+                    value={tempData.copyright}
                     onChange={(value) => updateNestedField("copyright", value)}
                     placeholder='Copyright text'
                   />
                 ) : (
-                  footerData.copyright
+                  tempData.copyright
                 )}
               </div>
 
               {/* Legal Links */}
               <div className='flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm'>
-                {footerData.legalLinks.map((link) => (
+                {tempData.legalLinks.map((link, index) => (
                   <div key={link.id} className='flex items-center gap-1'>
                     {isEditing ? (
                       <div className='flex flex-col gap-1'>
                         <EditableField
                           value={link.text}
-                          onChange={(value) => {
-                            setFooterData((prev) => ({
-                              ...prev,
-                              legalLinks: prev.legalLinks.map((l) =>
-                                l.id === link.id ? { ...l, text: value } : l
-                              ),
-                            }));
-                          }}
+                          onChange={(value) => updateLegalLink(index, "text", value)}
                           placeholder='Link text'
                           className='text-xs w-24'
                         />
                         <EditableField
                           value={link.href}
-                          onChange={(value) => {
-                            setFooterData((prev) => ({
-                              ...prev,
-                              legalLinks: prev.legalLinks.map((l) =>
-                                l.id === link.id ? { ...l, href: value } : l
-                              ),
-                            }));
-                          }}
+                          onChange={(value) => updateLegalLink(index, "href", value)}
                           placeholder='URL'
                           className='text-xs w-24'
                         />
+                        <Button
+                          onClick={() => removeLegalLink(link.id)}
+                          size="sm"
+                          variant="destructive"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
                       </div>
                     ) : (
                       <a
@@ -689,11 +828,22 @@ export default function EditableFooter() {
                     )}
                   </div>
                 ))}
+                {isEditing && (
+                  <Button
+                    onClick={addLegalLink}
+                    size="sm"
+                    variant="outline"
+                    className="text-green-600 border-green-600 hover:bg-green-600 hover:text-white"
+                  >
+                    <Plus className="w-4 h-4 mr-1" />
+                    Add Link
+                  </Button>
+                )}
               </div>
             </div>
-          </div>
+          </motion.div>
         </div>
-      </footer>
+      </motion.footer>
 
       {/* Edit Instructions Panel */}
       {isEditing && (
@@ -712,11 +862,9 @@ export default function EditableFooter() {
                 <ul className='text-sm text-gray-600 space-y-1'>
                   <li>• Click any text field to edit content directly</li>
                   <li>• Use + Add Link to add new navigation items</li>
-                  <li>
-                    • Update social media URLs in the social icons section
-                  </li>
+                  <li>• Update social media URLs in the social icons section</li>
                   <li>• Modify contact information inline</li>
-                  <li>• All changes are saved in component state</li>
+                  <li>• All changes are saved when you click the Save button</li>
                 </ul>
               </div>
 
@@ -731,13 +879,13 @@ export default function EditableFooter() {
                 <div className='text-xs bg-gray-100 p-2 rounded border'>
                   <strong>Current Config:</strong>
                   <br />
-                  Brand: {footerData.brand.name}
+                  Brand: {tempData.brand.name}
                   <br />
-                  Sections: {footerData.sections.length}
+                  Sections: {tempData.sections.length}
                   <br />
-                  Social Links: {footerData.socialMedia.length}
+                  Social Links: {tempData.socialMedia.length}
                   <br />
-                  Legal Links: {footerData.legalLinks.length}
+                  Legal Links: {tempData.legalLinks.length}
                 </div>
               </div>
             </div>

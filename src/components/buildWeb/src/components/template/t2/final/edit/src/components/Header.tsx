@@ -9,19 +9,7 @@ export default function Header({headerData,onStateChange}) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { theme } = useTheme();
   const [isEditing, setIsEditing] = useState(false);
-  const [content, setContent] = useState({
-    logoLetter: "C",
-    companyName: headerData.name||"Company",
-    navItems: [
-      { id: 1, label: "Home", href: "#home", color: "primary" },
-      { id: 2, label: "About", href: "#about", color: "primary" },
-      { id: 3, label: "Services", href: "#services", color: "red-accent" },
-      { id: 4, label: "Product", href: "#product", color: "primary" },
-      { id: 5, label: "Blog", href: "#blog", color: "primary" },
-      { id: 6, label: "Contact", href: "#contact", color: "primary" },
-    ],
-    ctaText: "Get Started",
-  });
+  const [content, setContent] = useState(headerData);
   // In each component, add:
 useEffect(() => {
   if (onStateChange) {

@@ -1,873 +1,735 @@
-import { useState, useEffect, useRef, useMemo, useCallback } from "react";
-import { Button } from "../components/ui/button";
-import { Card, CardContent } from "../components/ui/card";
-import { Badge } from "../components/ui/badge";
+import { useState, useEffect } from "react";
 import {
-  Edit2,
-  Save,
-  X,
-  Upload,
-  Loader2,
-  Plus,
-  Trash2,
-  Clock,
-  DollarSign,
-  CheckCircle,
-  Users,
-  Star,
-} from "lucide-react";
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "./ui/card";
+import { Button } from "./ui/button";
+import { X, CheckCircle, Edit2, Save, Upload, Loader2, Plus, Trash2 } from "lucide-react";
+import { motion, AnimatePresence } from "motion/react";
+import { toast } from "react-toastify";
 
-export default function EditableServices({ serviceData }) {
+export default function Services({serviceData, onStateChange, userId, publishedId, templateSelection}) {
   const [isEditing, setIsEditing] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [activeCategory, setActiveCategory] = useState("All");
+  const [selectedServiceIndex, setSelectedServiceIndex] = useState<number | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(3);
+  const [pendingImages, setPendingImages] = useState<Record<number, File>>({});
+  const [isUploading, setIsUploading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [dataLoaded, setDataLoaded] = useState(false);
-  const [isVisible, setIsVisible] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState("All");
-  const [showAll, setShowAll] = useState(false);
-  const [expandedService, setExpandedService] = useState(null);
-  const sectionRef = useRef(null);
-  const fileInputRefs = useRef({});
-
-  // Transform serviceData to internal format
-  const transformServiceData = (data) => {
-    if (!data || !data.services) return null;
-
-    const categories = [
-      "All",
-      ...new Set(data.services.map((service) => service.category)),
-    ];
-
-    return {
-      sectionTitle: data.heading?.head || "Our Services",
-      sectionDescription:
-        data.heading?.desc ||
-        "Professional drone services for your business needs",
-      services: data.services.map((service, index) => ({
-        id: index + 1,
-        title: service.title,
-        description: service.description,
-        detailedDescription: service.detailedDescription,
-        category: service.category,
-        image: service.image,
-        pricing: service.pricing,
-        timeline: service.timeline,
-        features: service.features || [],
-        benefits: service.benefits || [],
-        process: service.process || [],
-      })),
-      categories,
-    };
-  };
-
-  const [content, setContent] = useState(null);
-  const [tempContent, setTempContent] = useState(null);
-
-  // Intersection Observer for visibility
+         
+  // Merged all state into a single object
+  const [servicesSection, setServicesSection] = useState(serviceData);
+  
+  // Add this useEffect to notify parent of state changes
   useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        setIsVisible(entry.isIntersecting);
-      },
-      { threshold: 0.1 }
-    );
-
-    if (sectionRef.current) {
-      observer.observe(sectionRef.current);
+    if (onStateChange) {
+      onStateChange(servicesSection);
     }
+  }, [servicesSection, onStateChange]);
+  
+  // Get categories from services
+  const filteredServices =
+    activeCategory === "All"
+      ? servicesSection.services
+      : servicesSection.services.filter((s) => s.category === activeCategory);
 
-    return () => {
-      if (sectionRef.current) {
-        observer.unobserve(sectionRef.current);
-      }
-    };
-  }, []);
+  const visibleServices = filteredServices.slice(0, visibleCount);
 
-  // Initialize content when serviceData is available
-  useEffect(() => {
-    if (serviceData && !dataLoaded) {
-      const transformedData = transformServiceData(serviceData);
-      if (transformedData) {
-        setContent(transformedData);
-        setTempContent(transformedData);
-        setDataLoaded(true);
-      }
-    }
-  }, [serviceData, dataLoaded]);
-
-  // Simulate API call to save data to database
-  const saveServicesData = async (updatedContent) => {
-    setIsSaving(true);
-    try {
-      await new Promise((resolve) => {
-        setTimeout(() => {
-          resolve({ success: true });
-        }, 1000);
-      });
-      return true;
-    } catch (error) {
-      console.error("Error saving services data:", error);
-      return false;
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const handleEdit = () => {
-    setIsEditing(true);
-    setTempContent(content);
-  };
-
-  const handleSave = async () => {
-    const success = await saveServicesData(tempContent);
-    if (success) {
-      setContent(tempContent);
-      setIsEditing(false);
-    } else {
-      alert("Failed to save changes. Please try again.");
-    }
-  };
-
-  const handleCancel = () => {
-    setTempContent(content);
-    setIsEditing(false);
-  };
-
-  const handleImageUpload = (serviceId, event) => {
-    const file = event.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setTempContent((prev) => ({
-          ...prev,
-          services: prev.services.map((service) =>
-            service.id === serviceId
-              ? { ...service, image: e.target.result }
-              : service
-          ),
-        }));
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const addService = () => {
-    const newId = Math.max(...tempContent.services.map((s) => s.id)) + 1;
-    setTempContent((prev) => ({
+  // Handlers
+  const updateServiceField = (index: number, field: string, value: any) => {
+    setServicesSection(prev => ({
       ...prev,
-      services: [
-        ...prev.services,
-        {
-          id: newId,
-          title: "New Service",
-          description: "Service description",
-          detailedDescription: "Detailed service description",
-          category: prev.categories.find((cat) => cat !== "All") || "General",
-          image:
-            "https://images.unsplash.com/photo-1473968512647-3e447244af8f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=1080&q=80",
-          pricing: "₹10,000 - ₹50,000",
-          timeline: "1-3 days",
-          features: ["Feature 1", "Feature 2"],
-          benefits: ["Benefit 1", "Benefit 2"],
-          process: ["Step 1", "Step 2"],
-        },
-      ],
+      services: prev.services.map((s, i) => (i === index ? { ...s, [field]: value } : s))
     }));
-  };
-
-  const removeService = (serviceId) => {
-    setTempContent((prev) => ({
-      ...prev,
-      services: prev.services.filter((service) => service.id !== serviceId),
-    }));
-  };
-
-  const updateService = useCallback((serviceId, field, value) => {
-    setTempContent((prev) => ({
-      ...prev,
-      services: prev.services.map((service) =>
-        service.id === serviceId ? { ...service, [field]: value } : service
-      ),
-    }));
-  }, []);
-
-  const updateServiceArray = useCallback((serviceId, field, index, value) => {
-    setTempContent((prev) => ({
-      ...prev,
-      services: prev.services.map((service) =>
-        service.id === serviceId
-          ? {
-              ...service,
-              [field]: service[field].map((item, i) =>
-                i === index ? value : item
-              ),
-            }
-          : service
-      ),
-    }));
-  }, []);
-
-  const addToServiceArray = useCallback((serviceId, field) => {
-    setTempContent((prev) => ({
-      ...prev,
-      services: prev.services.map((service) =>
-        service.id === serviceId
-          ? { ...service, [field]: [...service[field], ""] }
-          : service
-      ),
-    }));
-  }, []);
-
-  const removeFromServiceArray = useCallback((serviceId, field, index) => {
-    setTempContent((prev) => ({
-      ...prev,
-      services: prev.services.map((service) =>
-        service.id === serviceId
-          ? {
-              ...service,
-              [field]: service[field].filter((_, i) => i !== index),
-            }
-          : service
-      ),
-    }));
-  }, []);
-
-  const addCategory = () => {
-    const newCategory = prompt("Enter new category name:");
-    if (newCategory && !tempContent.categories.includes(newCategory)) {
-      setTempContent((prev) => ({
+    
+    // Update categories if needed
+    if (field === "category" && !servicesSection.categories.includes(value)) {
+      setServicesSection(prev => ({
         ...prev,
-        categories: [...prev.categories, newCategory],
+        categories: [...prev.categories, value]
       }));
     }
   };
 
-  const removeCategory = (categoryToRemove) => {
-    if (categoryToRemove === "All") return;
-    const defaultCategory =
-      tempContent.categories.find(
-        (cat) => cat !== "All" && cat !== categoryToRemove
-      ) || "General";
-    setTempContent((prev) => ({
+  const updateServiceList = (
+    index: number,
+    field: "features" | "benefits" | "process",
+    listIndex: number,
+    value: string
+  ) => {
+    setServicesSection(prev => ({
       ...prev,
-      categories: prev.categories.filter((cat) => cat !== categoryToRemove),
-      services: prev.services.map((service) =>
-        service.category === categoryToRemove
-          ? { ...service, category: defaultCategory }
-          : service
-      ),
+      services: prev.services.map((s, i) =>
+        i === index
+          ? {
+              ...s,
+              [field]: s[field].map((item: string, li: number) =>
+                li === listIndex ? value : item
+              ),
+            }
+          : s
+      )
     }));
   };
 
-  const EditableText = useMemo(() => {
-    return ({
-      value,
-      onChange,
-      multiline = false,
-      className = "",
-      placeholder = "",
-    }) => {
-      const baseClasses =
-        "w-full bg-white border-2 border-dashed border-yellow-400 rounded focus:border-yellow-400 focus:outline-none";
+  const addToList = (index: number, field: "features" | "benefits" | "process") => {
+    setServicesSection(prev => ({
+      ...prev,
+      services: prev.services.map((s, i) =>
+        i === index ? { ...s, [field]: [...s[field], "New Item"] } : s
+      )
+    }));
+  };
 
-      if (multiline) {
-        return (
-          <textarea
-            value={value}
-            onChange={(e) => onChange(e.target.value)}
-            className={`${baseClasses} p-2 resize-none ${className}`}
-            placeholder={placeholder}
-            rows={3}
-          />
-        );
+  const removeFromList = (
+    index: number,
+    field: "features" | "benefits" | "process",
+    listIndex: number
+  ) => {
+    setServicesSection(prev => ({
+      ...prev,
+      services: prev.services.map((s, i) =>
+        i === index
+          ? {
+              ...s,
+              [field]: s[field].filter((_: string, li: number) => li !== listIndex),
+            }
+          : s
+      )
+    }));
+  };
+
+  // Image selection - only shows local preview, no upload yet
+  const handleServiceImageSelect = (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type and size
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select an image file');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) { // 5MB limit
+      toast.error('File size must be less than 5MB');
+      return;
+    }
+
+    // Store the file for upload on Save
+    setPendingImages(prev => ({ ...prev, [index]: file }));
+    
+    // Show immediate local preview
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      updateServiceField(index, "image", reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Updated Save button handler - uploads images and stores S3 URLs
+  const handleSave = async () => {
+    try {
+      setIsUploading(true);
+
+      // Upload all pending images
+      for (const [indexStr, file] of Object.entries(pendingImages)) {
+        const index = parseInt(indexStr);
+        
+        if (!userId || !publishedId || !templateSelection) {
+          console.error('Missing required props:', { userId, publishedId, templateSelection });
+          toast.error('Missing user information. Please refresh and try again.');
+          return;
+        }
+        
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('sectionName', 'services');
+        formData.append('imageField', `services[${index}].image`);
+        formData.append('templateSelection', templateSelection);
+
+        const uploadResponse = await fetch(`https://o66ziwsye5.execute-api.ap-south-1.amazonaws.com/prod/upload-image/${userId}/${publishedId}`, {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (uploadResponse.ok) {
+          const uploadData = await uploadResponse.json();
+          // Replace local preview with S3 URL
+          updateServiceField(index, "image", uploadData.imageUrl);
+          console.log('Image uploaded to S3:', uploadData.imageUrl);
+        } else {
+          const errorData = await uploadResponse.json();
+          console.error('Image upload failed:', errorData);
+          toast.error(`Image upload failed: ${errorData.message || 'Unknown error'}`);
+          return; // Don't exit edit mode
+        }
       }
+      
+      // Clear pending images
+      setPendingImages({});
+      
+      // Simulate save delay
+      setIsSaving(true);
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Exit edit mode
+      setIsEditing(false);
+      toast.success('Services section saved with S3 URLs ready for publish');
 
+    } catch (error) {
+      console.error('Error saving services section:', error);
+      toast.error('Error saving changes. Please try again.');
+      // Keep in edit mode so user can retry
+    } finally {
+      setIsUploading(false);
+      setIsSaving(false);
+    }
+  };
+
+  const handleCancel = () => {
+    setIsEditing(false);
+    setPendingImages({});
+  };
+
+  const addService = () => {
+    const newService = {
+      title: "New Service",
+      category: "New Category",
+      image: "https://via.placeholder.com/600x400?text=New+Service",
+      description: "Service description goes here...",
+      features: ["New Feature"],
+      detailedDescription: "Detailed description for the new service...",
+      benefits: ["New Benefit"],
+      process: ["New Step"],
+      pricing: "Custom pricing",
+      timeline: "TBD",
+    };
+    
+    setServicesSection(prev => ({
+      ...prev,
+      services: [...prev.services, newService]
+    }));
+    
+    if (!servicesSection.categories.includes("New Category")) {
+      setServicesSection(prev => ({
+        ...prev,
+        categories: [...prev.categories, "New Category"]
+      }));
+    }
+  };
+
+  const removeService = (index: number) => {
+    setServicesSection(prev => ({
+      ...prev,
+      services: prev.services.filter((_, i) => i !== index)
+    }));
+  };
+
+  const addCategory = () => {
+    const newCategory = `New Category ${servicesSection.categories.length}`;
+    if (!servicesSection.categories.includes(newCategory)) {
+      setServicesSection(prev => ({
+        ...prev,
+        categories: [...prev.categories, newCategory]
+      }));
+    }
+  };
+
+  const removeCategory = (cat: string) => {
+    if (cat !== "All") {
+      setServicesSection(prev => ({
+        ...prev,
+        categories: prev.categories.filter((c) => c !== cat),
+        services: prev.services.map((s) => 
+          s.category === cat ? { ...s, category: "Uncategorized" } : s
+        )
+      }));
+    }
+  };
+
+  const openModal = (service: any, index: number) => {
+    setSelectedServiceIndex(index);
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setSelectedServiceIndex(null);
+  };
+
+  // EditableText component for consistent styling
+  const EditableText = ({ value, field, index, multiline = false, className = "", placeholder = "" }) => {
+    const handleChange = (e) => {
+      updateServiceField(index, field, e.target.value);
+    };
+
+    const baseClasses = "w-full bg-white/80 border-2 border-dashed border-blue-300 rounded focus:border-blue-500 focus:outline-none";
+
+    if (multiline) {
       return (
-        <input
-          type='text'
+        <textarea
           value={value}
-          onChange={(e) => onChange(e.target.value)}
-          className={`${baseClasses} p-2 ${className}`}
+          onChange={handleChange}
+          className={`${baseClasses} p-2 resize-none ${className}`}
           placeholder={placeholder}
+          rows={3}
         />
       );
-    };
-  }, []);
+    }
 
-  const EditableArray = ({ items, onChange, placeholder, title }) => (
-    <div className='space-y-2'>
-      <div className='flex justify-between items-center'>
-        <label className='block text-xs font-medium text-gray-600'>
-          {title}
-        </label>
-        <Button
-          onClick={() => onChange([...items, ""])}
-          variant='outline'
-          size='sm'
-          className='text-xs px-2 py-1'
-        >
-          <Plus className='w-3 h-3' />
-        </Button>
-      </div>
-      {items.map((item, index) => (
-        <div key={index} className='flex gap-2'>
-          <EditableText
-            value={item}
-            onChange={(value) => {
-              const newItems = [...items];
-              newItems[index] = value;
-              onChange(newItems);
-            }}
-            placeholder={placeholder}
-            className='flex-1'
-          />
-          <Button
-            onClick={() => {
-              const newItems = items.filter((_, i) => i !== index);
-              onChange(newItems);
-            }}
-            variant='outline'
-            size='sm'
-            className='text-red-500 hover:text-red-700 px-2'
-          >
-            <X className='w-3 h-3' />
-          </Button>
-        </div>
-      ))}
-    </div>
-  );
-
-  if (!content) {
     return (
-      <section className='py-20 bg-white'>
-        <div className='max-w-7xl mx-auto px-6 text-center'>
-          <div className='animate-pulse'>
-            <div className='h-8 bg-gray-200 rounded w-64 mx-auto mb-4'></div>
-            <div className='h-4 bg-gray-200 rounded w-96 mx-auto mb-8'></div>
-            <div className='grid md:grid-cols-2 lg:grid-cols-3 gap-6'>
-              {[1, 2, 3, 4].map((i) => (
-                <div key={i} className='bg-gray-200 rounded-lg h-64'></div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
+      <input
+        type="text"
+        value={value}
+        onChange={handleChange}
+        className={`${baseClasses} p-1 ${className}`}
+        placeholder={placeholder}
+      />
     );
-  }
-
-  const displayContent = isEditing ? tempContent : content;
-  const filteredServices =
-    selectedCategory === "All"
-      ? displayContent.services
-      : displayContent.services.filter((s) => s.category === selectedCategory);
-
-  const displayedServices = showAll
-    ? filteredServices
-    : filteredServices.slice(0, 4);
+  };
 
   return (
-    <section
-      ref={sectionRef}
-      id='services'
-      className='py-20 bg-gray-50 scroll-mt-20 relative'
-    >
+    <motion.section id="services" className="py-20 bg-blue-100 theme-transition relative">
       {/* Edit Controls */}
-      {dataLoaded && (
-        <div className='absolute top-4 right-4 z-20'>
-          {!isEditing ? (
+      <div className="absolute top-4 right-4 z-10">
+        {!isEditing ? (
+          <Button
+            onClick={() => setIsEditing(true)}
+            variant="outline"
+            size="sm"
+            className="bg-white hover:bg-gray-50 shadow-md"
+          >
+            <Edit2 className="w-4 h-4 mr-2" />
+            Edit
+          </Button>
+        ) : (
+          <div className="flex gap-2">
             <Button
-              onClick={handleEdit}
-              variant='outline'
-              size='sm'
-              className='bg-white hover:bg-gray-50 shadow-xl border-2 border-gray-300 hover:border-yellow-400 text-gray-700 hover:text-yellow-400'
+              onClick={handleSave}
+              size="sm"
+              className="bg-green-600 hover:bg-green-700 text-white shadow-md"
+              disabled={isSaving || isUploading}
             >
-              <Edit2 className='w-4 h-4 mr-2' />
-              Edit Services
+              {isUploading ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : isSaving ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Save className="w-4 h-4 mr-2" />
+              )}
+              {isUploading ? "Uploading..." : isSaving ? "Saving..." : "Save"}
             </Button>
-          ) : (
-            <div className='flex gap-2'>
-              <Button
-                onClick={handleSave}
-                size='sm'
-                className='bg-green-600 hover:bg-green-700 text-white shadow-xl'
-                disabled={isSaving}
-              >
-                {isSaving ? (
-                  <Loader2 className='w-4 h-4 mr-2 animate-spin' />
-                ) : (
-                  <Save className='w-4 h-4 mr-2' />
-                )}
-                {isSaving ? "Saving..." : "Save"}
-              </Button>
-              <Button
-                onClick={handleCancel}
-                variant='outline'
-                size='sm'
-                className='bg-white hover:bg-gray-50 shadow-xl border-2'
-                disabled={isSaving}
-              >
-                <X className='w-4 h-4 mr-2' />
-                Cancel
-              </Button>
-            </div>
-          )}
-        </div>
-      )}
+            <Button
+              onClick={handleCancel}
+              variant="outline"
+              size="sm"
+              className="bg-white hover:bg-gray-50 shadow-md"
+              disabled={isSaving || isUploading}
+            >
+              <X className="w-4 h-4 mr-2" />
+              Cancel
+            </Button>
+          </div>
+        )}
+      </div>
 
-      <div className='max-w-7xl mx-auto px-6'>
-        {/* Header Section */}
-        <div className='text-center mb-16'>
+      <div className="max-w-7xl mx-auto px-4">
+        {/* Header */}
+        <div className="text-center mb-8">
           {isEditing ? (
-            <div className='space-y-4 max-w-2xl mx-auto'>
-              <div>
-                <label className='block text-sm font-medium text-gray-700 mb-2'>
-                  Section Title
-                </label>
-                <EditableText
-                  value={displayContent.sectionTitle}
-                  onChange={(value) =>
-                    setTempContent((prev) => ({ ...prev, sectionTitle: value }))
-                  }
-                  className='text-3xl font-bold text-gray-900 text-center'
-                  placeholder='Section title'
-                />
-              </div>
-              <div>
-                <label className='block text-sm font-medium text-gray-700 mb-2'>
-                  Section Description
-                </label>
-                <EditableText
-                  value={displayContent.sectionDescription}
-                  onChange={(value) =>
-                    setTempContent((prev) => ({
-                      ...prev,
-                      sectionDescription: value,
-                    }))
-                  }
-                  multiline={true}
-                  className='text-gray-600 text-center'
-                  placeholder='Section description'
-                />
-              </div>
-            </div>
+            <>
+              <EditableText
+                value={servicesSection.heading.head}
+                field="head"
+                index={-1}
+                className="text-3xl font-bold"
+                onChange={(e) => setServicesSection(prev => ({
+                  ...prev,
+                  heading: {...prev.heading, head: e.target.value}
+                }))}
+              />
+              <EditableText
+                value={servicesSection.heading.desc}
+                field="desc"
+                index={-1}
+                className="text-muted-foreground mt-2"
+                onChange={(e) => setServicesSection(prev => ({
+                  ...prev,
+                  heading: {...prev.heading, desc: e.target.value}
+                }))}
+              />
+            </>
           ) : (
             <>
-              <h2 className='text-4xl font-bold text-gray-900 mb-4'>
-                {displayContent.sectionTitle}
-              </h2>
-              <p className='text-lg text-gray-600 max-w-3xl mx-auto'>
-                {displayContent.sectionDescription}
-              </p>
+              <h2 className="text-3xl font-bold">{servicesSection.heading.head}</h2>
+              <p className="text-muted-foreground">{servicesSection.heading.desc}</p>
             </>
-          )}
+          )}          
+        </div>
 
-          {/* Categories */}
-          {isEditing ? (
-            <div className='mt-8 space-y-4'>
-              <div className='flex justify-center'>
+        {/* Filter */}
+        <div className="flex flex-wrap justify-center gap-3 mb-6">
+          {servicesSection.categories.map((cat, i) => (
+            <div key={i} className="flex items-center gap-2">
+              {isEditing ? (
+                <input
+                  value={cat}
+                  onChange={(e) =>
+                    setServicesSection(prev => ({
+                      ...prev,
+                      categories: prev.categories.map((c, idx) => 
+                        idx === i ? e.target.value : c
+                      )
+                    }))
+                  }
+                  className="w-full bg-white/80 border-2 border-dashed border-blue-300 rounded focus:border-blue-500 focus:outline-none p-1"
+                />
+              ) : (
                 <Button
-                  onClick={addCategory}
-                  variant='outline'
-                  size='sm'
-                  className='bg-yellow-50 hover:bg-yellow-100 border-yellow-400 text-yellow-400'
-                >
-                  <Plus className='w-4 h-4 mr-2' />
-                  Add Category
-                </Button>
-              </div>
-              <div className='flex flex-wrap justify-center gap-2'>
-                {displayContent.categories.map((cat) => (
-                  <div
-                    key={cat}
-                    className='flex items-center gap-1 bg-gray-100 rounded-full px-3 py-1'
-                  >
-                    <span className='text-sm'>{cat}</span>
-                    {cat !== "All" && (
-                      <button
-                        onClick={() => removeCategory(cat)}
-                        className='text-red-500 hover:text-red-700 ml-1'
-                      >
-                        <X className='w-3 h-3' />
-                      </button>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : (
-            <div className='flex flex-wrap justify-center gap-4 mt-8'>
-              {displayContent.categories.map((cat) => (
-                <button
-                  key={cat}
                   onClick={() => {
-                    setSelectedCategory(cat);
-                    setShowAll(false);
+                    setActiveCategory(cat);
+                    setVisibleCount(6); // reset load more
                   }}
-                  className={`px-6 py-3 rounded-full transition-all duration-200 font-medium ${
-                    selectedCategory === cat
-                      ? "bg-yellow-400 text-white shadow-lg"
-                      : "bg-white text-gray-600 hover:bg-gray-100 shadow-md"
-                  }`}
+                  className={
+                    activeCategory === cat
+                      ? "bg-primary cursor-pointer text-white"
+                      : "bg-card text-card-foreground cursor-pointer"
+                  }
                 >
                   {cat}
+                </Button>
+              )}
+              {isEditing && cat !== "All" && (
+                <button
+                  onClick={() => removeCategory(cat)}
+                  className="text-red-500 text-xs"
+                >
+                  <Trash2 className="w-4 h-4" />
                 </button>
-              ))}
+              )}
             </div>
+          ))}
+          {isEditing && (
+            <Button
+              onClick={addCategory}
+              size="sm"
+              variant="outline"
+              className="bg-green-50 hover:bg-green-100 text-green-700"
+            >
+              <Plus className="w-3 h-3 mr-1" />
+              Add Category
+            </Button>
           )}
         </div>
 
         {/* Services Grid */}
-        {isEditing ? (
-          <div className='space-y-6'>
-            <div className='text-center'>
-              <Button
-                onClick={addService}
-                variant='outline'
-                size='sm'
-                className='bg-green-50 hover:bg-green-100 border-green-300 text-green-700'
-              >
-                <Plus className='w-4 h-4 mr-2' />
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {visibleServices.map((service, index) => (
+            <Card key={index} className="relative">
+              <div className="h-40 overflow-hidden relative">
+                <img
+                  src={service.image}
+                  alt={service.title}
+                  className="w-full h-full object-cover"
+                />
+                {isEditing && (
+                  <div className="absolute bottom-2 left-2 bg-white/80 p-1 rounded">
+                    <Button
+                      onClick={() => document.getElementById(`image-upload-${index}`)?.click()}
+                      size="sm"
+                      variant="outline"
+                      className="text-xs"
+                    >
+                      <Upload className="w-3 h-3 mr-1" />
+                      Change
+                    </Button>
+                    <input
+                      id={`image-upload-${index}`}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => handleServiceImageSelect(index, e)}
+                    />
+                    {pendingImages[index] && (
+                      <p className="text-xs text-orange-600 mt-1">
+                        Image selected: {pendingImages[index].name}
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+              <CardHeader>
+                {isEditing ? (
+                  <EditableText
+                    value={service.title}
+                    field="title"
+                    index={index}
+                    className="font-bold"
+                    placeholder="Service title"
+                  />
+                ) : (
+                  <CardTitle>{service.title}</CardTitle>
+                )}
+              </CardHeader>
+              <CardContent>
+                {isEditing ? (
+                  <>
+                    <EditableText
+                      value={service.description}
+                      field="description"
+                      index={index}
+                      multiline={true}
+                      placeholder="Service description"
+                    />
+                    <div className="mt-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Category
+                      </label>
+                      <EditableText
+                        value={service.category}
+                        field="category"
+                        index={index}
+                        placeholder="Service category"
+                      />
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-sm text-muted-foreground">
+                      {service.description}
+                    </p>
+                    <p className="text-xs mt-1 italic text-gray-500">
+                      Category: {service.category}
+                    </p>
+                  </>
+                )}
+
+                <div className="mt-4 flex gap-2">
+                  <Button className="cursor-pointer hover:scale-105" size="sm" onClick={() => openModal(service, index)}>
+                    View Details
+                  </Button>
+                  {isEditing && (
+                    <Button
+                      className="cursor-pointer hover:scale-105"
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => removeService(index)}
+                    >
+                      <Trash2 className="w-4 h-4 mr-1" />
+                      Remove
+                    </Button>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+          {isEditing && (
+            <Card className="flex items-center justify-center border-dashed">
+              <Button onClick={addService} className="text-green-600 cursor-pointer">
+                <Plus className="w-4 h-4 mr-1" />
                 Add Service
               </Button>
-            </div>
+            </Card>
+          )}
+        </div>
 
-            <div className='grid md:grid-cols-2 gap-6'>
-              {displayContent.services.map((service) => (
-                <Card
-                  key={service.id}
-                  className='shadow-lg border-2 border-dashed border-gray-300'
-                >
-                  <div className='relative'>
-                    <img
-                      src={service.image}
-                      alt={service.title}
-                      className='w-full h-48 object-cover'
-                    />
-                    <div className='absolute top-2 right-2'>
-                      <Button
-                        onClick={() =>
-                          fileInputRefs.current[service.id]?.click()
-                        }
-                        variant='outline'
-                        size='sm'
-                        className='bg-white/90 backdrop-blur-sm text-xs'
-                      >
-                        <Upload className='w-3 h-3 mr-1' />
-                        Change
-                      </Button>
-                      <input
-                        ref={(el) => (fileInputRefs.current[service.id] = el)}
-                        type='file'
-                        accept='image/*'
-                        onChange={(e) => handleImageUpload(service.id, e)}
-                        className='hidden'
-                      />
-                    </div>
-
-                    <div className='absolute top-2 left-2'>
-                      <select
-                        value={service.category}
-                        onChange={(e) =>
-                          updateService(service.id, "category", e.target.value)
-                        }
-                        className='bg-yellow-400 text-white text-xs px-2 py-1 rounded border-none focus:outline-none'
-                      >
-                        {displayContent.categories
-                          .filter((cat) => cat !== "All")
-                          .map((cat) => (
-                            <option key={cat} value={cat}>
-                              {cat}
-                            </option>
-                          ))}
-                      </select>
-                    </div>
-                  </div>
-
-                  <CardContent className='p-4 space-y-4'>
-                    {/* Basic Info */}
-                    <div className='grid grid-cols-2 gap-4'>
-                      <div>
-                        <label className='block text-xs font-medium text-gray-600 mb-1'>
-                          Service Title
-                        </label>
-                        <EditableText
-                          value={service.title}
-                          onChange={(value) =>
-                            updateService(service.id, "title", value)
-                          }
-                          placeholder='Service title'
-                        />
-                      </div>
-                      <div>
-                        <label className='block text-xs font-medium text-gray-600 mb-1'>
-                          Pricing
-                        </label>
-                        <EditableText
-                          value={service.pricing}
-                          onChange={(value) =>
-                            updateService(service.id, "pricing", value)
-                          }
-                          placeholder='Pricing range'
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className='block text-xs font-medium text-gray-600 mb-1'>
-                        Timeline
-                      </label>
-                      <EditableText
-                        value={service.timeline}
-                        onChange={(value) =>
-                          updateService(service.id, "timeline", value)
-                        }
-                        placeholder='Timeline'
-                      />
-                    </div>
-
-                    <div>
-                      <label className='block text-xs font-medium text-gray-600 mb-1'>
-                        Description
-                      </label>
-                      <EditableText
-                        value={service.description}
-                        onChange={(value) =>
-                          updateService(service.id, "description", value)
-                        }
-                        multiline={true}
-                        placeholder='Brief description'
-                      />
-                    </div>
-
-                    <div>
-                      <label className='block text-xs font-medium text-gray-600 mb-1'>
-                        Detailed Description
-                      </label>
-                      <EditableText
-                        value={service.detailedDescription}
-                        onChange={(value) =>
-                          updateService(
-                            service.id,
-                            "detailedDescription",
-                            value
-                          )
-                        }
-                        multiline={true}
-                        placeholder='Detailed description'
-                      />
-                    </div>
-
-                    {/* Features */}
-                    <EditableArray
-                      items={service.features}
-                      onChange={(newFeatures) =>
-                        updateService(service.id, "features", newFeatures)
-                      }
-                      placeholder='Feature description'
-                      title='Features'
-                    />
-
-                    {/* Benefits */}
-                    <EditableArray
-                      items={service.benefits}
-                      onChange={(newBenefits) =>
-                        updateService(service.id, "benefits", newBenefits)
-                      }
-                      placeholder='Benefit description'
-                      title='Benefits'
-                    />
-
-                    {/* Process */}
-                    <EditableArray
-                      items={service.process}
-                      onChange={(newProcess) =>
-                        updateService(service.id, "process", newProcess)
-                      }
-                      placeholder='Process step'
-                      title='Process Steps'
-                    />
-
-                    {/* Remove Service Button */}
-                    {displayContent.services.length > 1 && (
-                      <Button
-                        onClick={() => removeService(service.id)}
-                        variant='outline'
-                        size='sm'
-                        className='w-full bg-red-50 hover:bg-red-100 border-red-300 text-red-700'
-                      >
-                        <Trash2 className='w-3 h-3 mr-1' />
-                        Remove Service
-                      </Button>
-                    )}
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
-        ) : (
-          <div className='grid md:grid-cols-2 lg:grid-cols-3 gap-8'>
-            {displayedServices.map((service) => (
-              <Card
-                key={service.id}
-                className='group hover:shadow-2xl transition-all duration-300 bg-white border-0 shadow-lg overflow-hidden'
-              >
-                <div className='relative overflow-hidden'>
-                  <img
-                    src={service.image}
-                    alt={service.title}
-                    className='w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300'
-                  />
-                  <Badge className='absolute top-4 left-4 bg-yellow-400 text-white shadow-lg'>
-                    {service.category}
-                  </Badge>
-                  <div className='absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300' />
-                </div>
-
-                <CardContent className='p-6'>
-                  <h3 className='text-xl font-bold mb-3 text-gray-900'>
-                    {service.title}
-                  </h3>
-                  <p className='text-gray-600 mb-4 line-clamp-2'>
-                    {service.description}
-                  </p>
-
-                  {/* Service Details */}
-                  <div className='space-y-3 mb-6'>
-                    <div className='flex items-center text-sm text-gray-500'>
-                      <DollarSign className='w-4 h-4 mr-2 text-green-600' />
-                      <span className='font-medium'>{service.pricing}</span>
-                    </div>
-                    <div className='flex items-center text-sm text-gray-500'>
-                      <Clock className='w-4 h-4 mr-2 text-yellow-400' />
-                      <span>{service.timeline}</span>
-                    </div>
-                  </div>
-
-                  {/* Expandable Details */}
-                  {expandedService === service.id && (
-                    <div className='space-y-4 mb-4 border-t pt-4'>
-                      <div>
-                        <h4 className='font-semibold text-gray-900 mb-2'>
-                          About This Service
-                        </h4>
-                        <p className='text-sm text-gray-600'>
-                          {service.detailedDescription}
-                        </p>
-                      </div>
-
-                      {service.features?.length > 0 && (
-                        <div>
-                          <h4 className='font-semibold text-gray-900 mb-2 flex items-center'>
-                            <Star className='w-4 h-4 mr-1' />
-                            Key Features
-                          </h4>
-                          <ul className='space-y-1'>
-                            {service.features.map((feature, index) => (
-                              <li
-                                key={index}
-                                className='text-sm text-gray-600 flex items-start'
-                              >
-                                <CheckCircle className='w-3 h-3 mr-2 mt-0.5 text-green-500 flex-shrink-0' />
-                                {feature}
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-
-                      {service.benefits?.length > 0 && (
-                        <div>
-                          <h4 className='font-semibold text-gray-900 mb-2'>
-                            Benefits
-                          </h4>
-                          <ul className='space-y-1'>
-                            {service.benefits.map((benefit, index) => (
-                              <li
-                                key={index}
-                                className='text-sm text-gray-600 flex items-start'
-                              >
-                                <CheckCircle className='w-3 h-3 mr-2 mt-0.5 text-yellow-400 flex-shrink-0' />
-                                {benefit}
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-
-                      {service.process?.length > 0 && (
-                        <div>
-                          <h4 className='font-semibold text-gray-900 mb-2'>
-                            Our Process
-                          </h4>
-                          <ol className='space-y-1'>
-                            {service.process.map((step, index) => (
-                              <li
-                                key={index}
-                                className='text-sm text-gray-600 flex items-start'
-                              >
-                                <span className='bg-yellow-100 text-yellow-400 rounded-full w-5 h-5 flex items-center justify-center text-xs font-medium mr-2 mt-0.5 flex-shrink-0'>
-                                  {index + 1}
-                                </span>
-                                {step}
-                              </li>
-                            ))}
-                          </ol>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Action Buttons */}
-                  <div className='flex gap-2'>
-                    <Button
-                      onClick={() =>
-                        setExpandedService(
-                          expandedService === service.id ? null : service.id
-                        )
-                      }
-                      variant='outline'
-                      className='flex-1 hover:bg-gray-50'
-                    >
-                      {expandedService === service.id
-                        ? "Show Less"
-                        : "Learn More"}
-                    </Button>
-                    <Button className='bg-yellow-400 hover:bg-yellow-400 text-white'>
-                      Get Quote
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        )}
-
-        {/* Load More Button */}
-        {!isEditing && !showAll && filteredServices.length > 4 && (
-          <div className='text-center mt-12'>
-            <Button
-              onClick={() => setShowAll(true)}
-              className='px-8 py-3 bg-yellow-400 hover:bg-yellow-400 text-white shadow-lg'
-            >
-              View All Services
+        {/* Load More & Show Less */}
+        <div className="flex justify-center mt-6">
+          {visibleCount < filteredServices.length && (
+            <Button onClick={() => setVisibleCount((prev) => prev + 6)}>
+              Load More
             </Button>
-          </div>
-        )}
+          )}
+          {visibleCount >= filteredServices.length && filteredServices.length > 3 && (
+            <Button
+              onClick={() => setVisibleCount(3)}
+              variant="secondary"
+              className="ml-4"
+            >
+              Show Less
+            </Button>
+          )}
+        </div>
+
+        
       </div>
 
-      {/* Editing Instructions */}
-      {isEditing && (
-        <div className='max-w-7xl mx-auto px-6 mt-8'>
-          <div className='bg-yellow-50 border border-yellow-400 rounded-lg p-4'>
-            <p className='text-sm text-yellow-400 text-center'>
-              <strong>Edit Mode:</strong> Modify service details, add/remove
-              features, benefits, and process steps. Use the category dropdown
-              to assign services to different categories. Upload new images by
-              clicking the "Change" button.
-            </p>
-          </div>
-        </div>
-      )}
-    </section>
+      {/* Modal */}
+      <AnimatePresence>
+        {isModalOpen && selectedServiceIndex !== null && (
+          <motion.div
+            className="fixed inset-0 bg-black/50 flex items-center justify-center p-6 z-50"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={closeModal}
+          >
+            <div
+              className="bg-card rounded-xl w-full max-w-3xl p-6 relative top-11 h-[42rem]  z-100 overflow-y-auto max-h-[90vh]"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button
+                onClick={closeModal}
+                className="absolute top-4 right-4 bg-gray-500 rounded-full p-2"
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              {isEditing ? (
+                <EditableText
+                  value={servicesSection.services[selectedServiceIndex].title}
+                  field="title"
+                  index={selectedServiceIndex}
+                  className="text-2xl font-bold mb-4"
+                  placeholder="Service title"
+                />
+              ) : (
+                <h2 className="text-2xl font-bold mb-4">{servicesSection.services[selectedServiceIndex].title}</h2>
+              )}
+
+              {isEditing ? (
+                <EditableText
+                  value={servicesSection.services[selectedServiceIndex].detailedDescription}
+                  field="detailedDescription"
+                  index={selectedServiceIndex}
+                  multiline={true}
+                  className="mb-4"
+                  placeholder="Detailed description"
+                />
+              ) : (
+                <p className="text-muted-foreground mb-4">
+                  {servicesSection.services[selectedServiceIndex].detailedDescription}
+                </p>
+              )}
+
+              {/* Benefits */}
+              <h3 className="font-semibold mb-2">Key Benefits</h3>
+              <ul className="space-y-2 mb-4">
+                {servicesSection.services[selectedServiceIndex].benefits.map((b: string, bi: number) => (
+                  <li key={bi} className="flex gap-2">
+                    <CheckCircle className="w-4 h-4 text-green-500 mt-1" />
+                    {isEditing ? (
+                      <div className="flex gap-2 w-full">
+                        <input
+                          value={b}
+                          onChange={(e) =>
+                            updateServiceList(selectedServiceIndex, "benefits", bi, e.target.value)
+                          }
+                          className="w-full bg-white/80 border-2 border-dashed border-blue-300 rounded focus:border-blue-500 focus:outline-none p-1"
+                        />
+                        <Button
+                          onClick={() =>
+                            removeFromList(selectedServiceIndex, "benefits", bi)
+                          }
+                          size="sm"
+                          variant="outline"
+                          className="bg-red-50 hover:bg-red-100 text-red-700"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <span>{b}</span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+              {isEditing && (
+                <Button
+                  onClick={() =>
+                    addToList(selectedServiceIndex, "benefits")
+                  }
+                  size="sm"
+                  variant="outline"
+                  className="bg-green-50 hover:bg-green-100 text-green-700 mb-4"
+                >
+                  <Plus className="w-3 h-3 mr-1" />
+                  Add Benefit
+                </Button>
+              )}
+
+              {/* Process */}
+              <h3 className="font-semibold mb-2">Our Process</h3>
+              <ol className="space-y-2 mb-4">
+                {servicesSection.services[selectedServiceIndex].process.map((p: string, pi: number) => (
+                  <li key={pi} className="flex gap-2">
+                    <span className="font-semibold">{pi + 1}.</span>
+                    {isEditing ? (
+                      <div className="flex gap-2 w-full">
+                        <input
+                          value={p}
+                          onChange={(e) =>
+                            updateServiceList(selectedServiceIndex, "process", pi, e.target.value)
+                          }
+                          className="w-full bg-white/80 border-2 border-dashed border-blue-300 rounded focus:border-blue-500 focus:outline-none p-1"
+                        />
+                        <Button
+                          onClick={() =>
+                            removeFromList(selectedServiceIndex, "process", pi)
+                          }
+                          size="sm"
+                          variant="outline"
+                          className="bg-red-50 hover:bg-red-100 text-red-700"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <span>{p}</span>
+                    )}
+                  </li>
+                ))}
+              </ol>
+              {isEditing && (
+                <Button
+                  onClick={() =>
+                    addToList(selectedServiceIndex, "process")
+                  }
+                  size="sm"
+                  variant="outline"
+                  className="bg-green-50 hover:bg-green-100 text-green-700 mb-4"
+                >
+                  <Plus className="w-3 h-3 mr-1" />
+                  Add Step
+                </Button>
+              )}
+
+              {/* Pricing & Timeline */}
+              <div className="grid grid-cols-2 gap-6">
+                <div>
+                  <h3 className="font-semibold mb-2">Pricing</h3>
+                  {isEditing ? (
+                    <EditableText
+                      value={servicesSection.services[selectedServiceIndex].pricing}
+                      field="pricing"
+                      index={selectedServiceIndex}
+                      placeholder="Pricing information"
+                    />
+                  ) : (
+                    <p>{servicesSection.services[selectedServiceIndex].pricing}</p>
+                  )}
+                </div>
+                <div>
+                  <h3 className="font-semibold mb-2">Timeline</h3>
+                  {isEditing ? (
+                    <EditableText
+                      value={servicesSection.services[selectedServiceIndex].timeline}
+                      field="timeline"
+                      index={selectedServiceIndex}
+                      placeholder="Timeline information"
+                    />
+                  ) : (
+                    <p>{servicesSection.services[selectedServiceIndex].timeline}</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.section>
   );
 }

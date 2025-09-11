@@ -54,8 +54,8 @@ export default function App() {
       setIsLoading(false);
     } 
     // If we have a pub ID and user email, fetch the data
-    else if (pub && user && user.email) {
-      fetchTemplateData(pub, user.email);
+    else if (pub && user && user.userData.email) {
+      fetchTemplateData(pub, user.userData.email);
     }
     // If we don't have user data but have pub ID, try to get user from localStorage
     else if (pub) {
@@ -144,4 +144,4 @@ export default function App() {
       </div>
     </ThemeProvider>
   );
-}
+} 

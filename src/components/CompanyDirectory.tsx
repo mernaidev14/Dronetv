@@ -888,7 +888,13 @@ const CompanyDirectory: React.FC = () => {
       );
 
       // ✅ Navigate to edit page
-      navigate(`/user/companies/edit/${publishedId}`);
+
+      if(details.templateSelection === "template-1"){
+        navigate(`/user/companies/edit/1/${publishedId}`);
+      }else if(details.templateSelection === "template-2"){
+        navigate(`/user/companies/edit/2/${publishedId}`);
+      }
+
     } catch (error) {
       console.error("Error loading template for editing:", error);
       toast.error("Failed to load template for editing. Please try again.");
@@ -900,9 +906,18 @@ const handlePreview = async (publishedId: string): Promise<void> => {
     if (!user?.userData?.email) {
       throw new Error("User not authenticated");
     }
+    const details = await apiService.fetchPublishedDetails(
+        publishedId,
+        user.userData.email,
+        setFinaleDataReview // ✅ directly store in context
+      );
     
     // Include user ID in the URL as a query parameter
-    navigate(`/user/companies/preview/${publishedId}`);
+    if(details.templateSelection === "template-1"){
+      navigate(`/user/companies/preview/1/${publishedId}`);
+    }else if(details.templateSelection === "template-2"){
+      navigate(`/user/companies/preview/2/${publishedId}`);
+    }
   } catch (error) {
     console.error("Error loading template for preview:", error);
     alert("Failed to load template for preview. Please try again.");
