@@ -12,7 +12,7 @@ import {
   AlertCircle,
   Loader2,
 } from "lucide-react";
-import { useTemplate,useUserAuth } from "../../../../../../../context/context";
+import { useTemplate } from "../../../../../../../context/context";
 import { toast } from "react-toastify";
 
 // ✅ Convert file to base64 + metadata
@@ -88,8 +88,8 @@ const Step8MediaUploads: React.FC<StepProps> = ({
     [key: string]: "pending" | "processing" | "completed" | "error";
   }>({});
   const { setDraftDetails } = useTemplate();
-  const {user} = useUserAuth()
   
+
   const API_URL =
     "https://14exr8c8g0.execute-api.ap-south-1.amazonaws.com/prod/drafts";
 
@@ -138,7 +138,7 @@ const Step8MediaUploads: React.FC<StepProps> = ({
       if (totalFiles === 0) {
         // No files to upload, just save form data
         const simplePayload = {
-          userId: user.userData.email,
+          userId: formData.directorEmail,
           templateSelection: formData?.templateSelection || null,
           templateDetails: {
             id: formData?.selectedTemplate?.id || null,
@@ -191,7 +191,7 @@ const Step8MediaUploads: React.FC<StepProps> = ({
         });
 
         const batchPayload = {
-          userId: user.userData.email,
+          userId: formData.directorEmail,
           templateSelection:
             formData?.templateSelection ||
             formData?.selectedTemplate?.value ||
