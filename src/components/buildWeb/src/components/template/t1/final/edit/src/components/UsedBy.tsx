@@ -3,13 +3,8 @@ import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { Edit2, Save, X, Upload, Loader2, Plus, Trash2 } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { toast } from "react-toastify";
-import BusinessInsider from "../public/images/logos/BusinessInsider.png";
-import Forbes from "../public/images/logos/Forbes.png";
-import TechCrunch from "../public/images/logos/TechCrunch.png";
-import TheNewYorkTimes from "../public/images/logos/TheNewYorkTimes.png";
-import USAToday from "../public/images/logos/USAToday.png";
 
-export default function EditableUsedBy({ onStateChange, userId, publishedId, templateSelection }) {
+export default function EditableUsedBy({usedByData, onStateChange, userId, publishedId, templateSelection }) {
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -22,23 +17,9 @@ export default function EditableUsedBy({ onStateChange, userId, publishedId, tem
   // Pending image files for S3 upload
   const [pendingImageFiles, setPendingImageFiles] = useState({});
 
-  // Default content structure
-  const defaultCompanies = [
-    { image: BusinessInsider, name: "Business Insider", id: 1 },
-    { image: Forbes, name: "Forbes", id: 2 },
-    { image: TechCrunch, name: "TechCrunch", id: 3 },
-    { image: TheNewYorkTimes, name: "NY Times", id: 4 },
-    { image: USAToday, name: "USA Today", id: 5 },
-  ];
-
-  const defaultContent = {
-    title: "USED BY",
-    companies: defaultCompanies,
-  };
-
   // Consolidated state
-  const [contentState, setContentState] = useState(defaultContent);
-  const [tempContentState, setTempContentState] = useState(defaultContent);
+  const [contentState, setContentState] = useState(usedByData);
+  const [tempContentState, setTempContentState] = useState(usedByData);
 
   // Notify parent of state changes
   useEffect(() => {
@@ -71,25 +52,9 @@ export default function EditableUsedBy({ onStateChange, userId, publishedId, tem
   const fetchUsedByData = async () => {
     setIsLoading(true);
     try {
-      // Replace this with your actual API call
-      const response = await new Promise((resolve) => {
-        setTimeout(() => {
-          resolve({
-          
-            title: "USED BY",
-            companies: [
-              { image: BusinessInsider, name: "Business Insider", id: 1 },
-              { image: Forbes, name: "Forbes", id: 2 },
-              { image: TechCrunch, name: "TechCrunch", id: 3 },
-              { image: TheNewYorkTimes, name: "NY Times", id: 4 },
-              { image: USAToday, name: "USA Today", id: 5 },
-            ],
-          });
-        }, 1200); // Simulate network delay
-      });
-
-      setContentState(response);
-      setTempContentState(response);
+      // Use the provided data directly
+      setContentState(usedByData);
+      setTempContentState(usedByData);
       setDataLoaded(true);
     } catch (error) {
       console.error("Error fetching used-by data:", error);
@@ -104,7 +69,7 @@ export default function EditableUsedBy({ onStateChange, userId, publishedId, tem
     if (isVisible && !dataLoaded && !isLoading) {
       fetchUsedByData();
     }
-  }, [isVisible, dataLoaded, isLoading]);
+  }, [isVisible, dataLoaded, isLoading, usedByData]);
 
   const handleEdit = () => {
     setIsEditing(true);
@@ -238,7 +203,11 @@ export default function EditableUsedBy({ onStateChange, userId, publishedId, tem
         ...prev,
         companies: [
           ...prev.companies,
-          { id: newId, name: "New Company", image: BusinessInsider },
+          { 
+            id: newId, 
+            name: "New Company", 
+            image: "https://images.unsplash.com/photo-1560472354-b33ff0c44a43?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=200" 
+          },
         ],
       };
     });

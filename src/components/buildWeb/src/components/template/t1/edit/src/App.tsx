@@ -62,6 +62,7 @@ export default function App() {
         templateSelection={AIGenData.templateSelection}
       />
       <UsedBy
+      
         onStateChange={useCallback((state) => collectComponentState("usedBy", state), [collectComponentState])}
         publishedId={AIGenData.publishedId}
         userId={AIGenData.userId}
@@ -114,6 +115,7 @@ export default function App() {
       <Publish />
       <Footer 
       onStateChange={useCallback((state) => collectComponentState("footer", state), [collectComponentState])}
+       content={AIGenData.content.footer}
       />
     </div>
   );

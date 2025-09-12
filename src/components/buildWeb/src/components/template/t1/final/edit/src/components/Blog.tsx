@@ -233,8 +233,8 @@ export default function Blog({
   // Extract data from blogData prop or use defaults
   const defaultContent = {
     header: {
-      title: blogData?.header?.title || "Latest Blogs",
-      desc: blogData?.header?.desc || "Stay updated with our latest insights.",
+      title: blogData?.header?.title || "",
+      desc: blogData?.header?.desc || "",
     },
     posts: blogData?.posts?.map((post, index) => ({
       id: post.id || index + 1,
@@ -254,8 +254,8 @@ export default function Blog({
             month: "short",
             day: "numeric",
           }),
-      author: post.author || "Unknown",
-      readTime: post.readTime || "5 min read",
+      author: post.author || "",
+      readTime: post.readTime || "",
       outline: post.outline || [],
       keywords: post.keywords || [],
     })) || [],

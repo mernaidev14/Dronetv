@@ -691,9 +691,11 @@ const apiService = {
         
         try {
           const contentType = response.headers.get('content-type');
+          
           if (contentType && contentType.includes('application/json')) {
             errorJson = await response.json();
             errorText = errorJson.message || errorJson.error || errorJson.errorMessage || `HTTP ${response.status}`;
+            
           } else {
             errorText = await response.text();
           }

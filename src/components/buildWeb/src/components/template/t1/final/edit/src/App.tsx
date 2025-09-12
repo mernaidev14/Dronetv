@@ -59,6 +59,7 @@ export default function App() {
         templateSelection={finaleDataReview.templateSelection}
       />
       <UsedBy
+        usedByData={finaleDataReview.content.UsedBy}
         onStateChange={useCallback((state) => collectComponentState("usedBy", state), [collectComponentState])}
         publishedId={finaleDataReview.publishedId}
         userId={finaleDataReview.userId}
@@ -111,6 +112,7 @@ export default function App() {
       <Publish />
       <Footer 
       onStateChange={useCallback((state) => collectComponentState("footer", state), [collectComponentState])}
+      content={finaleDataReview.content.footer}
       />
     </div>
   );

@@ -11,15 +11,7 @@ export default function EditableTestimonials({
   templateSelection 
 }) {
   // Initialize with data from props or use default structure
-  const initialData = content || {
-    headline: {
-      title: "What Our Clients Say",
-      description: "Real experiences from clients who have transformed their operations with our solutions.",
-    },
-    testimonials: [],
-    stats: []
-  };
-
+  const initialData = content;
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);

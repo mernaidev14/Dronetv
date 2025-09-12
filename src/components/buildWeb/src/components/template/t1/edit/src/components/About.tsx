@@ -62,27 +62,7 @@ export default function EditableAbout({ aboutData, onStateChange, userId, publis
   const [pendingImageFile, setPendingImageFile] = useState(null);
 
   // Default content structure based on the provided JSON
-  const defaultContent = {
-    companyName: aboutData?.companyName || "",
-    industry: aboutData?.industry || "Drone Technology Solutions",
-    established: aboutData?.established || "",
-    headquarters: aboutData?.headquarters || "",
-    description1: aboutData?.description1 || "Founded in 2020 by [Founder's Name], [Company Name] was born from a vision to provide reliable and innovative drone services. Driven by a passion for cutting-edge technology and a commitment",
-    description2: aboutData?.description2 || "to safety, we aimed to redefine aerial data acquisition. Our early projects focused on building a strong foundation of expertise",
-    mission: aboutData?.mission || "To provide safe, reliable, and innovative drone technology solutions that empower businesses and improve lives.",
-    vision: aboutData?.vision || "To be the leading provider of cutting-edge drone technology, shaping the future of aerial data acquisition and analysis.",
-    officeImage: aboutData?.officeImage || img,
-    certifications: aboutData?.certifications || [
-      "DGCA Remote Pilot License",
-      "Professional Drone Operations Certification",
-      "Advanced Aerial Photography Training"
-    ],
-    achievements: aboutData?.achievements || [
-      "500+ Successful Drone Operations Completed",
-      "DGCA Certified Pilots and Operations",
-      "99.8% Project Success Rate Achieved"
-    ]
-  };
+  const defaultContent = aboutData;;
 
   // Consolidated state
   const [aboutState, setAboutState] = useState(defaultContent);

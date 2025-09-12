@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import Header from "./components/Header";
 import Hero from "./components/Hero";
 import UsedBy from "./components/UsedBy";
@@ -9,36 +9,102 @@ import Blog from "./components/Blog";
 import Testimonials from "./components/Testimonials";
 import Contact from "./components/Contact";
 import Footer from "./components/Footer";
-import { useTemplate } from "../../../../../../../../context/context";
+import { useTemplate,useUserAuth } from "../../../../../../../../context/context";
+import { useLocation, useParams } from "react-router-dom";
 // import { useEffect } from "react";
 
 export default function App() {
- const { finaleDataReview, setFinalTemplate } = useTemplate();
-  const [componentStates, setComponentStates] = useState({});
+ const { finaleDataReview, setFinaleDataReview } = useTemplate();
+  const { user } = useUserAuth();
+  const { pub } = useParams();
+  const location = useLocation();
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // Memoize the collectComponentState function
-  const collectComponentState = useCallback((componentName, state) => {
-    setComponentStates(prev => ({
-      ...prev,
-      [componentName]: state
-    }));
-  }, []);
-
-  // Update finalTemplate whenever componentStates changes
-  useEffect(() => {
-    setFinalTemplate(prev => ({
-      ...prev,
-      publishedId: finaleDataReview.publishedId,
-      userId: finaleDataReview.userId,
-      draftId: finaleDataReview.draftId,
-      templateSelection: finaleDataReview.templateSelection,
-      content: {
-        ...prev.content,
-        ...componentStates
+  // Function to fetch template data
+  async function fetchTemplateData(pubId: string, userId: string) {
+    try {
+      setIsLoading(true);
+      const response = await fetch(`https://v1lqhhm1ma.execute-api.ap-south-1.amazonaws.com/prod/dashboard-cards/published-details/${pubId}`,{
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-User-Id': userId,
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
-    }));
-  }, [componentStates, setFinalTemplate, finaleDataReview]);
+      
+      const data = await response.json();
+      setFinaleDataReview(data);
+      setIsLoading(false);
+    } catch (error) {
+      console.error("Error fetching template data:", error);
+      setError(error.message);
+      setIsLoading(false);
+    }
+  }
 
+  useEffect(() => {
+    // Check if we have data in location state (from navigation)
+    if (location.state && location.state.templateData) {
+      setFinaleDataReview(location.state.templateData);
+      setIsLoading(false);
+    } 
+    // If we have a pub ID and user email, fetch the data
+    else if (pub && user && user.userData.email) {
+      fetchTemplateData(pub, user.userData.email);
+    }
+    // If we don't have user data but have pub ID, try to get user from localStorage
+    else if (pub) {
+      const storedUser = localStorage.getItem('user');
+      if (storedUser) {
+        const userData = JSON.parse(storedUser);
+        fetchTemplateData(pub, userData.email);
+      } else {
+        setError("User not found. Please log in again.");
+        setIsLoading(false);
+      }
+    }
+  }, [pub, user, location.state]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background text-foreground theme-transition flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-background text-foreground theme-transition flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold mb-4">Error Loading Page</h2>
+          <p className="text-muted-foreground mb-4">{error}</p>
+          <button 
+            onClick={() => window.location.reload()}
+            className="bg-primary text-primary-foreground px-4 py-2 rounded-lg"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!finaleDataReview || !finaleDataReview.content) {
+    return (
+      <div className="min-h-screen bg-background text-foreground theme-transition flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold mb-4">No Data Found</h2>
+          <p className="text-muted-foreground">The requested company page could not be loaded.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     // The className here is no longer needed as the useEffect handles the root element
@@ -62,35 +128,21 @@ export default function App() {
       />
       <Products 
       productData={finaleDataReview.content.products} 
-      onStateChange={useCallback((state) => collectComponentState("products", state), [collectComponentState])}
-      publishedId={finaleDataReview.publishedId}
-      userId={finaleDataReview.userId}
-      templateSelection={finaleDataReview.templateSelection}
+     
       />
       <Blog 
       blogData={finaleDataReview.content.blog}
-      onStateChange={useCallback((state) => collectComponentState("blog", state), [collectComponentState])}
-      publishedId={finaleDataReview.publishedId}
-      userId={finaleDataReview.userId}
-      templateSelection={finaleDataReview.templateSelection}
+    
       />
       
       <Testimonials 
       content={finaleDataReview.content.testimonials}
-      onStateChange={useCallback((state) => collectComponentState("testimonials", state), [collectComponentState])}
-      publishedId={finaleDataReview.publishedId}
-      userId={finaleDataReview.userId}
-      templateSelection={finaleDataReview.templateSelection}
+      
        />
       <Contact
       content={finaleDataReview.content.contact}
-      onStateChange={useCallback((state) => collectComponentState("contact", state), [collectComponentState])}
-      publishedId={finaleDataReview.publishedId}
-      userId={finaleDataReview.userId}
-      templateSelection={finaleDataReview.templateSelection}
       />
       <Footer 
-      onStateChange={useCallback((state) => collectComponentState("footer", state), [collectComponentState])}
       content={finaleDataReview.content.footer}
       />
     </div>

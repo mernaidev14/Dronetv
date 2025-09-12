@@ -48,23 +48,7 @@ export default function EditableHero({ heroData, onStateChange, userId, publishe
   });
 
   // Default content with images
-  const defaultContent = {
-    badgeText: "Trusted by 500+ Companies",
-    heading: heroData?.heading || "Transform Your Business with",
-    subheading: heroData?.subheading || "Innovation",
-    description:
-      heroData?.description ||
-      "We help companies scale and grow with cutting-edge solutions, expert guidance, and proven strategies that deliver",
-    highlightDesc: "exceptional results",
-    primaryBtn: heroData?.primaryAction?.text || "Get Started Today",
-    secondaryBtn: "Watch Demo",
-    trustText: "Join 500+ satisfied clients",
-    primaryButtonLink: "#contact",
-    secondaryButtonLink: "#about",
-    hero1Image: Hero1,
-    hero3Image: Hero3,
-    customerImages: customerImages,
-  };
+  const defaultContent = heroData;
 
   // Consolidated state
   const [heroState, setHeroState] = useState(defaultContent);

@@ -53,7 +53,7 @@ export default function Products({ productData }) {
                     ? "bg-red-100 text-red-600"
                     : benefit.color === "primary"
                     ? "bg-yellow-100 text-yellow-400"
-                    : "bg-gradient-to-r from-purple-500 to-yellow-400 text-white"
+                    : "bg-yellow-100 text-yellow-400"
                 }`}
             >
               {benefit.icon}
