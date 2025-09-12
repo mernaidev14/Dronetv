@@ -49,6 +49,7 @@ import ForgotPassword from "./components/ForgotPassword";
 import Logout from "./components/Logout";
 import ResetPassword from "./components/resetPassword";
 import ProtectedRoute from "./components/ProtectedRoute";
+import AdminDashboard from "./components/Admin/CompaniesDashboard/AdminDashboard";
 const HomePage = () => (
   <>
     <Hero />
@@ -106,6 +107,7 @@ const AppContent = () => {
           <Route path='/forgot-password' element={<ForgotPassword />} />
           <Route path='/logout' element={<Logout />} />
           <Route path='reset-password/:id' element={<ResetPassword />} />
+          <Route path='/admin/company/dashboard' element={<AdminDashboard />} />
         </Routes>
         {!hideFooter && <Footer />}
         <ScrollingFooter />
