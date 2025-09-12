@@ -50,6 +50,8 @@ import Logout from "./components/Logout";
 import ResetPassword from "./components/resetPassword";
 import ProtectedRoute from "./components/ProtectedRoute";
 import AdminDashboard from "./components/Admin/CompaniesDashboard/AdminDashboard";
+import Admint1Preview from "./components/Admin/preview/t1/preview/src/main";
+import Admint2Preview from "./components/Admin/preview/t2/preview/src/main";
 const HomePage = () => (
   <>
     <Hero />
@@ -107,7 +109,10 @@ const AppContent = () => {
           <Route path='/forgot-password' element={<ForgotPassword />} />
           <Route path='/logout' element={<Logout />} />
           <Route path='reset-password/:id' element={<ResetPassword />} />
+          {/* admin dashboard */}
           <Route path='/admin/company/dashboard' element={<AdminDashboard />} />
+          <Route path='/admin/companies/preview/1/:publishedId/:userId' element={<Admint1Preview />} />
+          <Route path='/admin/companies/preview/2/:publishedId/:userId' element={<Admint2Preview />} />
         </Routes>
         {!hideFooter && <Footer />}
         <ScrollingFooter />

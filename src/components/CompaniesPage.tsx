@@ -3,21 +3,14 @@ import { Search, ChevronDown, MapPin, ExternalLink } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import LoadingScreen from './loadingscreen';
 
-// 1. Define Company Interface
+// 1. Define Company Interface (adapted for new API)
 interface Company {
   companyName: string;
-  companyLogo?: string;
-  aboutTitle?: string;
+  location?: string;
+  sectors?: string[];
+  previewImage?: string;
+  heroImage?: string;
   aboutDescription?: string;
-  heroHeadline?: string;
-  heroSubheadline?: string;
-  email?: string;
-  phone?: string;
-  address?: string;
-  heroBackground?: string;
-  industry?: string;
-  services?: { [key: string]: any }[]; // Array of services (optional, API can be any)
-  products?: { [key: string]: any }[]; // Array of products (optional)
   [key: string]: any;
 }
 
@@ -36,39 +29,41 @@ const CompaniesPage: React.FC = () => {
   // 3. Fetch Companies from API
   useEffect(() => {
     const fetchCompanies = async () => {
-      setLoading(true); // Start loading
+      setLoading(true);
       try {
-        const res = await fetch('https://iutg55q58b.execute-api.ap-south-1.amazonaws.com/geallcomapnies');
+        const res = await fetch('https://v1lqhhm1ma.execute-api.ap-south-1.amazonaws.com/prod/dashboard-cards?viewType=main');
         const data = await res.json();
-        setAllCompanies(data);
+        // Set companies from `cards` array
+        setAllCompanies(Array.isArray(data.cards) ? data.cards : []);
       } catch (error) {
+        console.error(error);
         setAllCompanies([]);
       }
-      setLoading(false); // Done loading
+      setLoading(false);
     };
     fetchCompanies();
   }, []);
-
 
   // 4. Filtering & Sorting
   useEffect(() => {
     let filtered = allCompanies;
 
-    // Filter by industry if needed
+    // Filter by industry (map sectors[0] as industry)
     if (selectedIndustry !== 'All') {
       filtered = filtered.filter(company =>
-        (company.industry || '').toLowerCase() === selectedIndustry.toLowerCase()
+        (company.sectors?.[0] || '').toLowerCase() === selectedIndustry.toLowerCase()
       );
     }
-    // Filter by search query (name, headline, etc.)
+
+    // Filter by search query
     if (searchQuery) {
       filtered = filtered.filter(company =>
         company.companyName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        company.aboutDescription?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        company.heroHeadline?.toLowerCase().includes(searchQuery.toLowerCase())
+        company.aboutDescription?.toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
-    // Sorting (by name by default)
+
+    // Sorting by name
     filtered = [...filtered].sort((a, b) => {
       switch (sortBy) {
         case 'companyName':
@@ -101,14 +96,16 @@ const CompaniesPage: React.FC = () => {
       default: return 'bg-gray-800';
     }
   };
+
   if (loading) {
     return (
       <LoadingScreen
-        logoSrc="images/logo.png" // Or "/logo.png" if inside public
+        logoSrc="images/logo.png"
         loadingText="Loading Companies..."
       />
     );
   }
+
   return (
     <div className="min-h-screen bg-yellow-400 pt-16">
       {/* Hero Section */}
@@ -128,7 +125,7 @@ const CompaniesPage: React.FC = () => {
         </div>
         <div className="absolute top-4 right-10 z-10 pointer-events-auto">
           <button
-            onClick={() => navigate('/buildweb')}
+            onClick={() => navigate('/user/companies/template-selection')}
             className="px-6 py-3 bg-black text-white rounded-lg hover:bg-red-600 transition duration-300"
           >
             List your Company
@@ -152,7 +149,7 @@ const CompaniesPage: React.FC = () => {
               />
             </div>
 
-            {/* Filter and Sort Controls (Industry is optional) */}
+            {/* Filter and Sort Controls */}
             <div className="flex gap-3">
               <div className="relative">
                 <select
@@ -161,7 +158,7 @@ const CompaniesPage: React.FC = () => {
                   className="appearance-none bg-yellow-200 backdrop-blur-sm border-2 border-black/20 rounded-lg px-3 py-2 text-black font-medium focus:outline-none focus:ring-2 focus:ring-black/20 focus:border-black/40 text-sm transition-all duration-300 w-48"
                 >
                   {['All'].concat(
-                    Array.from(new Set(allCompanies.map(c => c.industry).filter((x): x is string => Boolean(x))))
+                    Array.from(new Set(allCompanies.flatMap(c => c.sectors ?? [])))
                   ).map(industry => (
                     <option key={industry} value={industry}>
                       {industry === 'All' ? 'All Industries' : industry}
@@ -177,7 +174,6 @@ const CompaniesPage: React.FC = () => {
                   className="appearance-none bg-yellow-200 backdrop-blur-sm border-2 border-black/20 rounded-lg px-3 py-2 text-black font-medium focus:outline-none focus:ring-2 focus:ring-black/20 focus:border-black/40 text-sm transition-all duration-300 w-48"
                 >
                   <option value="companyName">Sort by Name</option>
-                  {/* Add more sort options as needed */}
                 </select>
                 <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-black/60 pointer-events-none" />
               </div>
@@ -224,9 +220,8 @@ const CompaniesPage: React.FC = () => {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
               {currentCompanies.map((company, idx) => {
-                // Service & Product counts
-                const totalServices = Array.isArray(company.services) ? company.services.length : 0;
-                const totalProducts = Array.isArray(company.products) ? company.products.length : 0;
+                const totalServices = Array.isArray(company.sectors) ? company.sectors.length : 0;
+                const totalProducts = 0; // No products in this API currently
 
                 return (
                   <div
@@ -234,16 +229,15 @@ const CompaniesPage: React.FC = () => {
                     className="group bg-white rounded-3xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-700 cursor-pointer transform hover:scale-105"
                   >
                     <div className="relative p-8 bg-[#f1ee8e] transition-all duration-500">
-
                       <div className="flex justify-center mb-4">
                         <div className="relative">
                           <div className="absolute inset-0 bg-yellow-400/20 rounded-2xl blur-xl scale-150 group-hover:scale-200 transition-all duration-700"></div>
                           <div className="relative bg-yellow-400/20 backdrop-blur-sm rounded-2xl flex items-center justify-center w-16 h-16 group-hover:scale-110 transition-all duration-500 border border-yellow-400/30 group-hover:shadow-lg group-hover:shadow-yellow-400/30">
-                            {company.companyLogo ? (
+                            {company.previewImage ? (
                               <img
-                                src={company.companyLogo}
+                                src={company.previewImage}
                                 alt={company.companyName}
-                                className="w-12 h-12 object-contain object-center bg-white" // <-- original shape!
+                                className="w-12 h-12 object-contain object-center bg-white"
                                 style={{ background: "#fff" }}
                               />
                             ) : (
@@ -253,30 +247,24 @@ const CompaniesPage: React.FC = () => {
                         </div>
                       </div>
 
-
-
                       <div className="text-center">
                         <h3 className="text-xl font-bold text-black mb-2 group-hover:text-gray-800 transition-colors duration-300">
                           {company.companyName}
                         </h3>
-                        {(company.city || company.address) && (
+                        {company.location && (
                           <div className="flex items-center justify-center gap-2 text-sm text-gray-600 mb-2">
                             <MapPin className="h-3 w-3" />
-                            {company.city ? company.city : (company.address ? company.address.split(',')[0] : '')}
+                            {company.location}
                           </div>
                         )}
-
-                        {/* <div className={`${getIndustryColor(company.industry)} text-yellow-400 px-3 py-1 rounded-full text-xs font-bold inline-block`}>
-                          {company.industry || 'N/A'}
-                        </div> */}
                       </div>
                     </div>
                     <div className="relative p-8 bg-[#f1ee8e] transition-all duration-500">
-
                       <p className="text-gray-600 mb-4 leading-relaxed text-sm line-clamp-3">
-                        {company.aboutDescription || company.heroHeadline || 'No company description.'}
+                        {company.aboutDescription || 'No company description.'}
                       </p>
-                      {/* TOTAL SERVICES & PRODUCTS */}
+
+                      {/* Services & Products */}
                       <div className="grid grid-cols-2 gap-3 mb-4">
                         <div className="flex-1 bg-yellow-300 rounded-lg p-3 text-center">
                           <div className="text-lg font-bold text-black">{totalServices}</div>
@@ -287,11 +275,11 @@ const CompaniesPage: React.FC = () => {
                           <div className="text-xs text-yellow-700">Total Products</div>
                         </div>
                       </div>
+
                       <div className="flex justify-center">
                         <button
                           onClick={() => {
                             if (company.companyName) {
-                              // Just encode, don't change case or replace spaces
                               navigate(`/company/${encodeURIComponent(company.companyName)}`);
                             } else {
                               alert('Invalid company name');

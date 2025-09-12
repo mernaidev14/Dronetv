@@ -1,25 +1,52 @@
 import React, { useState, useEffect } from "react";
-import { Search, MapPin, ChevronDown, ArrowRight, Star, Users, Building2, Menu, X, Eye, Key, FileText } from "lucide-react";
+import { Search, MapPin, ChevronDown, ArrowRight, Star, Users, Building2, Menu, X, Eye, Key, FileText, CheckCircle, XCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
+// import { useTemplate } from "../../context/context"; // ✅ import context hook
 
-// TypeScript Interfaces (same as CompanyDirectory)
+// TypeScript Interfaces
 interface Company {
   publishedId: string;
+  companyId: string;
+  draftId: string;
+  userId: string;
   companyName: string;
   location: string;
   sectors: string[];
-  publishedDate: string;
   previewImage?: string;
-  status: string;
+  heroImage?: string;
+  templateSelection: string;
+  reviewStatus: string;
+  adminNotes: string;
+  status: string | null;
+  publishedDate: string;
+  lastModified: string;
+  createdAt: string;
+  submittedForReview: string;
+  reviewedAt: string;
+  version: number;
+  hasEdits: boolean;
+  sectionsEdited: string[];
+  totalEdits: number;
+  isTemplate2: boolean;
+  completionPercentage: number;
+  hasCustomImages: boolean;
+  lastActivity: string;
+  canEdit: boolean;
+  canResubmit: boolean;
+  isVisible: boolean;
+  isApproved: boolean;
+  dashboardType: string;
+  needsAdminAction: boolean;
 }
 
 interface ApiResponse {
+  success: boolean;
+  viewType: string;
   cards: Company[];
   totalCount: number;
-  hasMore: boolean;
-  nextKey: string | null;
-  userId?: string;
+  hasTemplates: boolean;
+  message: string;
 }
 
 interface DropdownProps {
@@ -45,6 +72,8 @@ interface CompanyCardProps {
   company: Company;
   onCredentials: (publishedId: string) => void;
   onPreview: (publishedId: string) => void;
+  onApprove: (publishedId: string) => void;
+  onReject: (publishedId: string) => void;
 }
 
 interface MainContentProps {
@@ -59,6 +88,8 @@ interface MainContentProps {
   onOpenMobileSidebar: () => void;
   onCredentials: (publishedId: string) => void;
   onPreview: (publishedId: string) => void;
+  onApprove: (publishedId: string) => void;
+  onReject: (publishedId: string) => void;
   searchTerm: string;
   industryFilter: string;
   sortBy: string;
@@ -70,7 +101,7 @@ interface ErrorMessageProps {
   onRetry: () => void;
 }
 
-// Header Component (modified for admin)
+// Header Component
 const Header: React.FC = () => {
   const navigate = useNavigate();
   return (
@@ -95,7 +126,7 @@ const Header: React.FC = () => {
           </h1>
 
           <p className='text-base md:text-lg text-blue-700 mb-6 md:mb-10 max-w-xl mx-auto font-light'>
-            Manage all company listings, view credentials, and monitor company information.
+            Review and manage all company listings, credentials, and approvals.
           </p>
 
           <div className='flex flex-col sm:flex-row items-center justify-center gap-4'>
@@ -103,7 +134,7 @@ const Header: React.FC = () => {
               onClick={() => navigate('/admin/analytics')}
               className='bg-gradient-to-r from-blue-400 to-blue-500 text-white px-6 py-3 md:px-8 md:py-4 font-semibold hover:from-blue-500 hover:to-blue-600 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1 rounded-lg w-full sm:w-auto text-sm md:text-base'
             >
-              View Analytics
+             
             </button>
             <div className='w-px h-8 md:h-12 bg-blue-300 hidden sm:block'></div>
             <button className='text-blue-700 hover:text-blue-900 transition-colors duration-300 text-sm md:text-base sm:mt-0 mt-2'>
@@ -207,7 +238,7 @@ const Sidebar: React.FC<SidebarProps> = ({
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => onSearchChange(e.target.value)}
               className='w-full pl-10 pr-4 py-3 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-gray-300 focus:border-gray-300 bg-gray-50 transition-colors'
             />
-          </div>
+        </div>
         </div>
 
         {/* Industry Filter */}
@@ -266,8 +297,14 @@ const Sidebar: React.FC<SidebarProps> = ({
   );
 };
 
-// Company Card Component with Credentials/Preview Buttons
-const CompanyCard: React.FC<CompanyCardProps> = ({ company, onCredentials, onPreview }) => {
+// Company Card Component with four action buttons
+const CompanyCard: React.FC<CompanyCardProps> = ({ 
+  company, 
+  onCredentials, 
+  onPreview, 
+  onApprove, 
+  onReject 
+}) => {
   // Create a placeholder image using company name
   const placeholderImg = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%23f3f4f6' rx='8'/%3E%3Ctext x='32' y='38' text-anchor='middle' fill='%23374151' font-size='20' font-family='Arial' font-weight='bold'%3E${
     company.companyName?.charAt(0) || "C"
@@ -288,39 +325,23 @@ const CompanyCard: React.FC<CompanyCardProps> = ({ company, onCredentials, onPre
   };
 
   // Status badge styling based on status
-  const getStatusBadge = (status: string) => {
-    const statusLower = (status || 'approved').toLowerCase();
-    
-    switch (statusLower) {
-      case 'pending':
-      case 'under review':
-        return {
-          bg: 'bg-yellow-100',
-          text: 'text-yellow-800',
-          label: 'Under Review'
-        };
-      case 'approved':
-        return {
-          bg: 'bg-green-100',
-          text: 'text-green-800',
-          label: 'Published'
-        };
-      case 'rejected':
-        return {
-          bg: 'bg-red-100',
-          text: 'text-red-800',
-          label: 'Rejected'
-        };
-      default:
-        return {
-          bg: 'bg-blue-100',
-          text: 'text-blue-800',
-          label: 'Published'
-        };
+  const getStatusBadge = (needsAdminAction: boolean) => {
+    if (needsAdminAction) {
+      return {
+        bg: 'bg-yellow-100',
+        text: 'text-yellow-800',
+        label: 'Needs Review'
+      };
     }
+    
+    return {
+      bg: 'bg-green-100',
+      text: 'text-green-800',
+      label: 'Reviewed'
+    };
   };
 
-  const statusStyle = getStatusBadge(company.status);
+  const statusStyle = getStatusBadge(company.needsAdminAction);
 
   return (
     <div className='bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden border-l-8 border-gradient-to-b from-blue-500 to-purple-600 group'>
@@ -381,14 +402,14 @@ const CompanyCard: React.FC<CompanyCardProps> = ({ company, onCredentials, onPre
             </div>
           </div>
 
-          {/* Action Buttons */}
-          <div className='flex gap-2 justify-end'>
+          {/* Action Buttons - Four buttons in a grid */}
+          <div className='grid grid-cols-2 gap-2'>
             <button
               onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
                 e.stopPropagation();
                 onPreview(company.publishedId);
               }}
-              className='px-3 py-2 md:px-4 md:py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors text-xs md:text-sm font-medium flex items-center gap-2'
+              className='px-3 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors text-xs md:text-sm font-medium flex items-center gap-2 justify-center'
             >
               <Eye className='w-3 h-3 md:w-4 md:h-4' />
               Preview
@@ -398,18 +419,39 @@ const CompanyCard: React.FC<CompanyCardProps> = ({ company, onCredentials, onPre
                 e.stopPropagation();
                 onCredentials(company.publishedId);
               }}
-              className='px-3 py-2 md:px-4 md:py-2 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition-colors text-xs md:text-sm font-medium flex items-center gap-2'
+              className='px-3 py-2 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition-colors text-xs md:text-sm font-medium flex items-center gap-2 justify-center'
             >
               <Key className='w-3 h-3 md:w-4 md:h-4' />
               Credentials
             </button>
+            <button
+              onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
+                e.stopPropagation();
+                onApprove(company.publishedId);
+              }}
+              className='px-3 py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors text-xs md:text-sm font-medium flex items-center gap-2 justify-center'
+            >
+              <CheckCircle className='w-3 h-3 md:w-4 md:h-4' />
+              Approve
+            </button>
+            <button
+              onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
+                e.stopPropagation();
+                onReject(company.publishedId);
+              }}
+              className='px-3 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors text-xs md:text-sm font-medium flex items-center gap-2 justify-center'
+            >
+              <XCircle className='w-3 h-3 md:w-4 md:h-4' />
+              Reject
+            </button>
           </div>
         </div>
 
-        {/* Published ID (small text at bottom) */}
+        {/* Additional Info */}
         <div className='mt-3 md:mt-4 pt-3 md:pt-4 border-t border-gray-100'>
           <div className='flex justify-between items-center text-xs text-gray-400'>
             <span className="truncate mr-2">ID: {company.publishedId || 'No ID'}</span>
+            <span>v{company.version}</span>
           </div>
         </div>
       </div>
@@ -453,6 +495,8 @@ const MainContent: React.FC<MainContentProps> = ({
   onOpenMobileSidebar,
   onCredentials,
   onPreview,
+  onApprove,
+  onReject,
   searchTerm,
   industryFilter,
   sortBy,
@@ -508,6 +552,8 @@ const MainContent: React.FC<MainContentProps> = ({
                 company={company}
                 onCredentials={onCredentials}
                 onPreview={onPreview}
+                onApprove={onApprove}
+                onReject={onReject}
               />
             </div>
           ))}
@@ -551,7 +597,7 @@ const apiService = {
   async fetchAllCompanies(): Promise<ApiResponse> {
     try {
       const response = await fetch(
-        'https://v1lqhhm1ma.execute-api.ap-south-1.amazonaws.com/prod/admin/companies',
+        'https://v1lqhhm1ma.execute-api.ap-south-1.amazonaws.com/prod/dashboard-cards?viewType=admin',
         {
           method: 'GET',
           headers: {
@@ -573,12 +619,39 @@ const apiService = {
     }
   },
 
-  async fetchCompanyCredentials(publishedId: string): Promise<any> {
+  // Update the fetchCompanyCredentials function if it needs userId
+async fetchCompanyCredentials(publishedId: string, userId: string): Promise<any> {
+  try {
+    const response = await fetch(
+      `https://v1lqhhm1ma.execute-api.ap-south-1.amazonaws.com/prod/admin/company-credentials/${publishedId}`,
+      {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-User-Id': userId,
+          'Authorization': `Bearer ${localStorage.getItem('adminToken')}`,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error("Error fetching company credentials:", error);
+    throw error;
+  }
+},
+
+  async approveCompany(publishedId: string): Promise<any> {
     try {
       const response = await fetch(
-        `https://v1lqhhm1ma.execute-api.ap-south-1.amazonaws.com/prod/admin/company-credentials/${publishedId}`,
+        `https://v1lqhhm1ma.execute-api.ap-south-1.amazonaws.com/prod/admin/approve-company/${publishedId}`,
         {
-          method: 'GET',
+          method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${localStorage.getItem('adminToken')}`,
@@ -593,17 +666,17 @@ const apiService = {
       const data = await response.json();
       return data;
     } catch (error) {
-      console.error("Error fetching company credentials:", error);
+      console.error("Error approving company:", error);
       throw error;
     }
   },
 
-  async fetchPublishedDetails(publishedId: string): Promise<any> {
+  async rejectCompany(publishedId: string): Promise<any> {
     try {
       const response = await fetch(
-        `https://v1lqhhm1ma.execute-api.ap-south-1.amazonaws.com/prod/admin/published-details/${publishedId}`,
+        `https://v1lqhhm1ma.execute-api.ap-south-1.amazonaws.com/prod/admin/reject-company/${publishedId}`,
         {
-          method: 'GET',
+          method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${localStorage.getItem('adminToken')}`,
@@ -618,16 +691,46 @@ const apiService = {
       const data = await response.json();
       return data;
     } catch (error) {
-      console.error("Error fetching published details:", error);
+      console.error("Error rejecting company:", error);
       throw error;
     }
   },
+
+// Update the fetchPublishedDetails function in the apiService
+async fetchPublishedDetails(publishedId: string,
+   userId: string,
+  //  setFinaleDataReview: (data: PublishedDetailsResponse) => void
+  ): Promise<any> {
+  try {
+    const response = await fetch(
+      `https://v1lqhhm1ma.execute-api.ap-south-1.amazonaws.com/prod/dashboard-cards/published-details/${publishedId}`,
+      {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-User-Id': userId,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    // setFinaleDataReview(data); // Set the data in the state
+    return data;
+  } catch (error) {
+    console.error("Error fetching published details:", error);
+    throw error;
+  }
+},
 };
 
 // Main Admin Dashboard Component
 const AdminDashboard: React.FC = () => {
   const navigate = useNavigate();
-
+  // const { setFinaleDataReview } = useTemplate(); // ✅ bring context setter
   // State management
   const [companies, setCompanies] = useState<Company[]>([]);
   const [totalCount, setTotalCount] = useState<number>(0);
@@ -644,40 +747,96 @@ const AdminDashboard: React.FC = () => {
     data: null
   });
 
-  // Handle credentials button click
-  const handleCredentials = async (publishedId: string): Promise<void> => {
+ // Update the handleCredentials function if it also needs userId
+const handleCredentials = async (publishedId: string): Promise<void> => {
+  try {
+    // Find the company to get the userId
+    const company = companies.find(c => c.publishedId === publishedId);
+    if (!company) {
+      toast.error("Company not found");
+      return;
+    }
+    
+    setLoading(true);
+    const credentials = await apiService.fetchCompanyCredentials(publishedId, company.userId);
+    
+    // Open modal with credentials data
+    setCredentialsModal({
+      isOpen: true,
+      data: credentials
+    });
+    
+  } catch (error) {
+    console.error("Error fetching company credentials:", error);
+    toast.error("Failed to fetch company credentials");
+  } finally {
+    setLoading(false);
+  }
+};
+
+ // Update the handlePreview function in the main component
+const handlePreview = async (publishedId: string): Promise<void> => {
+  try {
+    // Find the company to get the userId
+    const company = companies.find(c => c.publishedId === publishedId);
+    if (!company) {
+      toast.error("Company not found");
+      return;
+    }
+
+    const details = await apiService.fetchPublishedDetails(publishedId, company.userId);
+
+    // Navigate to preview page
+    if(details.templateSelection === "template-1"){
+      navigate(`/admin/companies/preview/1/${publishedId}/${company.userId}`);
+    } else if(details.templateSelection === "template-2"){
+      navigate(`/admin/companies/preview/2/${publishedId}/${company.userId}`);
+    }
+  } catch (error) {
+    console.error("Error loading template for preview:", error);
+    toast.error("Failed to load template for preview");
+  }
+};  
+
+  // Handle approve button click
+  const handleApprove = async (publishedId: string): Promise<void> => {
     try {
       setLoading(true);
-      const credentials = await apiService.fetchCompanyCredentials(publishedId);
+      const result = await apiService.approveCompany(publishedId);
       
-      // Open modal with credentials data
-      setCredentialsModal({
-        isOpen: true,
-        data: credentials
-      });
-      
+      if (result.success) {
+        toast.success("Company approved successfully");
+        // Refresh the companies list
+        fetchCompanies();
+      } else {
+        toast.error("Failed to approve company");
+      }
     } catch (error) {
-      console.error("Error fetching company credentials:", error);
-      toast.error("Failed to fetch company credentials");
+      console.error("Error approving company:", error);
+      toast.error("Failed to approve company");
     } finally {
       setLoading(false);
     }
   };
 
-  // Handle preview button click
-  const handlePreview = async (publishedId: string): Promise<void> => {
+  // Handle reject button click
+  const handleReject = async (publishedId: string): Promise<void> => {
     try {
-      const details = await apiService.fetchPublishedDetails(publishedId);
+      setLoading(true);
+      const result = await apiService.rejectCompany(publishedId);
       
-      // Navigate to preview page
-      if(details.templateSelection === "template-1"){
-        navigate(`/admin/companies/preview/1/${publishedId}`);
-      } else if(details.templateSelection === "template-2"){
-        navigate(`/admin/companies/preview/2/${publishedId}`);
+      if (result.success) {
+        toast.success("Company rejected successfully");
+        // Refresh the companies list
+        fetchCompanies();
+      } else {
+        toast.error("Failed to reject company");
       }
     } catch (error) {
-      console.error("Error loading template for preview:", error);
-      toast.error("Failed to load template for preview");
+      console.error("Error rejecting company:", error);
+      toast.error("Failed to reject company");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -698,7 +857,7 @@ const AdminDashboard: React.FC = () => {
       
       setCompanies(data.cards || []);
       setTotalCount(data.totalCount || 0);
-      setHasMore(data.hasMore || false);
+      setHasMore(data.hasTemplates || false);
       
     } catch (err) {
       console.error('Error in fetchCompanies:', err);
@@ -880,6 +1039,8 @@ const AdminDashboard: React.FC = () => {
           onOpenMobileSidebar={() => setIsMobileSidebarOpen(true)}
           onCredentials={handleCredentials}
           onPreview={handlePreview}
+          onApprove={handleApprove}
+          onReject={handleReject}
           searchTerm={searchTerm}
           industryFilter={industryFilter}
           sortBy={sortBy}
