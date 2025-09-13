@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import { Search, MapPin, ChevronDown, ArrowRight, Star, Users, Building2, Menu, X, Eye, Key, FileText, CheckCircle, XCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
+import CredentialsModal from './credentialProp/prop'; // ✅ import the modal component
+import { body } from "framer-motion/client";
 // import { useTemplate } from "../../context/context"; // ✅ import context hook
 
 // TypeScript Interfaces
@@ -282,16 +284,7 @@ const Sidebar: React.FC<SidebarProps> = ({
         {/* Divider */}
         <div className='border-t border-gray-100'></div>
 
-        {/* Admin Tools Section */}
-        <div className='space-y-3'>
-          <p className='text-sm text-gray-600'>Admin Tools</p>
-          <button 
-            onClick={() => {}}
-            className='w-full bg-gray-900 text-white py-3 px-4 rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors'
-          >
-            Generate Reports
-          </button>
-        </div>
+       
       </div>
     </div>
   );
@@ -623,16 +616,7 @@ const apiService = {
 async fetchCompanyCredentials(publishedId: string, userId: string): Promise<any> {
   try {
     const response = await fetch(
-      `https://v1lqhhm1ma.execute-api.ap-south-1.amazonaws.com/prod/admin/company-credentials/${publishedId}`,
-      {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-User-Id': userId,
-          'Authorization': `Bearer ${localStorage.getItem('adminToken')}`,
-        },
-      }
-    );
+      `https://xe9l3knwqi.execute-api.ap-south-1.amazonaws.com/prod/admin/form-details/${publishedId}`);
 
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
@@ -646,16 +630,17 @@ async fetchCompanyCredentials(publishedId: string, userId: string): Promise<any>
   }
 },
 
-  async approveCompany(publishedId: string): Promise<any> {
+  async approveCompany(publishedId: string, action: string): Promise<any> {
     try {
+      const body = JSON.stringify({ publishedId, action });
       const response = await fetch(
-        `https://v1lqhhm1ma.execute-api.ap-south-1.amazonaws.com/prod/admin/approve-company/${publishedId}`,
+        `https://twd6yfrd25.execute-api.ap-south-1.amazonaws.com/prod/admin/templates/review`,
         {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('adminToken')}`,
           },
+          body: body,
         }
       );
 
@@ -664,6 +649,8 @@ async fetchCompanyCredentials(publishedId: string, userId: string): Promise<any>
       }
 
       const data = await response.json();
+      console.log("Approve response data:", data);
+      
       return data;
     } catch (error) {
       console.error("Error approving company:", error);
@@ -671,16 +658,17 @@ async fetchCompanyCredentials(publishedId: string, userId: string): Promise<any>
     }
   },
 
-  async rejectCompany(publishedId: string): Promise<any> {
+  async rejectCompany(publishedId: string, action: string): Promise<any> {
     try {
       const response = await fetch(
-        `https://v1lqhhm1ma.execute-api.ap-south-1.amazonaws.com/prod/admin/reject-company/${publishedId}`,
+        `https://twd6yfrd25.execute-api.ap-south-1.amazonaws.com/prod/admin/templates/review`,
         {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('adminToken')}`,
+            
           },
+          body: JSON.stringify({ publishedId, action }),
         }
       );
 
@@ -689,6 +677,8 @@ async fetchCompanyCredentials(publishedId: string, userId: string): Promise<any>
       }
 
       const data = await response.json();
+      console.log("Reject response data:", data);
+      
       return data;
     } catch (error) {
       console.error("Error rejecting company:", error);
@@ -801,10 +791,11 @@ const handlePreview = async (publishedId: string): Promise<void> => {
   // Handle approve button click
   const handleApprove = async (publishedId: string): Promise<void> => {
     try {
+      const action = "approve";
       setLoading(true);
-      const result = await apiService.approveCompany(publishedId);
-      
-      if (result.success) {
+      const result = await apiService.approveCompany(publishedId, action);
+
+      if (result.status === "approved") {
         toast.success("Company approved successfully");
         // Refresh the companies list
         fetchCompanies();
@@ -822,10 +813,12 @@ const handlePreview = async (publishedId: string): Promise<void> => {
   // Handle reject button click
   const handleReject = async (publishedId: string): Promise<void> => {
     try {
-      setLoading(true);
-      const result = await apiService.rejectCompany(publishedId);
+      const action = "reject";
       
-      if (result.success) {
+      setLoading(true);
+      const result = await apiService.rejectCompany(publishedId, action);
+
+      if (result.status === "rejected") {
         toast.success("Company rejected successfully");
         // Refresh the companies list
         fetchCompanies();
@@ -920,96 +913,17 @@ const handlePreview = async (publishedId: string): Promise<void> => {
       <Header />
       
       {/* Credentials Modal */}
-      {credentialsModal.isOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-xl font-bold">Company Credentials</h3>
-                <button 
-                  onClick={() => setCredentialsModal({isOpen: false, data: null})}
-                  className="text-gray-500 hover:text-gray-700"
-                >
-                  <X className="w-6 h-6" />
-                </button>
-              </div>
-              
-              {credentialsModal.data ? (
-                <div className="space-y-4">
-                  <div>
-                    <h4 className="font-medium text-gray-700 mb-2">Basic Information</h4>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <p className="text-sm text-gray-600">Company Name</p>
-                        <p className="font-medium">{credentialsModal.data.companyName}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-600">Location</p>
-                        <p className="font-medium">{credentialsModal.data.location}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-600">Sectors</p>
-                        <p className="font-medium">{credentialsModal.data.sectors?.join(', ')}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-600">Status</p>
-                        <p className="font-medium capitalize">{credentialsModal.data.status}</p>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <h4 className="font-medium text-gray-700 mb-2">Legal Documents</h4>
-                    <div className="space-y-2">
-                      {credentialsModal.data.documents?.map((doc: any, index: number) => (
-                        <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded">
-                          <div className="flex items-center">
-                            <FileText className="w-5 h-5 text-blue-500 mr-2" />
-                            <span>{doc.name}</span>
-                          </div>
-                          <a 
-                            href={doc.url} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="text-blue-500 hover:text-blue-700 text-sm"
-                          >
-                            View Document
-                          </a>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <h4 className="font-medium text-gray-700 mb-2">Admin Notes</h4>
-                    <textarea 
-                      className="w-full p-3 border border-gray-300 rounded"
-                      rows={3}
-                      placeholder="Add notes about this company..."
-                    />
-                  </div>
-                  
-                  <div className="flex justify-end gap-3 pt-4">
-                    <button 
-                      onClick={() => setCredentialsModal({isOpen: false, data: null})}
-                      className="px-4 py-2 border border-gray-300 rounded text-gray-700 hover:bg-gray-50"
-                    >
-                      Close
-                    </button>
-                    <button className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
-                      Save Notes
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div className="text-center py-8">
-                  <p>Loading credentials...</p>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+   <CredentialsModal
+  isOpen={credentialsModal.isOpen}
+  onClose={() => setCredentialsModal({isOpen: false, data: null})}
+  data={credentialsModal.data}
+  loading={loading}
+  onPreview={handlePreview}
+  onApprove={handleApprove}
+  onReject={handleReject}
+  company={companies.find(c => c.publishedId === credentialsModal.data?.publishedId) || null}
+/>
+        
 
       {/* Main Layout Container */}
       <div className='flex flex-col md:flex-row bg-gray-50 min-h-screen'>

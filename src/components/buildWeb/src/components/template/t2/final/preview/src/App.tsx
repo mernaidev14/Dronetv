@@ -9,102 +9,87 @@ import Clients from "./components/Clients";
 import Contact from "./components/Contact";
 import Footer from "./components/Footer";
 import { ThemeProvider } from "./components/ThemeProvider";
-import { useTemplate, useUserAuth } from "../../../../../../../../context/context";
+import { useTemplate } from "../../../../../../../../context/context";
 import { useEffect, useState } from "react";
-import { useParams, useLocation } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 
 export default function App() {
   const { finaleDataReview, setFinaleDataReview } = useTemplate();
-  const { user } = useUserAuth();
-  const { pub } = useParams();
-  const location = useLocation();
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  // Function to fetch template data
-  async function fetchTemplateData(pubId: string, userId: string) {
-    try {
-      setIsLoading(true);
-      const response = await fetch(`https://v1lqhhm1ma.execute-api.ap-south-1.amazonaws.com/prod/dashboard-cards/published-details/${pubId}`,{
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-User-Id': userId,
-        },
-      });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      setFinaleDataReview(data);
-      setIsLoading(false);
-    } catch (error) {
-      console.error("Error fetching template data:", error);
-      setError(error.message);
-      setIsLoading(false);
-    }
-  }
-
-  useEffect(() => {
-    // Check if we have data in location state (from navigation)
-    if (location.state && location.state.templateData) {
-      setFinaleDataReview(location.state.templateData);
-      setIsLoading(false);
-    } 
-    // If we have a pub ID and user email, fetch the data
-    else if (pub && user && user.userData.email) {
-      fetchTemplateData(pub, user.userData.email);
-    }
-    // If we don't have user data but have pub ID, try to get user from localStorage
-    else if (pub) {
-      const storedUser = localStorage.getItem('user');
-      if (storedUser) {
-        const userData = JSON.parse(storedUser);
-        fetchTemplateData(pub, userData.email);
-      } else {
-        setError("User not found. Please log in again.");
-        setIsLoading(false);
-      }
-    }
-  }, [pub, user, location.state]);
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-background text-foreground theme-transition flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen bg-background text-foreground theme-transition flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold mb-4">Error Loading Page</h2>
-          <p className="text-muted-foreground mb-4">{error}</p>
-          <button 
-            onClick={() => window.location.reload()}
-            className="bg-primary text-primary-foreground px-4 py-2 rounded-lg"
-          >
-            Try Again
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  if (!finaleDataReview || !finaleDataReview.content) {
-    return (
-      <div className="min-h-screen bg-background text-foreground theme-transition flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold mb-4">No Data Found</h2>
-          <p className="text-muted-foreground">The requested company page could not be loaded.</p>
-        </div>
-      </div>
-    );
-  }
+   const { publishedId, userId } = useParams(); // Get both parameters from URL
+   const [isLoading, setIsLoading] = useState(true);
+   const [error, setError] = useState<string | null>(null);
+ 
+   // Function to fetch template data
+   async function fetchTemplateData(pubId: string, userId: string) {
+     try {
+       setIsLoading(true);
+       const response = await fetch(`https://v1lqhhm1ma.execute-api.ap-south-1.amazonaws.com/prod/dashboard-cards/published-details/${pubId}`,{
+         method: 'GET',
+         headers: {
+           'Content-Type': 'application/json',
+           'X-User-Id': userId,
+         },
+       });
+       
+       if (!response.ok) {
+         throw new Error(`HTTP error! status: ${response.status}`);
+       }
+       
+       const data = await response.json();
+       setFinaleDataReview(data);
+       setIsLoading(false);
+     } catch (error) {
+       console.error("Error fetching template data:", error);
+       setError(error.message);
+       setIsLoading(false);
+     }
+   }
+ 
+   useEffect(() => {
+     // If we have both publishedId and userId from URL, fetch the data
+     if (publishedId && userId) {
+       fetchTemplateData(publishedId, userId);
+     } else {
+       setError("Required parameters not found in URL");
+       setIsLoading(false);
+     }
+   }, [publishedId, userId]);
+ 
+   if (isLoading) {
+     return (
+       <div className="min-h-screen bg-background text-foreground theme-transition flex items-center justify-center">
+         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+       </div>
+     );
+   }
+ 
+   if (error) {
+     return (
+       <div className="min-h-screen bg-background text-foreground theme-transition flex items-center justify-center">
+         <div className="text-center">
+           <h2 className="text-2xl font-bold mb-4">Error Loading Page</h2>
+           <p className="text-muted-foreground mb-4">{error}</p>
+           <button 
+             onClick={() => window.location.reload()}
+             className="bg-primary text-primary-foreground px-4 py-2 rounded-lg"
+           >
+             Try Again
+           </button>
+         </div>
+       </div>
+     );
+   }
+ 
+   if (!finaleDataReview || !finaleDataReview.content) {
+     return (
+       <div className="min-h-screen bg-background text-foreground theme-transition flex items-center justify-center">
+         <div className="text-center">
+           <h2 className="text-2xl font-bold mb-4">No Data Found</h2>
+           <p className="text-muted-foreground">The requested company page could not be loaded.</p>
+         </div>
+       </div>
+     );
+   }
 
   return (
     <ThemeProvider>

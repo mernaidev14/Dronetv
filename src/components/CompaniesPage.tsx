@@ -222,7 +222,8 @@ const CompaniesPage: React.FC = () => {
               {currentCompanies.map((company, idx) => {
                 const totalServices = Array.isArray(company.sectors) ? company.sectors.length : 0;
                 const totalProducts = 0; // No products in this API currently
-
+               const publishedId = company.publishedId || 'unknown';
+               const userId = company.userId || 'unknown';
                 return (
                   <div
                     key={company.companyName + idx}
@@ -279,10 +280,10 @@ const CompaniesPage: React.FC = () => {
                       <div className="flex justify-center">
                         <button
                           onClick={() => {
-                            if (company.companyName) {
-                              navigate(`/company/${encodeURIComponent(company.companyName)}`);
-                            } else {
-                              alert('Invalid company name');
+                            if (!company.isTemplate2 ) {
+                              navigate(`/admin/companies/preview/1/${publishedId}/${company.userId}`);
+                            } else if (company.isTemplate2) {
+                              navigate(`/admin/companies/preview/2/${publishedId}/${company.userId}`);
                             }
                           }}
                           className="group/btn bg-gradient-to-r from-yellow-400 to-yellow-600 text-black px-4 py-2 rounded-xl font-semibold text-sm hover:from-yellow-500 hover:to-yellow-700 transition-all duration-300 transform hover:scale-105 flex items-center gap-2 shadow-lg"

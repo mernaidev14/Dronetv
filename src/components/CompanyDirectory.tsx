@@ -389,11 +389,11 @@ const CompanyCard: React.FC<CompanyCardProps> = ({ company, onEdit, onPreview })
 
   // Status badge styling based on status
   const getStatusBadge = (status: string) => {
-    const statusLower = (status || 'approved').toLowerCase();
+    const statusLower = (status ).toLowerCase();
     
     switch (statusLower) {
-      case 'pending':
-      case 'under review':
+      
+      case 'active':
         return {
           bg: 'bg-yellow-100',
           text: 'text-yellow-800',
@@ -420,7 +420,8 @@ const CompanyCard: React.FC<CompanyCardProps> = ({ company, onEdit, onPreview })
     }
   };
 
-  const statusStyle = getStatusBadge(company.status);
+  const statusStyle = getStatusBadge(company.reviewStatus);
+// console.log("Company Status:", company.reviewStatus); // Debug log
 
   return (
     <div className='bg-red-50 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden border-l-8 border-gradient-to-b from-pink-500 to-purple-600 group'>
@@ -770,6 +771,7 @@ const apiService = {
             companyName: String(card.companyName || card.name || 'Unnamed Company'),
             location: String(card.location || 'Location not specified'),
             sectors: Array.isArray(card.sectors) ? card.sectors.map(s => String(s)) : (card.sectors ? [String(card.sectors)] : ['General']),
+            reviewStatus: String(card.reviewStatus).toLowerCase(),
             publishedDate: card.publishedDate || card.createdAt || card.date || new Date().toISOString(),
             previewImage: card.previewImage || card.logo || card.image || '',
             status: String(card.status || 'approved').toLowerCase()
@@ -916,9 +918,9 @@ const handlePreview = async (publishedId: string): Promise<void> => {
     
     // Include user ID in the URL as a query parameter
     if(details.templateSelection === "template-1"){
-      navigate(`/user/companies/preview/1/${publishedId}`);
+      navigate(`/user/companies/preview/1/${publishedId}/${user.userData.email}`);
     }else if(details.templateSelection === "template-2"){
-      navigate(`/user/companies/preview/2/${publishedId}`);
+      navigate(`/user/companies/preview/2/${publishedId}/${user.userData.email}`);
     }
   } catch (error) {
     console.error("Error loading template for preview:", error);
@@ -963,6 +965,8 @@ const handlePreview = async (publishedId: string): Promise<void> => {
       });
       
       setCompanies(data.cards || []);
+      // console.log('Companies state updated:', data.cards);
+      
       setTotalCount(data.totalCount || 0);
       setHasMore(data.hasMore || false);
       
