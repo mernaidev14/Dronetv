@@ -40,7 +40,7 @@ export default function Products({ productData }) {
     if (!content.benefits || content.benefits.length === 0) return null;
 
     return (
-      <div className='mt-16 grid grid-cols-1 md:grid-cols-3 gap-8'>
+      <div  className='mt-16 grid grid-cols-1 md:grid-cols-3 gap-8'>
         {content.benefits.map((benefit, index) => (
           <div
             key={index}
@@ -68,6 +68,7 @@ export default function Products({ productData }) {
 
   return (
     <section
+    id="product"    
       ref={sectionRef}
       className='max-w-7xl mx-auto py-20 bg-gray-50 relative overflow-hidden'
     >

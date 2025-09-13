@@ -1,6 +1,6 @@
 import { Card, CardContent } from "../components/ui/card";
 import { Button } from "../components/ui/button";
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import { Edit2, Save, X, Plus, Trash2, Loader2, Upload } from "lucide-react";
 import blog1 from "../public/images/blog/blog1.jpg";
 import blog2 from "../public/images/blog/blog2.jpg";
@@ -233,8 +233,8 @@ export default function Blog({
   // Extract data from blogData prop or use defaults
   const defaultContent = {
     header: {
-      title: blogData?.header?.title || "",
-      desc: blogData?.header?.desc || "",
+      title: blogData?.header?.title || "Latest Blog Posts",
+      desc: blogData?.header?.desc || "Stay updated with our latest insights and stories",
     },
     posts: blogData?.posts?.map((post, index) => ({
       id: post.id || index + 1,
@@ -282,6 +282,42 @@ export default function Blog({
       onStateChange(content);
     }
   }, [content, onStateChange]);
+
+  // EditableText component following Services.tsx pattern
+  const EditableText = useMemo(
+    () =>
+      ({
+        value,
+        onChange,
+        multiline = false,
+        className = "",
+        placeholder = "",
+      }) => {
+        const baseClasses =
+          "w-full bg-white/80 border-2 border-dashed border-blue-300 rounded focus:border-blue-500 focus:outline-none";
+        if (multiline) {
+          return (
+            <textarea
+              value={value}
+              onChange={(e) => onChange(e.target.value)}
+              className={`${baseClasses} p-2 resize-none ${className}`}
+              placeholder={placeholder}
+              rows={3}
+            />
+          );
+        }
+        return (
+          <input
+            type='text'
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            className={`${baseClasses} p-1 ${className}`}
+            placeholder={placeholder}
+          />
+        );
+      },
+    []
+  );
 
   const handleEdit = () => {
     setIsEditing(true);
@@ -393,7 +429,7 @@ export default function Blog({
     });
   };
 
-  const handleChange = useCallback((id, field, value) => {
+  const updateBlogField = useCallback((id, field, value) => {
     setTempContent(prev => ({
       ...prev,
       posts: prev.posts.map(b => (b.id === id ? { ...b, [field]: value } : b))
@@ -401,6 +437,17 @@ export default function Blog({
   }, []);
 
   const handleImageUpload = (id: number, file: File) => {
+    // Validate file type and size
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select an image file');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) { // 5MB limit
+      toast.error('File size must be less than 5MB');
+      return;
+    }
+
     // Store the file for upload on Save
     setPendingImages(prev => ({ ...prev, [id]: file }));
 
@@ -429,27 +476,6 @@ export default function Blog({
     }));
   };
 
-  const EditableText = ({ value, onChange, multiline = false }) =>
-    multiline ? (
-      <motion.textarea
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className='w-full border border-yellow-400 rounded p-2 bg-white/20 
-                   text-gray-900 dark:text-white focus:outline-none'
-        whileFocus={{ scale: 1.02 }}
-        transition={{ duration: 0.2 }}
-      />
-    ) : (
-      <motion.input
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className='w-full border border-yellow-400 rounded p-2 bg-white/20 
-                   text-gray-900 dark:text-white focus:outline-none'
-        whileFocus={{ scale: 1.02 }}
-        transition={{ duration: 0.2 }}
-      />
-    );
-
   const displayContent = isEditing ? tempContent : content;
 
   return (
@@ -465,7 +491,7 @@ export default function Blog({
       >
         {/* Edit Controls */}
         <motion.div
-          className='absolute top-4 right-6 flex gap-2'
+          className='absolute top-4 right-6 flex gap-2 z-10'
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.2 }}
@@ -532,12 +558,14 @@ export default function Blog({
                   value={tempContent.header.title}
                   onChange={(val) => updateHeaderField("title", val)}
                   className='text-3xl font-bold text-gray-900 dark:text-white mb-2'
+                  placeholder="Blog section title"
                 />
                 <EditableText
                   value={tempContent.header.desc}
                   onChange={(val) => updateHeaderField("desc", val)}
                   className='text-gray-600 dark:text-gray-300'
                   multiline
+                  placeholder="Blog section description"
                 />
               </>
             ) : (
@@ -615,48 +643,59 @@ export default function Blog({
                       <CardContent className='p-6 space-y-3'>
                         {isEditing ? (
                           <>
-                            <div className='flex justify-between'>
+                            <div className='grid grid-cols-2 gap-2'>
                               <EditableText
                                 value={b.date}
                                 onChange={(val) =>
-                                  handleChange(b.id, "date", val)
+                                  updateBlogField(b.id, "date", val)
                                 }
+                                placeholder="Date"
+                                className="text-sm"
                               />
                               <EditableText
                                 value={b.readTime}
                                 onChange={(val) =>
-                                  handleChange(b.id, "readTime", val)
+                                  updateBlogField(b.id, "readTime", val)
                                 }
+                                placeholder="Read time"
+                                className="text-sm"
                               />
                             </div>
                             <EditableText
                               value={b.category}
                               onChange={(val) =>
-                                handleChange(b.id, "category", val)
+                                updateBlogField(b.id, "category", val)
                               }
+                              placeholder="Category"
                             />
                             <EditableText
                               value={b.author}
                               onChange={(val) =>
-                                handleChange(b.id, "author", val)
+                                updateBlogField(b.id, "author", val)
                               }
+                              placeholder="Author"
                             />
                             <EditableText
                               value={b.title}
-                              onChange={(val) => handleChange(b.id, "title", val)}
+                              onChange={(val) => updateBlogField(b.id, "title", val)}
+                              placeholder="Blog title"
+                              className="font-bold"
                             />
                             <EditableText
                               value={b.excerpt}
                               onChange={(val) =>
-                                handleChange(b.id, "excerpt", val)
+                                updateBlogField(b.id, "excerpt", val)
                               }
+                              multiline
+                              placeholder="Blog excerpt"
                             />
                             <EditableText
                               value={b.content}
                               multiline
                               onChange={(val) =>
-                                handleChange(b.id, "content", val)
+                                updateBlogField(b.id, "content", val)
                               }
+                              placeholder="Blog content"
                             />
 
                             {/* Delete Button */}

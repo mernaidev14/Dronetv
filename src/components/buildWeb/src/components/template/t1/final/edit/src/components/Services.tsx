@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Card,
   CardContent,
@@ -19,10 +19,19 @@ export default function Services({serviceData, onStateChange, userId, publishedI
   const [pendingImages, setPendingImages] = useState<Record<number, File>>({});
   const [isUploading, setIsUploading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-         
-  // Merged all state into a single object
-  const [servicesSection, setServicesSection] = useState(serviceData);
   
+  // Create a temporary state for editing like in Products.tsx
+  const [servicesSection, setServicesSection] = useState(serviceData);
+  const [tempServicesSection, setTempServicesSection] = useState(serviceData);
+
+  // Update content when serviceData changes
+  useEffect(() => {
+    if (serviceData) {
+      setServicesSection(serviceData);
+      setTempServicesSection(serviceData);
+    }
+  }, [serviceData]);
+
   // Add this useEffect to notify parent of state changes
   useEffect(() => {
     if (onStateChange) {
@@ -33,21 +42,21 @@ export default function Services({serviceData, onStateChange, userId, publishedI
   // Get categories from services
   const filteredServices =
     activeCategory === "All"
-      ? servicesSection.services
-      : servicesSection.services.filter((s) => s.category === activeCategory);
+      ? (isEditing ? tempServicesSection.services : servicesSection.services)
+      : (isEditing ? tempServicesSection.services : servicesSection.services).filter((s) => s.category === activeCategory);
 
   const visibleServices = filteredServices.slice(0, visibleCount);
 
   // Handlers
   const updateServiceField = (index: number, field: string, value: any) => {
-    setServicesSection(prev => ({
+    setTempServicesSection(prev => ({
       ...prev,
       services: prev.services.map((s, i) => (i === index ? { ...s, [field]: value } : s))
     }));
     
     // Update categories if needed
-    if (field === "category" && !servicesSection.categories.includes(value)) {
-      setServicesSection(prev => ({
+    if (field === "category" && !tempServicesSection.categories.includes(value)) {
+      setTempServicesSection(prev => ({
         ...prev,
         categories: [...prev.categories, value]
       }));
@@ -60,7 +69,7 @@ export default function Services({serviceData, onStateChange, userId, publishedI
     listIndex: number,
     value: string
   ) => {
-    setServicesSection(prev => ({
+    setTempServicesSection(prev => ({
       ...prev,
       services: prev.services.map((s, i) =>
         i === index
@@ -76,7 +85,7 @@ export default function Services({serviceData, onStateChange, userId, publishedI
   };
 
   const addToList = (index: number, field: "features" | "benefits" | "process") => {
-    setServicesSection(prev => ({
+    setTempServicesSection(prev => ({
       ...prev,
       services: prev.services.map((s, i) =>
         i === index ? { ...s, [field]: [...s[field], "New Item"] } : s
@@ -89,7 +98,7 @@ export default function Services({serviceData, onStateChange, userId, publishedI
     field: "features" | "benefits" | "process",
     listIndex: number
   ) => {
-    setServicesSection(prev => ({
+    setTempServicesSection(prev => ({
       ...prev,
       services: prev.services.map((s, i) =>
         i === index
@@ -130,68 +139,79 @@ export default function Services({serviceData, onStateChange, userId, publishedI
   };
 
   // Updated Save button handler - uploads images and stores S3 URLs
-  const handleSave = async () => {
-    try {
-      setIsUploading(true);
-
-      // Upload all pending images
-      for (const [indexStr, file] of Object.entries(pendingImages)) {
-        const index = parseInt(indexStr);
-        
-        if (!userId || !publishedId || !templateSelection) {
-          console.error('Missing required props:', { userId, publishedId, templateSelection });
-          toast.error('Missing user information. Please refresh and try again.');
-          return;
-        }
-        
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('sectionName', 'services');
-        formData.append('imageField', `services[${index}].image`);
-        formData.append('templateSelection', templateSelection);
-
-        const uploadResponse = await fetch(`https://o66ziwsye5.execute-api.ap-south-1.amazonaws.com/prod/upload-image/${userId}/${publishedId}`, {
-          method: 'POST',
-          body: formData,
-        });
-
-        if (uploadResponse.ok) {
-          const uploadData = await uploadResponse.json();
-          // Replace local preview with S3 URL
-          updateServiceField(index, "image", uploadData.imageUrl);
-          console.log('Image uploaded to S3:', uploadData.imageUrl);
-        } else {
-          const errorData = await uploadResponse.json();
-          console.error('Image upload failed:', errorData);
-          toast.error(`Image upload failed: ${errorData.message || 'Unknown error'}`);
-          return; // Don't exit edit mode
-        }
+  // Updated Save button handler - uploads images and stores S3 URLs
+const handleSave = async () => {
+  try {
+    setIsUploading(true);
+    
+    // Create a copy of the current tempServicesSection to update with S3 URLs
+    let updatedServices = {...tempServicesSection};
+    
+    // Upload all pending images
+    for (const [indexStr, file] of Object.entries(pendingImages)) {
+      const index = parseInt(indexStr);
+      
+      if (!userId || !publishedId || !templateSelection) {
+        console.error('Missing required props:', { userId, publishedId, templateSelection });
+        toast.error('Missing user information. Please refresh and try again.');
+        return;
       }
       
-      // Clear pending images
-      setPendingImages({});
-      
-      // Simulate save delay
-      setIsSaving(true);
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Exit edit mode
-      setIsEditing(false);
-      toast.success('Services section saved with S3 URLs ready for publish');
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('sectionName', 'services');
+      formData.append('imageField', `services[${index}].image`);
+      formData.append('templateSelection', templateSelection);
 
-    } catch (error) {
-      console.error('Error saving services section:', error);
-      toast.error('Error saving changes. Please try again.');
-      // Keep in edit mode so user can retry
-    } finally {
-      setIsUploading(false);
-      setIsSaving(false);
+      const uploadResponse = await fetch(`https://o66ziwsye5.execute-api.ap-south-1.amazonaws.com/prod/upload-image/${userId}/${publishedId}`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (uploadResponse.ok) {
+        const uploadData = await uploadResponse.json();
+        // Update the service image in our local copy
+        updatedServices.services = updatedServices.services.map((service, i) => 
+          i === index ? { ...service, image: uploadData.imageUrl } : service
+        );
+        console.log('Image uploaded to S3:', uploadData.imageUrl);
+      } else {
+        const errorData = await uploadResponse.json();
+        console.error('Image upload failed:', errorData);
+        toast.error(`Image upload failed: ${errorData.message || 'Unknown error'}`);
+        return; // Don't exit edit mode
+      }
     }
-  };
+    
+    // Clear pending images
+    setPendingImages({});
+    
+    // Simulate save delay
+    setIsSaving(true);
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    // Update both states with the new content including S3 URLs
+    setServicesSection(updatedServices);
+    setTempServicesSection(updatedServices);
+    
+    // Exit edit mode
+    setIsEditing(false);
+    toast.success('Services section saved with S3 URLs ready for publish');
+
+  } catch (error) {
+    console.error('Error saving services section:', error);
+    toast.error('Error saving changes. Please try again.');
+    // Keep in edit mode so user can retry
+  } finally {
+    setIsUploading(false);
+    setIsSaving(false);
+  }
+};
 
   const handleCancel = () => {
-    setIsEditing(false);
+    setTempServicesSection(servicesSection);
     setPendingImages({});
+    setIsEditing(false);
   };
 
   const addService = () => {
@@ -208,13 +228,13 @@ export default function Services({serviceData, onStateChange, userId, publishedI
       timeline: "TBD",
     };
     
-    setServicesSection(prev => ({
+    setTempServicesSection(prev => ({
       ...prev,
       services: [...prev.services, newService]
     }));
     
-    if (!servicesSection.categories.includes("New Category")) {
-      setServicesSection(prev => ({
+    if (!tempServicesSection.categories.includes("New Category")) {
+      setTempServicesSection(prev => ({
         ...prev,
         categories: [...prev.categories, "New Category"]
       }));
@@ -222,16 +242,16 @@ export default function Services({serviceData, onStateChange, userId, publishedI
   };
 
   const removeService = (index: number) => {
-    setServicesSection(prev => ({
+    setTempServicesSection(prev => ({
       ...prev,
       services: prev.services.filter((_, i) => i !== index)
     }));
   };
 
   const addCategory = () => {
-    const newCategory = `New Category ${servicesSection.categories.length}`;
-    if (!servicesSection.categories.includes(newCategory)) {
-      setServicesSection(prev => ({
+    const newCategory = `New Category ${tempServicesSection.categories.length}`;
+    if (!tempServicesSection.categories.includes(newCategory)) {
+      setTempServicesSection(prev => ({
         ...prev,
         categories: [...prev.categories, newCategory]
       }));
@@ -240,7 +260,7 @@ export default function Services({serviceData, onStateChange, userId, publishedI
 
   const removeCategory = (cat: string) => {
     if (cat !== "All") {
-      setServicesSection(prev => ({
+      setTempServicesSection(prev => ({
         ...prev,
         categories: prev.categories.filter((c) => c !== cat),
         services: prev.services.map((s) => 
@@ -260,36 +280,55 @@ export default function Services({serviceData, onStateChange, userId, publishedI
     setSelectedServiceIndex(null);
   };
 
-  // EditableText component for consistent styling
-  const EditableText = ({ value, field, index, multiline = false, className = "", placeholder = "" }) => {
-    const handleChange = (e) => {
-      updateServiceField(index, field, e.target.value);
-    };
-
-    const baseClasses = "w-full bg-white/80 border-2 border-dashed border-blue-300 rounded focus:border-blue-500 focus:outline-none";
-
-    if (multiline) {
-      return (
-        <textarea
-          value={value}
-          onChange={handleChange}
-          className={`${baseClasses} p-2 resize-none ${className}`}
-          placeholder={placeholder}
-          rows={3}
-        />
-      );
-    }
-
-    return (
-      <input
-        type="text"
-        value={value}
-        onChange={handleChange}
-        className={`${baseClasses} p-1 ${className}`}
-        placeholder={placeholder}
-      />
-    );
+  // Update heading fields
+  const updateHeading = (field: string, value: string) => {
+    setTempServicesSection(prev => ({
+      ...prev,
+      heading: {
+        ...prev.heading,
+        [field]: value
+      }
+    }));
   };
+
+  // EditableText component for consistent styling (like in Products.tsx)
+  const EditableText = useMemo(
+    () =>
+      ({
+        value,
+        onChange,
+        multiline = false,
+        className = "",
+        placeholder = "",
+      }) => {
+        const baseClasses =
+          "w-full bg-white/80 border-2 border-dashed border-blue-300 rounded focus:border-blue-500 focus:outline-none";
+        if (multiline) {
+          return (
+            <textarea
+              value={value}
+              onChange={(e) => onChange(e.target.value)}
+              className={`${baseClasses} p-2 resize-none ${className}`}
+              placeholder={placeholder}
+              rows={3}
+            />
+          );
+        }
+        return (
+          <input
+            type='text'
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            className={`${baseClasses} p-1 ${className}`}
+            placeholder={placeholder}
+          />
+        );
+      },
+    []
+  );
+
+  // Use the appropriate content based on editing mode
+  const displayContent = isEditing ? tempServicesSection : servicesSection;
 
   return (
     <motion.section id="services" className="py-20 bg-blue-100 theme-transition relative">
@@ -342,43 +381,36 @@ export default function Services({serviceData, onStateChange, userId, publishedI
           {isEditing ? (
             <>
               <EditableText
-                value={servicesSection.heading.head}
-                field="head"
-                index={-1}
-                className="text-3xl font-bold"
-                onChange={(e) => setServicesSection(prev => ({
-                  ...prev,
-                  heading: {...prev.heading, head: e.target.value}
-                }))}
+                value={tempServicesSection.heading.head}
+                onChange={(val) => updateHeading('head', val)}
+                className="text-3xl font-bold mb-2"
+                placeholder="Section heading"
               />
               <EditableText
-                value={servicesSection.heading.desc}
-                field="desc"
-                index={-1}
-                className="text-muted-foreground mt-2"
-                onChange={(e) => setServicesSection(prev => ({
-                  ...prev,
-                  heading: {...prev.heading, desc: e.target.value}
-                }))}
+                value={tempServicesSection.heading.desc}
+                onChange={(val) => updateHeading('desc', val)}
+                multiline={true}
+                className="text-muted-foreground"
+                placeholder="Section description"
               />
             </>
           ) : (
             <>
-              <h2 className="text-3xl font-bold">{servicesSection.heading.head}</h2>
-              <p className="text-muted-foreground">{servicesSection.heading.desc}</p>
+              <h2 className="text-3xl font-bold">{displayContent.heading.head}</h2>
+              <p className="text-muted-foreground">{displayContent.heading.desc}</p>
             </>
           )}          
         </div>
 
         {/* Filter */}
         <div className="flex flex-wrap justify-center gap-3 mb-6">
-          {servicesSection.categories.map((cat, i) => (
+          {displayContent.categories.map((cat, i) => (
             <div key={i} className="flex items-center gap-2">
               {isEditing ? (
                 <input
                   value={cat}
                   onChange={(e) =>
-                    setServicesSection(prev => ({
+                    setTempServicesSection(prev => ({
                       ...prev,
                       categories: prev.categories.map((c, idx) => 
                         idx === i ? e.target.value : c
@@ -465,8 +497,7 @@ export default function Services({serviceData, onStateChange, userId, publishedI
                 {isEditing ? (
                   <EditableText
                     value={service.title}
-                    field="title"
-                    index={index}
+                    onChange={(val) => updateServiceField(index, "title", val)}
                     className="font-bold"
                     placeholder="Service title"
                   />
@@ -479,8 +510,7 @@ export default function Services({serviceData, onStateChange, userId, publishedI
                   <>
                     <EditableText
                       value={service.description}
-                      field="description"
-                      index={index}
+                      onChange={(val) => updateServiceField(index, "description", val)}
                       multiline={true}
                       placeholder="Service description"
                     />
@@ -490,8 +520,7 @@ export default function Services({serviceData, onStateChange, userId, publishedI
                       </label>
                       <EditableText
                         value={service.category}
-                        field="category"
-                        index={index}
+                        onChange={(val) => updateServiceField(index, "category", val)}
                         placeholder="Service category"
                       />
                     </div>
@@ -580,35 +609,33 @@ export default function Services({serviceData, onStateChange, userId, publishedI
 
               {isEditing ? (
                 <EditableText
-                  value={servicesSection.services[selectedServiceIndex].title}
-                  field="title"
-                  index={selectedServiceIndex}
+                  value={tempServicesSection.services[selectedServiceIndex].title}
+                  onChange={(val) => updateServiceField(selectedServiceIndex, "title", val)}
                   className="text-2xl font-bold mb-4"
                   placeholder="Service title"
                 />
               ) : (
-                <h2 className="text-2xl font-bold mb-4">{servicesSection.services[selectedServiceIndex].title}</h2>
+                <h2 className="text-2xl font-bold mb-4">{displayContent.services[selectedServiceIndex].title}</h2>
               )}
 
               {isEditing ? (
                 <EditableText
-                  value={servicesSection.services[selectedServiceIndex].detailedDescription}
-                  field="detailedDescription"
-                  index={selectedServiceIndex}
+                  value={tempServicesSection.services[selectedServiceIndex].detailedDescription}
+                  onChange={(val) => updateServiceField(selectedServiceIndex, "detailedDescription", val)}
                   multiline={true}
                   className="mb-4"
                   placeholder="Detailed description"
                 />
               ) : (
                 <p className="text-muted-foreground mb-4">
-                  {servicesSection.services[selectedServiceIndex].detailedDescription}
+                  {displayContent.services[selectedServiceIndex].detailedDescription}
                 </p>
               )}
 
               {/* Benefits */}
               <h3 className="font-semibold mb-2">Key Benefits</h3>
               <ul className="space-y-2 mb-4">
-                {servicesSection.services[selectedServiceIndex].benefits.map((b: string, bi: number) => (
+                {displayContent.services[selectedServiceIndex].benefits.map((b: string, bi: number) => (
                   <li key={bi} className="flex gap-2">
                     <CheckCircle className="w-4 h-4 text-green-500 mt-1" />
                     {isEditing ? (
@@ -654,7 +681,7 @@ export default function Services({serviceData, onStateChange, userId, publishedI
               {/* Process */}
               <h3 className="font-semibold mb-2">Our Process</h3>
               <ol className="space-y-2 mb-4">
-                {servicesSection.services[selectedServiceIndex].process.map((p: string, pi: number) => (
+                {displayContent.services[selectedServiceIndex].process.map((p: string, pi: number) => (
                   <li key={pi} className="flex gap-2">
                     <span className="font-semibold">{pi + 1}.</span>
                     {isEditing ? (
@@ -703,26 +730,24 @@ export default function Services({serviceData, onStateChange, userId, publishedI
                   <h3 className="font-semibold mb-2">Pricing</h3>
                   {isEditing ? (
                     <EditableText
-                      value={servicesSection.services[selectedServiceIndex].pricing}
-                      field="pricing"
-                      index={selectedServiceIndex}
+                      value={tempServicesSection.services[selectedServiceIndex].pricing}
+                      onChange={(val) => updateServiceField(selectedServiceIndex, "pricing", val)}
                       placeholder="Pricing information"
                     />
                   ) : (
-                    <p>{servicesSection.services[selectedServiceIndex].pricing}</p>
+                    <p>{displayContent.services[selectedServiceIndex].pricing}</p>
                   )}
                 </div>
                 <div>
                   <h3 className="font-semibold mb-2">Timeline</h3>
                   {isEditing ? (
                     <EditableText
-                      value={servicesSection.services[selectedServiceIndex].timeline}
-                      field="timeline"
-                      index={selectedServiceIndex}
+                      value={tempServicesSection.services[selectedServiceIndex].timeline}
+                      onChange={(val) => updateServiceField(selectedServiceIndex, "timeline", val)}
                       placeholder="Timeline information"
                     />
                   ) : (
-                    <p>{servicesSection.services[selectedServiceIndex].timeline}</p>
+                    <p>{displayContent.services[selectedServiceIndex].timeline}</p>
                   )}
                 </div>
               </div>
