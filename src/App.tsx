@@ -49,6 +49,8 @@ import Logout from "./components/Logout";
 import ResetPassword from "./components/ResetPassword";
 // import ProtectedRoute from "./components/ProtectedRoute";
 import AdminDashboard from "./components/Admin/CompaniesDashboard/AdminDashboard";
+import MainCompPreviewT1 from "./components/mainCompanyPreview/t1/src/App";
+import MainCompPreviewT2 from "./components/mainCompanyPreview/t2/src/App";
 const HomePage = () => (
   <>
     <Hero />
@@ -110,7 +112,11 @@ const AppContent = () => {
           <Route path='/admin/company/dashboard' element={<AdminDashboard />} />
           <Route path='/admin/companies/preview/1/:publishedId/:userId' element={<DashboardPreview1 />} />
           <Route path='/admin/companies/preview/2/:publishedId/:userId' element={<DashboardPreview2 />} />
-        </Routes> 
+
+          {/* main preview routes */}
+          <Route path='/companies/preview/1/:companyName/:publishedId/:userId' element={<MainCompPreviewT1 />} />
+          <Route path='/companies/preview/2/:companyName/:publishedId/:userId' element={<MainCompPreviewT2 />} />
+        </Routes>
         {!hideFooter && <Footer />}
         <ScrollingFooter />
       </CombinedProviders>

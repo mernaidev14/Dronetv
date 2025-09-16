@@ -16,7 +16,7 @@ export default function Header({ headerData, onStateChange, userId, publishedId,
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   
   const [content, setContent] = useState({
-    logoSrc: headerData?.logo || logo,
+    logoLetter: headerData?.logo || logo,
     companyName: headerData?.name || "Company",
     navItems: [
       { id: 1, label: "Home", href: "#home", color: "primary" },
@@ -88,7 +88,7 @@ export default function Header({ headerData, onStateChange, userId, publishedId,
     // Show immediate local preview
     const reader = new FileReader();
     reader.onloadend = () => {
-      setContent(prev => ({ ...prev, logoSrc: reader.result as string }));
+      setContent(prev => ({ ...prev, logoLetter: reader.result as string }));
     };
     reader.readAsDataURL(file);
   };
@@ -109,7 +109,7 @@ export default function Header({ headerData, onStateChange, userId, publishedId,
         const formData = new FormData();
         formData.append('file', pendingLogoFile);
         formData.append('sectionName', 'header');
-        formData.append('imageField', 'logoSrc');
+        formData.append('imageField', 'logoLetter');
         formData.append('templateSelection', templateSelection);
 
         const uploadResponse = await fetch(`https://o66ziwsye5.execute-api.ap-south-1.amazonaws.com/prod/upload-image/${userId}/${publishedId}`, {
@@ -120,7 +120,7 @@ export default function Header({ headerData, onStateChange, userId, publishedId,
         if (uploadResponse.ok) {
           const uploadData = await uploadResponse.json();
           // Replace local preview with S3 URL
-          setContent(prev => ({ ...prev, logoSrc: uploadData.imageUrl }));
+          setContent(prev => ({ ...prev, logoLetter: uploadData.imageUrl }));
           setPendingLogoFile(null); // Clear pending file
           console.log('Logo uploaded to S3:', uploadData.imageUrl);
         } else {
@@ -181,7 +181,7 @@ export default function Header({ headerData, onStateChange, userId, publishedId,
               {isEditing ? (
                 <div className="relative w-full h-full">
                   <img
-                    src={content.logoSrc}
+                    src={content.logoLetter}
                     alt="Logo"
                     className="w-full h-full object-contain"
                   />
@@ -196,7 +196,7 @@ export default function Header({ headerData, onStateChange, userId, publishedId,
                 </div>
               ) : (
                 <img
-                  src={content.logoSrc}
+                  src={content.logoLetter}
                   alt="Logo"
                   className="w-full h-full object-contain"
                 />

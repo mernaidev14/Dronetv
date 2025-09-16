@@ -279,11 +279,18 @@ const CompaniesPage: React.FC = () => {
 
                       <div className="flex justify-center">
                         <button
+                          // onClick={() => {
+                          //   if (!company.isTemplate2 ) {
+                          //     navigate(`/admin/companies/preview/1/${publishedId}/${company.userId}`);
+                          //   } else if (company.isTemplate2) {
+                          //     navigate(`/admin/companies/preview/2/${publishedId}/${company.userId}`);
+                          //   }
+                          // }}
                           onClick={() => {
                             if (!company.isTemplate2 ) {
-                              navigate(`/admin/companies/preview/1/${publishedId}/${company.userId}`);
+                              navigate(`/companies/preview/1/${company.companyName}/${company.publishedId}/${company.userId}`);
                             } else if (company.isTemplate2) {
-                              navigate(`/admin/companies/preview/2/${publishedId}/${company.userId}`);
+                              navigate(`/companies/preview/2/${company.companyName}/${company.publishedId}/${company.userId}`);
                             }
                           }}
                           className="group/btn bg-gradient-to-r from-yellow-400 to-yellow-600 text-black px-4 py-2 rounded-xl font-semibold text-sm hover:from-yellow-500 hover:to-yellow-700 transition-all duration-300 transform hover:scale-105 flex items-center gap-2 shadow-lg"
