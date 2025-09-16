@@ -26,9 +26,10 @@ export const AIGenerationLoader: React.FC<AIGenerationLoaderProps> = ({ onComple
           setTimeout(onComplete, 2000);
           return 100;
         }
-        return prev + 2;
+        // Changed from +2 to +1 to slow down progress
+        return prev + 1;
       });
-    }, 300);
+    }, 500); // Increased interval from 300ms to 500ms
 
     const stepInterval = setInterval(() => {
       setCurrentStep((prev) => {
@@ -38,7 +39,7 @@ export const AIGenerationLoader: React.FC<AIGenerationLoaderProps> = ({ onComple
         }
         return prev + 1;
       });
-    }, 2000);
+    }, 8000); // Increased step interval from 2000ms to 8000ms
 
     return () => {
       clearInterval(interval);
@@ -148,7 +149,7 @@ export const AIGenerationLoader: React.FC<AIGenerationLoaderProps> = ({ onComple
         {/* Footer */}
         <div className="text-center mt-8">
           <p className="text-slate-400 text-sm">
-            This usually takes 30-60 seconds
+            This usually takes 40-60 seconds {/* Updated from 30-60 to 40-60 */}
           </p>
         </div>
       </div>

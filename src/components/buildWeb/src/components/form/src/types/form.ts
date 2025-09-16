@@ -41,8 +41,16 @@ export interface FormData {
   promoCode: string;
 
   // B. Sectors Served
-  sectorsServed: string[];
-  sectorsOther?: string;
+  sectorsServed: {
+  Drone: [],
+  AI: [],
+  GIS: []
+}
+sectorsOther: {
+  Drone: "",
+  AI: "",
+  GIS: ""
+}
 
   // C. Business Categories & Coverage
   mainCategories: string[];
@@ -150,7 +158,7 @@ export interface FormData {
   brandGuidelinesUrl?: string;
 
   // templateId
-  templateSelection?: string;
+  templateSelection?: number;
 }
 
 export interface StepProps {

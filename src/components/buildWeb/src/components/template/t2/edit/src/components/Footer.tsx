@@ -1,70 +1,75 @@
-import { Facebook, Twitter, Linkedin, Instagram, Mail, Phone } from "lucide-react";
+import { Facebook, Twitter, Linkedin, Instagram, Mail, Phone, Edit2, Save, Upload } from "lucide-react";
 import { motion } from "motion/react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "./ui/button";
+import logo from "../img/logo/logo.svg";
+import { toast } from "react-toastify";
 
-export default function Footer({onStateChange,footerData}) {
+export default function Footer({ onStateChange, footerData, footerLogo, userId, publishedId, templateSelection }) {
   const [isEditing, setIsEditing] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [pendingLogoFile, setPendingLogoFile] = useState(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   // Merged all state into a single object
-    const [footerContent, setFooterContent] = useState({
-      companyInfo: {
-        logoText: "C",
-        companyName: "Company",
-        description: "We help businesses transform and grow with innovative solutions, expert guidance, and proven strategies that deliver exceptional results.",
-        email: "hello@company.com",
-        phone: "+1 (555) 123-4567"
-      },
-      footerLinks: {
-        Company: [
-          { name: "About Us", href: "#about" },
-          { name: "Our Team", href: "#" },
-          { name: "Careers", href: "#" },
-          { name: "Contact", href: "#contact" }
-        ],
-        Services: footerData?.services ? footerData.services.map(service => ({
-          name: service.title,
-          href: "#services"
-        })) : [
-          { name: "Strategy Consulting", href: "#services" },
-          { name: "Team Development", href: "#services" },
-          { name: "Digital Transformation", href: "#services" },
-          { name: "Performance Optimization", href: "#services" }
-        ],
-        Resources: [
-          { name: "Blog", href: "#" },
-          { name: "Case Studies", href: "#" },
-          { name: "Whitepapers", href: "#" },
-          { name: "Documentation", href: "#" }
-        ],
-        Legal: [
-          { name: "Privacy Policy", href: "#" },
-          { name: "Terms of Service", href: "#" },
-          { name: "Cookie Policy", href: "#" },
-          { name: "GDPR", href: "#" }
-        ]
-      },
-      socialLinks: [
-        { name: "Facebook", icon: Facebook, href: "#" },
-        { name: "Twitter", icon: Twitter, href: "#" },
-        { name: "LinkedIn", icon: Linkedin, href: "#" },
-        { name: "Instagram", icon: Instagram, href: "#" }
+  const [footerContent, setFooterContent] = useState({
+    companyInfo: {
+      logoSrc: footerLogo?.logo || logo,
+      companyName: footerLogo?.name || "Company",
+      description: "We help businesses transform and grow with innovative solutions, expert guidance, and proven strategies that deliver exceptional results.",
+      email: "hello@company.com",
+      phone: "+1 (555) 123-4567"
+    },
+    footerLinks: {
+      Company: [
+        { name: "About Us", href: "#about" },
+        { name: "Our Team", href: "#" },
+        { name: "Careers", href: "#" },
+        { name: "Contact", href: "#contact" }
       ],
-      newsletter: {
-        title: "Stay updated",
-        description: "Get the latest news and insights delivered to your inbox.",
-        buttonText: "Subscribe"
-      },
-      bottomFooter: {
-        copyright: "© 2024 Company. All rights reserved.",
-        links: [
-          { name: "Privacy Policy", href: "#" },
-          { name: "Terms of Service", href: "#" },
-          { name: "Cookies", href: "#" }
-        ]
-      }
-    });
- 
+      Services: footerData?.services ? footerData.services.map(service => ({
+        name: service.title,
+        href: "#services"
+      })) : [
+        { name: "Strategy Consulting", href: "#services" },
+        { name: "Team Development", href: "#services" },
+        { name: "Digital Transformation", href: "#services" },
+        { name: "Performance Optimization", href: "#services" }
+      ],
+      Resources: [
+        { name: "Blog", href: "#" },
+        { name: "Case Studies", href: "#" },
+        { name: "Whitepapers", href: "#" },
+        { name: "Documentation", href: "#" }
+      ],
+      Legal: [
+        { name: "Privacy Policy", href: "#" },
+        { name: "Terms of Service", href: "#" },
+        { name: "Cookie Policy", href: "#" },
+        { name: "GDPR", href: "#" }
+      ]
+    },
+    socialLinks: [
+      { name: "Facebook", icon: Facebook, href: "#" },
+      { name: "Twitter", icon: Twitter, href: "#" },
+      { name: "LinkedIn", icon: Linkedin, href: "#" },
+      { name: "Instagram", icon: Instagram, href: "#" }
+    ],
+    newsletter: {
+      title: "Stay updated",
+      description: "Get the latest news and insights delivered to your inbox.",
+      buttonText: "Subscribe"
+    },
+    bottomFooter: {
+      copyright: "© 2024 Company. All rights reserved.",
+      links: [
+        { name: "Privacy Policy", href: "#" },
+        { name: "Terms of Service", href: "#" },
+        { name: "Cookies", href: "#" }
+      ]
+    }
+  });
+
   // Update footer content when footerData changes
   useEffect(() => {
     if (footerData?.services) {
@@ -81,7 +86,7 @@ export default function Footer({onStateChange,footerData}) {
     }
   }, [footerData]);
 
-    // Add this useEffect to notify parent of state changes
+  // Add this useEffect to notify parent of state changes
   useEffect(() => {
     if (onStateChange) {
       onStateChange(footerContent);
@@ -201,6 +206,84 @@ export default function Footer({onStateChange,footerData}) {
     }));
   };
 
+  // Logo upload functionality
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type and size
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select an image file');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) { // 5MB limit
+      toast.error('File size must be less than 5MB');
+      return;
+    }
+
+    // Store the file for upload on Save
+    setPendingLogoFile(file);
+    
+    // Show immediate local preview
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      updateCompanyInfo("logoSrc", reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Save button handler with S3 upload
+  const handleSave = async () => {
+    try {
+      setIsUploading(true);
+
+      // If there's a pending logo, upload it first
+      if (pendingLogoFile) {
+        if (!userId || !publishedId || !templateSelection) {
+          console.error('Missing required props:', { userId, publishedId, templateSelection });
+          toast.error('Missing user information. Please refresh and try again.');
+          return;
+        }
+        
+        const formData = new FormData();
+        formData.append('file', pendingLogoFile);
+        formData.append('sectionName', 'footer');
+        formData.append('imageField', 'logoSrc');
+        formData.append('templateSelection', templateSelection);
+
+        const uploadResponse = await fetch(`https://o66ziwsye5.execute-api.ap-south-1.amazonaws.com/prod/upload-image/${userId}/${publishedId}`, {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (uploadResponse.ok) {
+          const uploadData = await uploadResponse.json();
+          // Replace local preview with S3 URL
+          updateCompanyInfo("logoSrc", uploadData.imageUrl);
+          setPendingLogoFile(null); // Clear pending file
+          console.log('Logo uploaded to S3:', uploadData.imageUrl);
+        } else {
+          const errorData = await uploadResponse.json();
+          console.error('Logo upload failed:', errorData);
+          toast.error(`Logo upload failed: ${errorData.message || 'Unknown error'}`);
+          return; // Don't exit edit mode
+        }
+      }
+      
+      // Exit edit mode
+      setIsEditing(false);
+      toast.success('Footer section saved with S3 URLs ready for publish');
+
+    } catch (error) {
+      console.error('Error saving footer section:', error);
+      toast.error('Error saving changes. Please try again.');
+      // Keep in edit mode so user can retry
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
@@ -238,10 +321,15 @@ export default function Footer({onStateChange,footerData}) {
           <motion.button 
             whileTap={{scale:0.9}}
             whileHover={{y:-1,scaleX:1.1}}
-            onClick={() => setIsEditing(false)} 
-            className="bg-green-600 cursor-pointer hover:font-semibold hover:shadow-2xl shadow-xl text-white px-4 py-2 rounded"
+            onClick={handleSave}
+            disabled={isUploading}
+            className={`${
+              isUploading 
+                ? 'bg-gray-400 cursor-not-allowed' 
+                : 'bg-green-600 hover:font-semibold'
+            } text-white px-4 py-2 rounded cursor-pointer hover:shadow-2xl shadow-xl`}
           >
-            Save
+            {isUploading ? 'Uploading...' : <><Save size={16} className="inline mr-1" /> Save</>}
           </motion.button>
         ) : (
           <motion.button 
@@ -250,7 +338,7 @@ export default function Footer({onStateChange,footerData}) {
             onClick={() => setIsEditing(true)} 
             className="bg-yellow-500 text-black px-4 py-2 rounded cursor-pointer hover:shadow-2xl shadow-xl hover:font-semibold"
           >
-            Edit
+            <Edit2 size={16} className="inline mr-1" /> Edit
           </motion.button>
         )}
       </div>
@@ -276,7 +364,7 @@ export default function Footer({onStateChange,footerData}) {
                 transition={{ duration: 0.3 }}
               >
                 <motion.div 
-                  className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center mr-2"
+                  className="relative w-8 h-8 rounded-lg flex items-center justify-center mr-2 overflow-hidden"
                   whileHover={{ 
                     rotate: 360,
                     boxShadow: "0 0 20px rgba(250, 204, 21, 0.4)"
@@ -284,14 +372,35 @@ export default function Footer({onStateChange,footerData}) {
                   transition={{ duration: 0.6 }}
                 >
                   {isEditing ? (
-                    <input
-                      value={footerContent.companyInfo.logoText}
-                      onChange={(e) => updateCompanyInfo("logoText", e.target.value)}
-                      className="text-black font-bold text-lg w-4 bg-transparent border-b"
-                    />
+                    <div className="relative w-full h-full">
+                      <img
+                        src={footerContent.companyInfo.logoSrc}
+                        alt="Logo"
+                        className="w-full h-full object-contain"
+                      />
+                      <div className="absolute inset-0 bg-black bg-opacity-50 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <button
+                          onClick={() => fileInputRef.current?.click()}
+                          className="text-white text-xs p-1 bg-blue-500 rounded"
+                        >
+                          <Upload size={12} />
+                        </button>
+                      </div>
+                    </div>
                   ) : (
-                    <span className="text-black font-bold text-lg">{footerContent.companyInfo.logoText}</span>
+                    <img
+                      src={footerContent.companyInfo.logoSrc}
+                      alt="Logo"
+                      className="w-full h-full object-contain"
+                    />
                   )}
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    accept="image/*"
+                    onChange={handleLogoUpload}
+                    className="hidden"
+                  />
                 </motion.div>
                 {isEditing ? (
                   <input

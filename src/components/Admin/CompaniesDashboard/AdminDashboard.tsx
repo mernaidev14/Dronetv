@@ -2,8 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Search, MapPin, ChevronDown, ArrowRight, Star, Users, Building2, Menu, X, Eye, Key, FileText, CheckCircle, XCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
-import CredentialsModal from './credentialProp/prop'; // ✅ import the modal component
-import { body } from "framer-motion/client";
+import CredentialsModal from './credentialProp/Prop'; // ✅ import the modal component
 // import { useTemplate } from "../../context/context"; // ✅ import context hook
 
 // TypeScript Interfaces
@@ -605,6 +604,8 @@ const apiService = {
       }
 
       const data = await response.json();
+      console.log("Fetched companies data:", data);
+      
       return data;
     } catch (error) {
       console.error("Error fetching companies:", error);

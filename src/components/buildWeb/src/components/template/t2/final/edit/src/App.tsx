@@ -11,7 +11,7 @@ import Footer from "./components/Footer";
 import { ThemeProvider } from "./components/ThemeProvider";
 import { useTemplate } from "../../../../../../../../context/context";
 import { useEffect, useState, useCallback } from "react";
-import Publish from "./components/publish";
+import Publish from "./components/Publish";
 
 export default function App() {
   const { finaleDataReview, setFinalTemplate } = useTemplate();

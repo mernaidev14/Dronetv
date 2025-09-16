@@ -251,7 +251,7 @@ const CredentialsModal: React.FC<CredentialsModalProps> = ({
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <p className="text-sm text-gray-600">DGCA Certificate</p>
-                    <a href={data.formData?.technicalInfo?.dgcaCertificate} target="_blank" rel="noopener noreferrer">View Document</a>
+                    <a href={data.formData?.technicalInfo?.dgcaCertificate||"#"} className='text-blue-600 hover:underline' target="_blank" rel="noopener noreferrer">View Document</a>
                     
                   </div>
                   <div>

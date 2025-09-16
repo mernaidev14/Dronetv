@@ -31,8 +31,7 @@ import GalleryPage from "./components/GalleryPage";
 import GalleryGlimpse from "./components/GalleryGlimpse";
 import SubApp from "./components/webbuilder/src/App";
 import OurPartners from "./components/Ourpartners";
-import GalleryPage1 from "./components/GalleryPage1";
-import Select from "./components/buildWeb/src/components/select-template/select";
+import Select from "./components/buildWeb/src/components/select-template/Select";
 import Template2 from "./components/buildWeb/src/components/template/t2/src/main";
 import Form from "./components/buildWeb/src/components/form/src/main";
 import EditTemp2 from "./components/buildWeb/src/components/template/t2/edit/src/main";
@@ -44,11 +43,11 @@ import DashboardEdit1 from "./components/buildWeb/src/components/template/t1/fin
 import DashboardEdit2 from "./components/buildWeb/src/components/template/t2/final/edit/src/main"
 import { CombinedProviders } from "./components/context/context";
 import CompanyDirectory from "./components/CompanyDirectory";
-import Login from "./components/login";
+import Login from "./components/Login";
 import ForgotPassword from "./components/ForgotPassword";
 import Logout from "./components/Logout";
-import ResetPassword from "./components/resetPassword";
-import ProtectedRoute from "./components/ProtectedRoute";
+import ResetPassword from "./components/ResetPassword";
+// import ProtectedRoute from "./components/ProtectedRoute";
 import AdminDashboard from "./components/Admin/CompaniesDashboard/AdminDashboard";
 const HomePage = () => (
   <>

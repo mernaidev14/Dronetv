@@ -439,14 +439,19 @@ const Step8MediaUploads: React.FC<StepProps> = ({
             📋 Selected Template
           </h3>
           <div className='text-yellow-700'>
-            {formData?.selectedTemplate?.name ? (
+            {formData?.templateSelection ? (
               <>
-                <p>
-                  <strong>Template:</strong> {formData.selectedTemplate.name}
-                </p>
+               <p>
+  <strong>Template:</strong>{" "}
+  {formData.templateSelection === 1
+    ? "Modern template"
+    : formData.templateSelection === 2
+    ? "Professional template"
+    : "not selected"}
+</p>
                 <p>
                   <strong>Template ID:</strong>{" "}
-                  {formData.selectedTemplate.value}
+                  {formData.templateSelection}
                 </p>
               </>
             ) : (
@@ -470,7 +475,7 @@ const Step8MediaUploads: React.FC<StepProps> = ({
               value={formData?.companyLogoUrl}
               onChange={(val) => updateFormData({ companyLogoUrl: val })}
               required
-              description='PNG/SVG preferred, minimum 1000×1000px, max 10MB'
+              description='PNG/SVG preferred, minimum 1000×1000px, max 5MB'
               fieldName='companyLogoUrl'
             />
           </div>
@@ -493,7 +498,7 @@ const Step8MediaUploads: React.FC<StepProps> = ({
               onChange={(val) =>
                 updateFormData({ dgcaTypeCertificateUrl: val })
               }
-              description='DGCA certification document, max 50MB'
+              description='DGCA certification document, max 5MB'
               fieldName='dgcaTypeCertificateUrl'
             />
 
@@ -504,7 +509,7 @@ const Step8MediaUploads: React.FC<StepProps> = ({
               onChange={(val) =>
                 updateFormData({ rptoAuthorisationCertificateUrl: val })
               }
-              description='RPTO certification document, max 50MB'
+              description='RPTO certification document, max 5MB'
               fieldName='rptoAuthorisationCertificateUrl'
             />
 
@@ -513,7 +518,7 @@ const Step8MediaUploads: React.FC<StepProps> = ({
               accept='.pdf'
               value={formData?.brochurePdfUrl}
               onChange={(val) => updateFormData({ brochurePdfUrl: val })}
-              description='Company brochure PDF, max 50MB'
+              description='Company brochure PDF, max 5MB'
               fieldName='brochurePdfUrl'
             />
 
@@ -522,7 +527,7 @@ const Step8MediaUploads: React.FC<StepProps> = ({
               accept='.pdf'
               value={formData?.cataloguePdfUrl}
               onChange={(val) => updateFormData({ cataloguePdfUrl: val })}
-              description='Product catalogue PDF, max 50MB'
+              description='Product catalogue PDF, max 5MB'
               fieldName='cataloguePdfUrl'
             />
 
@@ -531,7 +536,7 @@ const Step8MediaUploads: React.FC<StepProps> = ({
               accept='.pdf,.doc,.docx'
               value={formData?.caseStudiesUrl}
               onChange={(val) => updateFormData({ caseStudiesUrl: val })}
-              description='Case studies document, max 50MB'
+              description='Case studies document, max 5MB'
               fieldName='caseStudiesUrl'
             />
 
@@ -540,7 +545,7 @@ const Step8MediaUploads: React.FC<StepProps> = ({
               accept='.pdf'
               value={formData?.brandGuidelinesUrl}
               onChange={(val) => updateFormData({ brandGuidelinesUrl: val })}
-              description='Brand guidelines PDF, max 50MB'
+              description='Brand guidelines PDF, max 5MB'
               fieldName='brandGuidelinesUrl'
             />
           </div>
