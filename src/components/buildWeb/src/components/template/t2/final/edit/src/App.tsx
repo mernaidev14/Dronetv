@@ -46,6 +46,9 @@ export default function App() {
         <Header 
           headerData={finaleDataReview.content.header}
           onStateChange={useCallback((state) => collectComponentState('header', state), [collectComponentState])}
+          publishedId={finaleDataReview.publishedId}
+          userId={finaleDataReview.userId}
+          templateSelection={finaleDataReview.templateSelection}
         />
         <main>
           <Hero 

@@ -173,7 +173,7 @@ function App() {
   // Get templateId from navigation state
   const location = useLocation();
   const templateId = location.state?.templateId;
-  console.log(templateId);
+  // console.log(templateId);
   initialFormData.templateSelection = templateId || "";
   // console.log("templateSelection: ", initialFormData.templateSelection);
 

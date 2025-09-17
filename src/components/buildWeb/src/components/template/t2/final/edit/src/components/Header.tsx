@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { ThemeToggle } from "./ThemeToggle";
 import { useTheme } from "./ThemeProvider";
 
-export default function Header({headerData,onStateChange}) {
+export default function Header({headerData,onStateChange,publishedId,userId,templateSelection}) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { theme } = useTheme();
   const [isEditing, setIsEditing] = useState(false);

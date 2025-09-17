@@ -288,9 +288,9 @@ const CompaniesPage: React.FC = () => {
                           // }}
                           onClick={() => {
                             if (!company.isTemplate2 ) {
-                              navigate(`/companies/preview/1/${company.companyName}/${company.publishedId}/${company.userId}`);
+                              navigate(`/company/${company.urlSlug}`);
                             } else if (company.isTemplate2) {
-                              navigate(`/companies/preview/2/${company.companyName}/${company.publishedId}/${company.userId}`);
+                              navigate(`/companies/${company.urlSlug}`);
                             }
                           }}
                           className="group/btn bg-gradient-to-r from-yellow-400 to-yellow-600 text-black px-4 py-2 rounded-xl font-semibold text-sm hover:from-yellow-500 hover:to-yellow-700 transition-all duration-300 transform hover:scale-105 flex items-center gap-2 shadow-lg"

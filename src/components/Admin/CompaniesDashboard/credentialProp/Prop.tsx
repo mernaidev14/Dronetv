@@ -136,7 +136,7 @@ const CredentialsModal: React.FC<CredentialsModalProps> = ({
                 </div>
                 <div className="mt-4">
                   <p className="text-sm text-gray-600">Description</p>
-                  <p className="font-medium">{data.formData?.companyInfo?.description || 'No description provided'}</p>
+                    <p className="font-medium">{data.formData?.companyInfo?.description || 'No description provided'}</p>
                 </div>
               </div>
 
@@ -200,23 +200,93 @@ const CredentialsModal: React.FC<CredentialsModalProps> = ({
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
                     <div>
                       <p className="text-sm text-gray-600">Website</p>
-                      <p className="font-medium">{data.formData?.contactInfo?.socialLinks?.website || 'Not provided'}</p>
+                      {data.formData?.contactInfo?.socialLinks?.website ? (
+                        <a 
+                          href={data.formData.contactInfo.socialLinks.website} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="font-medium text-blue-600 hover:underline"
+                        >
+                          Open Link
+                        </a>
+                      ) : (
+                        <p className="font-medium">Not provided</p>
+                      )}
                     </div>
                     <div>
                       <p className="text-sm text-gray-600">LinkedIn</p>
-                      <p className="font-medium">{data.formData?.contactInfo?.socialLinks?.linkedin || 'Not provided'}</p>
+                      {data.formData?.contactInfo?.socialLinks?.linkedin ? (
+                        <a 
+                          href={data.formData.contactInfo.socialLinks.linkedin} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="font-medium text-blue-600 hover:underline"
+                        >
+                          Open Link
+                        </a>
+                      ) : (
+                        <p className="font-medium">Not provided</p>
+                      )}
                     </div>
                     <div>
                       <p className="text-sm text-gray-600">Facebook</p>
-                      <p className="font-medium">{data.formData?.contactInfo?.socialLinks?.facebook || 'Not provided'}</p>
+                      {data.formData?.contactInfo?.socialLinks?.facebook ? (
+                        <a 
+                          href={data.formData.contactInfo.socialLinks.facebook} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="font-medium text-blue-600 hover:underline"
+                        >
+                          Open Link
+                        </a>
+                      ) : (
+                        <p className="font-medium">Not provided</p>
+                      )}
                     </div>
                     <div>
                       <p className="text-sm text-gray-600">Instagram</p>
-                      <p className="font-medium">{data.formData?.contactInfo?.socialLinks?.instagram || 'Not provided'}</p>
+                      {data.formData?.contactInfo?.socialLinks?.instagram ? (
+                        <a 
+                          href={data.formData.contactInfo.socialLinks.instagram} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="font-medium text-blue-600 hover:underline"
+                        >
+                          Open Link
+                        </a>
+                      ) : (
+                        <p className="font-medium">Not provided</p>
+                      )}
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Instagram</p>
+                      {data.formData?.contactInfo?.socialLinks?.instagram ? (
+                        <a 
+                          href={data.formData.contactInfo.socialLinks.instagram} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="font-medium text-blue-600 hover:underline"
+                        >
+                          Open Link
+                        </a>
+                      ) : (
+                        <p className="font-medium">Not provided</p>
+                      )}
                     </div>
                     <div>
                       <p className="text-sm text-gray-600">YouTube</p>
-                      <p className="font-medium">{data.formData?.contactInfo?.socialLinks?.youtube || 'Not provided'}</p>
+                      {data.formData?.contactInfo?.socialLinks?.youtube ? (
+                        <a 
+                          href={data.formData.contactInfo.socialLinks.youtube} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="font-medium text-blue-600 hover:underline"
+                        >
+                          Open Link
+                        </a>
+                      ) : (
+                        <p className="font-medium">Not provided</p>
+                      )}
                     </div>
                   </div>
                 </div>

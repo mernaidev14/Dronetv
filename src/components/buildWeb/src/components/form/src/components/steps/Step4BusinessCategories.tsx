@@ -562,9 +562,7 @@ const Step4BusinessCategories: React.FC<StepProps> = ({
               'State/Regional',
               'National',
               'International',
-              'Pan-India',
-              'Asia-Pacific',
-              'Global'
+              
             ]}
             selected={formData.geographyOfOperations}
             onChange={(selected) => updateFormData({ geographyOfOperations: selected })}

@@ -15,21 +15,15 @@ import { useParams } from 'react-router-dom';
 
 export default function App() {
   const { finaleDataReview, setFinaleDataReview } = useTemplate();
-   const { publishedId, userId } = useParams(); // Get both parameters from URL
+   const { urlSlug } = useParams(); // Get both parameters from URL
    const [isLoading, setIsLoading] = useState(true);
    const [error, setError] = useState<string | null>(null);
  
    // Function to fetch template data
-   async function fetchTemplateData(pubId: string, userId: string) {
+   async function fetchTemplateData(urlSlug: string) {
      try {
        setIsLoading(true);
-       const response = await fetch(`https://v1lqhhm1ma.execute-api.ap-south-1.amazonaws.com/prod/dashboard-cards/published-details/${pubId}`,{
-         method: 'GET',
-         headers: {
-           'Content-Type': 'application/json',
-           'X-User-Id': userId,
-         },
-       });
+       const response = await fetch(`https://n0yw6muam4.execute-api.ap-south-1.amazonaws.com/prod/company/${urlSlug}`);
        
        if (!response.ok) {
          throw new Error(`HTTP error! status: ${response.status}`);
@@ -47,13 +41,13 @@ export default function App() {
  
    useEffect(() => {
      // If we have both publishedId and userId from URL, fetch the data
-     if (publishedId && userId) {
-       fetchTemplateData(publishedId, userId);
+     if (urlSlug) {
+       fetchTemplateData(urlSlug);
      } else {
        setError("Required parameters not found in URL");
        setIsLoading(false);
      }
-   }, [publishedId, userId]);
+   }, [urlSlug]);
  
    if (isLoading) {
      return (

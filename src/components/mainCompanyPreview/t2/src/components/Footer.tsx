@@ -90,7 +90,12 @@ export default function Footer({ footerData }) {
                   }}
                   transition={{ duration: 0.6 }}
                 >
-                  <span className="text-black font-bold text-lg">{footerContent.companyInfo.logoText}</span>
+                  {/* <span className="text-black font-bold text-lg">{footerContent.companyInfo.logoText}</span> */}
+                   <img
+                      src={footerContent.companyInfo.logoText}
+                      alt="Logo"
+                      className="w-full h-full object-contain rounded-lg"
+                    />
                 </motion.div>
                 <span className="text-xl font-bold text-white">{footerContent.companyInfo.companyName}</span>
               </motion.div>
