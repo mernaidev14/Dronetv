@@ -15,22 +15,27 @@ import {
   Plus,
   Trash2,
   Twitter,
+  Upload,
 } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { motion } from "motion/react";
 import { toast } from "react-toastify";
 
-export default function EditableFooter({ 
-  content, 
-  onStateChange, 
+export default function EditableFooter({
+  content,
+  onStateChange,
+  userId,
+  publishedId,
+  templateSelection,
 }) {
   // Initialize with data from props or use default structure
-  const initialData = content || {
+  const initialData = {
     brand: {
-      name: "Innovative Labs",
-      description: "Innovative solutions for modern businesses. Transform your operations with our expert guidance and cutting-edge technology.",
-      logoUrl: logo,
+      name: content.name,
+      description:
+        "Innovative solutions for modern businesses. Transform your operations with our expert guidance and cutting-edge technology.",
+      logoUrl: content.logo,
     },
     newsletter: {
       title: "Stay Updated",
@@ -106,14 +111,9 @@ export default function EditableFooter({
   const [isSaving, setIsSaving] = useState(false);
   const [footerData, setFooterData] = useState(initialData);
   const [tempData, setTempData] = useState(initialData);
-
-  // Update state when content prop changes
-  useEffect(() => {
-    if (content) {
-      setFooterData(content);
-      setTempData(content);
-    }
-  }, [content]);
+  const [pendingLogoFile, setPendingLogoFile] = useState(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef(null);
 
   // Notify parent of state changes
   useEffect(() => {
@@ -121,6 +121,33 @@ export default function EditableFooter({
       onStateChange(footerData);
     }
   }, [footerData, onStateChange]);
+
+  const handleLogoUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type and size
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please select an image file");
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      // 5MB limit
+      toast.error("File size must be less than 5MB");
+      return;
+    }
+
+    // Store the file for upload on Save
+    setPendingLogoFile(file);
+
+    // Show immediate local preview
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      updateNestedField("brand.logoUrl", reader.result);
+    };
+    reader.readAsDataURL(file);
+  };
 
   const handleEdit = () => {
     setIsEditing(true);
@@ -130,17 +157,81 @@ export default function EditableFooter({
   const handleCancel = () => {
     setTempData(footerData);
     setIsEditing(false);
+    setPendingLogoFile(null);
   };
 
-  const handleSave = () => {
-    setIsSaving(true);
-    setTimeout(() => {
-      setFooterData(tempData);
-      setIsEditing(false);
-      setIsSaving(false);
-      toast.success('Footer saved successfully');
-    }, 500);
-  };
+  const handleSave = async () => {
+  setIsSaving(true);
+  setIsUploading(true);
+
+  try {
+    let updatedLogoUrl = tempData.brand.logoUrl;
+
+    // If there's a pending logo, upload it first
+    if (pendingLogoFile) {
+      if (!userId || !publishedId || !templateSelection) {
+        console.error("Missing required props:", {
+          userId,
+          publishedId,
+          templateSelection,
+        });
+        toast.error(
+          "Missing user information. Please refresh and try again."
+        );
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append("file", pendingLogoFile);
+      formData.append("sectionName", "footer");
+      formData.append("imageField", "logoUrl");
+      formData.append("templateSelection", templateSelection);
+
+      const uploadResponse = await fetch(
+        `https://o66ziwsye5.execute-api.ap-south-1.amazonaws.com/prod/upload-image/${userId}/${publishedId}`,
+        {
+          method: "POST",
+          body: formData,
+        }
+      );
+
+      if (uploadResponse.ok) {
+        const uploadData = await uploadResponse.json();
+        // Update the logo URL to the S3 URL
+        updatedLogoUrl = uploadData.imageUrl;
+        setPendingLogoFile(null);
+      } else {
+        const errorData = await uploadResponse.json();
+        console.error("Logo upload failed:", errorData);
+        toast.error(
+          `Logo upload failed: ${errorData.message || "Unknown error"}`
+        );
+        return;
+      }
+    }
+
+    // Create updated data with the new logo URL
+    const updatedData = {
+      ...tempData,
+      brand: {
+        ...tempData.brand,
+        logoUrl: updatedLogoUrl
+      }
+    };
+
+    // Now save the updated data
+    setFooterData(updatedData);
+    setTempData(updatedData);
+    setIsEditing(false);
+    toast.success("Footer saved successfully");
+  } catch (error) {
+    console.error("Error saving footer:", error);
+    toast.error("Error saving changes. Please try again.");
+  } finally {
+    setIsSaving(false);
+    setIsUploading(false);
+  }
+};
 
   const updateNestedField = (path, value) => {
     setTempData((prev) => {
@@ -156,7 +247,6 @@ export default function EditableFooter({
       return newData;
     });
   };
-
   const addSectionLink = (sectionId) => {
     setTempData((prev) => ({
       ...prev,
@@ -302,7 +392,7 @@ export default function EditableFooter({
       Twitter: Twitter,
     };
     const IconComponent = icons[iconName] || Facebook;
-    return <IconComponent className='w-4 h-4' />;
+    return <IconComponent className="w-4 h-4" />;
   };
 
   const EditableField = ({
@@ -326,7 +416,7 @@ export default function EditableFooter({
 
     return (
       <input
-        type='text'
+        type="text"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
@@ -341,9 +431,9 @@ export default function EditableFooter({
       opacity: 1,
       transition: {
         staggerChildren: 0.1,
-        delayChildren: 0.2
-      }
-    }
+        delayChildren: 0.2,
+      },
+    },
   };
 
   const itemVariants = {
@@ -353,9 +443,9 @@ export default function EditableFooter({
       opacity: 1,
       transition: {
         duration: 0.6,
-        ease: "easeOut"
-      }
-    }
+        ease: "easeOut",
+      },
+    },
   };
 
   return (
@@ -393,7 +483,7 @@ export default function EditableFooter({
                   ) : (
                     <Save className='w-3 h-3 mr-1' />
                   )}
-                  Save
+                  {isSaving ? (isUploading ? 'Uploading...' : 'Saving...') : 'Save'}
                 </Button>
                 <Button
                   onClick={handleCancel}
@@ -422,14 +512,41 @@ export default function EditableFooter({
             >
               <div className='flex items-center justify-center md:justify-start space-x-3 mb-4'>
                 <span className='flex flex-row gap-2 text-xl font-bold text-red-500'>
-                  <img
-                    src={tempData.brand.logoUrl}
-                    alt='Logo'
-                    className='h-4 w-4 sm:h-6 sm:w-6 object-contain'
-                    style={{
-                      filter: isEditing ? "brightness(0.7)" : "none",
-                    }}
-                  />
+                  <div className="relative">
+                    <img
+                      src={tempData?.brand?.logoUrl}
+                      alt='Logo'
+                      className='h-4 w-4 sm:h-6 sm:w-6 object-contain'
+                      style={{
+                        filter: isEditing ? "brightness(0.7)" : "none",
+                      }}
+                    />
+                    {isEditing && (
+                      <div className="absolute -bottom-14 left-0 bg-white/90 p-2 rounded shadow-lg">
+                        <p className="text-xs mb-1 text-gray-600">Upload Logo:</p>
+                        <motion.button
+                          onClick={() => fileInputRef.current?.click()}
+                          className='flex items-center gap-1 p-1 bg-gray-200 rounded shadow text-xs hover:bg-gray-300'
+                          whileHover={{ scale: 1.1 }}
+                          whileTap={{ scale: 0.9 }}
+                        >
+                          <Upload size={12} /> Choose File
+                        </motion.button>
+                        {pendingLogoFile && (
+                          <p className="text-xs text-orange-600 mt-1 max-w-[150px] truncate">
+                            Selected: {pendingLogoFile.name}
+                          </p>
+                        )}
+                      </div>
+                    )}
+                    <input
+                      type='file'
+                      ref={fileInputRef}
+                      accept='image/*'
+                      onChange={handleLogoUpload}
+                      className='hidden'
+                    />
+                  </div>
                   {isEditing ? (
                     <EditableField
                       value={tempData.brand.name}
@@ -447,17 +564,6 @@ export default function EditableFooter({
 
               {isEditing ? (
                 <div className='mb-4'>
-                  <label className='block text-xs text-gray-400 mb-1'>
-                    Logo URL:
-                  </label>
-                  <EditableField
-                    value={tempData.brand.logoUrl}
-                    onChange={(value) =>
-                      updateNestedField("brand.logoUrl", value)
-                    }
-                    placeholder='Logo URL'
-                    className='mb-2'
-                  />
                   <label className='block text-xs text-gray-400 mb-1'>
                     Description:
                   </label>
@@ -477,10 +583,10 @@ export default function EditableFooter({
               )}
 
               {/* Newsletter Signup */}
-              <div className='space-y-3'>
+              <div className="space-y-3">
                 {isEditing ? (
                   <div>
-                    <label className='block text-xs text-gray-400 mb-1'>
+                    <label className="block text-xs text-gray-400 mb-1">
                       Newsletter Title:
                     </label>
                     <EditableField
@@ -488,34 +594,34 @@ export default function EditableFooter({
                       onChange={(value) =>
                         updateNestedField("newsletter.title", value)
                       }
-                      placeholder='Newsletter title'
-                      className='mb-2'
+                      placeholder="Newsletter title"
+                      className="mb-2"
                     />
                   </div>
                 ) : (
-                  <h4 className='font-medium text-white text-sm'>
+                  <h4 className="font-medium text-white text-sm">
                     {tempData.newsletter.title}
                   </h4>
                 )}
 
-                <div className='flex flex-col sm:flex-row gap-2 justify-center md:justify-start'>
+                <div className="flex flex-col sm:flex-row gap-2 justify-center md:justify-start">
                   <Input
-                    type='email'
+                    type="email"
                     placeholder={tempData.newsletter.placeholder}
-                    className='h-10 text-sm flex-1 bg-gray-800 border-gray-700 text-white placeholder-gray-400 focus:border-blue-500'
+                    className="h-10 text-sm flex-1 bg-gray-800 border-gray-700 text-white placeholder-gray-400 focus:border-blue-500"
                     disabled={isEditing}
                   />
                   <Button
-                    size='sm'
-                    className='bg-yellow-400 hover:bg-yellow-500 h-10 px-4 whitespace-nowrap text-black'
+                    size="sm"
+                    className="bg-yellow-400 hover:bg-yellow-500 h-10 px-4 whitespace-nowrap text-black"
                   >
                     Subscribe
-                    <ArrowRight className='w-4 h-4 ml-2' />
+                    <ArrowRight className="w-4 h-4 ml-2" />
                   </Button>
                 </div>
                 {isEditing && (
-                  <div className='mt-1'>
-                    <label className='block text-xs text-gray-400 mb-1'>
+                  <div className="mt-1">
+                    <label className="block text-xs text-gray-400 mb-1">
                       Email Placeholder:
                     </label>
                     <EditableField
@@ -523,8 +629,8 @@ export default function EditableFooter({
                       onChange={(value) =>
                         updateNestedField("newsletter.placeholder", value)
                       }
-                      placeholder='Email placeholder text'
-                      className='text-xs'
+                      placeholder="Email placeholder text"
+                      className="text-xs"
                     />
                   </div>
                 )}
@@ -533,12 +639,12 @@ export default function EditableFooter({
 
             {/* Dynamic Sections */}
             {tempData.sections.map((section, sectionIndex) => (
-              <motion.div 
-                key={section.id} 
-                className='col-span-1'
+              <motion.div
+                key={section.id}
+                className="col-span-1"
                 variants={itemVariants}
               >
-                <div className='flex items-center justify-center md:justify-start mb-4'>
+                <div className="flex items-center justify-center md:justify-start mb-4">
                   {isEditing ? (
                     <div className="flex items-center w-full">
                       <EditableField
@@ -554,8 +660,8 @@ export default function EditableFooter({
                             sections: newSections,
                           }));
                         }}
-                        placeholder='Section title'
-                        className='font-semibold text-white flex-1'
+                        placeholder="Section title"
+                        className="font-semibold text-white flex-1"
                       />
                       {tempData.sections.length > 1 && (
                         <Button
@@ -569,17 +675,17 @@ export default function EditableFooter({
                       )}
                     </div>
                   ) : (
-                    <h4 className='font-semibold text-white'>
+                    <h4 className="font-semibold text-white">
                       {section.title}
                     </h4>
                   )}
                 </div>
 
-                <ul className='space-y-3 text-sm'>
+                <ul className="space-y-3 text-sm">
                   {section.links.map((link) => (
-                    <li key={link.id} className='flex items-center gap-2'>
+                    <li key={link.id} className="flex items-center gap-2">
                       {isEditing ? (
-                        <div className='flex-1 space-y-1'>
+                        <div className="flex-1 space-y-1">
                           <EditableField
                             value={link.text}
                             onChange={(value) =>
@@ -590,8 +696,8 @@ export default function EditableFooter({
                                 value
                               )
                             }
-                            placeholder='Link text'
-                            className='text-xs'
+                            placeholder="Link text"
+                            className="text-xs"
                           />
                           <EditableField
                             value={link.href}
@@ -603,14 +709,14 @@ export default function EditableFooter({
                                 value
                               )
                             }
-                            placeholder='Link URL'
-                            className='text-xs'
+                            placeholder="Link URL"
+                            className="text-xs"
                           />
                         </div>
                       ) : (
                         <a
                           href={link.href}
-                          className='text-gray-300 hover:text-blue-400 transition-colors duration-200 flex-1'
+                          className="text-gray-300 hover:text-blue-400 transition-colors duration-200 flex-1"
                         >
                           {link.text}
                         </a>
@@ -619,9 +725,9 @@ export default function EditableFooter({
                       {isEditing && (
                         <button
                           onClick={() => removeSectionLink(section.id, link.id)}
-                          className='text-red-400 hover:text-red-300 p-1'
+                          className="text-red-400 hover:text-red-300 p-1"
                         >
-                          <Trash2 className='w-3 h-3' />
+                          <Trash2 className="w-3 h-3" />
                         </button>
                       )}
                     </li>
@@ -631,9 +737,9 @@ export default function EditableFooter({
                     <li>
                       <button
                         onClick={() => addSectionLink(section.id)}
-                        className='text-blue-400 hover:text-blue-300 flex items-center gap-1 text-sm'
+                        className="text-blue-400 hover:text-blue-300 flex items-center gap-1 text-sm"
                       >
-                        <Plus className='w-3 h-3' />
+                        <Plus className="w-3 h-3" />
                         Add Link
                       </button>
                     </li>
@@ -644,7 +750,7 @@ export default function EditableFooter({
 
             {/* Add Section Button */}
             {isEditing && (
-              <motion.div 
+              <motion.div
                 className="col-span-1 flex items-center justify-center"
                 variants={itemVariants}
               >
@@ -661,56 +767,53 @@ export default function EditableFooter({
             )}
 
             {/* Contact & Social Media */}
-            <motion.div 
-              className='col-span-1'
-              variants={itemVariants}
-            >
-              <h4 className='font-semibold text-white mb-4'>Get in Touch</h4>
+            <motion.div className="col-span-1" variants={itemVariants}>
+              <h4 className="font-semibold text-white mb-4">Get in Touch</h4>
 
               {/* Contact Info */}
-              <div className='space-y-3 mb-6 text-sm'>
-                <div className='flex items-start justify-center md:justify-start space-x-3 text-gray-300'>
-                  <Mail className='w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0' />
+              <div className="space-y-3 mb-6 text-sm">
+                <div className="flex items-start justify-center md:justify-start space-x-3 text-gray-300">
+                  <Mail className="w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0" />
                   {isEditing ? (
                     <EditableField
                       value={tempData.contact.email}
                       onChange={(value) =>
                         updateNestedField("contact.email", value)
                       }
-                      placeholder='Email address'
-                      className='flex-1 text-xs'
+                      placeholder="Email address"
+                      className="flex-1 text-xs"
                     />
                   ) : (
                     <span>{tempData.contact.email}</span>
                   )}
                 </div>
 
-                <div className='flex items-start justify-center md:justify-start space-x-3 text-gray-300'>
-                  <Phone className='w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0' />
+                <div className="flex items-start justify-center md:justify-start space-x-3 text-gray-300">
+                  <Phone className="w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0" />
                   {isEditing ? (
                     <EditableField
                       value={tempData.contact.phone}
                       onChange={(value) =>
                         updateNestedField("contact.phone", value)
                       }
-                      placeholder='Phone number'
-                      className='flex-1 text-xs'
+                      placeholder="Phone number"
+                      className="flex-1 text-xs"
                     />
                   ) : (
                     <span>{tempData.contact.phone}</span>
                   )}
                 </div>
 
-                <div className='flex items-start justify-center md:justify-start space-x-3 text-gray-300'>
-                  <MapPin className='w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0' />
+                <div className="flex items-start justify-center md:justify-start space-x-3 text-gray-300">
+                  <MapPin className="w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0" />
                   {isEditing ? (
                     <EditableField
                       value={tempData.contact.address}
                       onChange={(value) =>
                         updateNestedField("contact.address", value)
                       }
-                      placeholder='Address'
-                      className='flex-1 text-xs'
+                      placeholder="Address"
+                      className="flex-1 text-xs"
                     />
                   ) : (
                     <span>{tempData.contact.address}</span>
@@ -720,12 +823,15 @@ export default function EditableFooter({
 
               {/* Social Media */}
               <div>
-                <h5 className='font-medium text-white mb-3 text-sm'>
+                <h5 className="font-medium text-white mb-3 text-sm">
                   Follow Us
                 </h5>
-                <div className='flex justify-center md:justify-start space-x-3 flex-wrap gap-2'>
+                <div className="flex justify-center md:justify-start space-x-3 flex-wrap gap-2">
                   {tempData.socialMedia.map((social, index) => (
-                    <div key={social.id} className='flex flex-col gap-1 items-center'>
+                    <div
+                      key={social.id}
+                      className="flex flex-col gap-1 items-center"
+                    >
                       <a
                         href={social.href}
                         className={`w-9 h-9 bg-gray-800 ${social.hoverColor} rounded-lg flex items-center justify-center transition-all duration-200 text-gray-300 hover:text-white hover:scale-105`}
@@ -737,15 +843,19 @@ export default function EditableFooter({
                         <div className="flex flex-col items-center">
                           <EditableField
                             value={social.name}
-                            onChange={(value) => updateSocialMedia(index, "name", value)}
-                            placeholder='Name'
-                            className='text-xs w-20 text-center'
+                            onChange={(value) =>
+                              updateSocialMedia(index, "name", value)
+                            }
+                            placeholder="Name"
+                            className="text-xs w-20 text-center"
                           />
                           <EditableField
                             value={social.href}
-                            onChange={(value) => updateSocialMedia(index, "href", value)}
-                            placeholder='URL'
-                            className='text-xs w-20 text-center'
+                            onChange={(value) =>
+                              updateSocialMedia(index, "href", value)
+                            }
+                            placeholder="URL"
+                            className="text-xs w-20 text-center"
                           />
                           <Button
                             onClick={() => removeSocialMedia(social.id)}
@@ -775,17 +885,17 @@ export default function EditableFooter({
           </motion.div>
 
           {/* Bottom Copyright Section */}
-          <motion.div 
-            className='mt-8 pt-6 border-t border-gray-800'
+          <motion.div
+            className="mt-8 pt-6 border-t border-gray-800"
             variants={itemVariants}
           >
-            <div className='flex flex-col space-y-4 sm:flex-row sm:justify-between sm:items-center sm:space-y-0 text-center md:text-left'>
-              <div className='text-sm text-gray-400'>
+            <div className="flex flex-col space-y-4 sm:flex-row sm:justify-between sm:items-center sm:space-y-0 text-center md:text-left">
+              <div className="text-sm text-gray-400">
                 {isEditing ? (
                   <EditableField
                     value={tempData.copyright}
                     onChange={(value) => updateNestedField("copyright", value)}
-                    placeholder='Copyright text'
+                    placeholder="Copyright text"
                   />
                 ) : (
                   tempData.copyright
@@ -793,22 +903,26 @@ export default function EditableFooter({
               </div>
 
               {/* Legal Links */}
-              <div className='flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm'>
+              <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm">
                 {tempData.legalLinks.map((link, index) => (
-                  <div key={link.id} className='flex items-center gap-1'>
+                  <div key={link.id} className="flex items-center gap-1">
                     {isEditing ? (
-                      <div className='flex flex-col gap-1'>
+                      <div className="flex flex-col gap-1">
                         <EditableField
                           value={link.text}
-                          onChange={(value) => updateLegalLink(index, "text", value)}
-                          placeholder='Link text'
-                          className='text-xs w-24'
+                          onChange={(value) =>
+                            updateLegalLink(index, "text", value)
+                          }
+                          placeholder="Link text"
+                          className="text-xs w-24"
                         />
                         <EditableField
                           value={link.href}
-                          onChange={(value) => updateLegalLink(index, "href", value)}
-                          placeholder='URL'
-                          className='text-xs w-24'
+                          onChange={(value) =>
+                            updateLegalLink(index, "href", value)
+                          }
+                          placeholder="URL"
+                          className="text-xs w-24"
                         />
                         <Button
                           onClick={() => removeLegalLink(link.id)}
@@ -821,7 +935,7 @@ export default function EditableFooter({
                     ) : (
                       <a
                         href={link.href}
-                        className='text-gray-400 hover:text-gray-200 transition-colors'
+                        className="text-gray-400 hover:text-gray-200 transition-colors"
                       >
                         {link.text}
                       </a>
@@ -847,36 +961,40 @@ export default function EditableFooter({
 
       {/* Edit Instructions Panel */}
       {isEditing && (
-        <div className='bg-gray-100 p-4'>
-          <div className='max-w-7xl mx-auto p-6 bg-white rounded-lg shadow-lg'>
-            <h3 className='text-lg font-semibold mb-4 flex items-center gap-2'>
-              <Edit2 className='w-5 h-5' />
+        <div className="bg-gray-100 p-4">
+          <div className="max-w-7xl mx-auto p-6 bg-white rounded-lg shadow-lg">
+            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <Edit2 className="w-5 h-5" />
               Footer Editor
             </h3>
 
-            <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <h4 className='font-medium mb-2 text-gray-700'>
+                <h4 className="font-medium mb-2 text-gray-700">
                   Quick Edit Tips
                 </h4>
-                <ul className='text-sm text-gray-600 space-y-1'>
+                <ul className="text-sm text-gray-600 space-y-1">
                   <li>• Click any text field to edit content directly</li>
                   <li>• Use + Add Link to add new navigation items</li>
-                  <li>• Update social media URLs in the social icons section</li>
+                  <li>
+                    • Update social media URLs in the social icons section
+                  </li>
                   <li>• Modify contact information inline</li>
-                  <li>• All changes are saved when you click the Save button</li>
+                  <li>
+                    • All changes are saved when you click the Save button
+                  </li>
                 </ul>
               </div>
 
               <div>
-                <h4 className='font-medium mb-2 text-gray-700'>
+                <h4 className="font-medium mb-2 text-gray-700">
                   Export Component
                 </h4>
-                <p className='text-sm text-gray-600 mb-2'>
+                <p className="text-sm text-gray-600 mb-2">
                   Your changes are live! Copy the component structure to
                   integrate into your React project.
                 </p>
-                <div className='text-xs bg-gray-100 p-2 rounded border'>
+                <div className="text-xs bg-gray-100 p-2 rounded border">
                   <strong>Current Config:</strong>
                   <br />
                   Brand: {tempData.brand.name}

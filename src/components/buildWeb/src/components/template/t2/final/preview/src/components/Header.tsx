@@ -43,9 +43,11 @@ export default function Header({headerData}) {
               whileHover={{ rotate: 360 }}
               transition={{ duration: 0.6 }}
             >
-              <span className="text-black font-bold text-lg">
-                {headerData.logoLetter}
-              </span>
+               <img
+                  src={headerData.logoUrl}
+                  alt="Logo"
+                  className="w-full h-full object-contain"
+                />
             </motion.div>
             <motion.span className="text-xl font-bold text-black">
               {headerData.companyName}

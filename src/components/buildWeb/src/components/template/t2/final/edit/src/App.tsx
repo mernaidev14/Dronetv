@@ -106,6 +106,9 @@ export default function App() {
         <Footer
           footerData={finaleDataReview.content.footer} 
           onStateChange={useCallback((state) => collectComponentState('footer', state), [collectComponentState])}
+          userId={finaleDataReview.userId}
+          publishedId={finaleDataReview.publishedId}
+          templateSelection={finaleDataReview.templateSelection}
         />
       </div>
     </ThemeProvider>

@@ -498,15 +498,7 @@ const Step1CompanyCategory: React.FC<Step1CompanyCategoryProps> = ({
                     }
                     placeholder="+919876543210"
                   />
-                  <FormInput
-                    label="WhatsApp Number"
-                    type="tel"
-                    value={formData.whatsappNumber || ""}
-                    onChange={(value) =>
-                      updateFormData({ whatsappLink: value })
-                    }
-                    placeholder="+91XXXXXXXXXX"
-                  />
+             
                 </div>
               </div>
             </div>
