@@ -227,9 +227,9 @@ const CompaniesPage: React.FC = () => {
                 return (
                   <div
                     key={company.companyName + idx}
-                    className="group bg-white rounded-3xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-700 cursor-pointer transform hover:scale-105"
+                    className="group  bg-[#f1ee8e] rounded-3xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-700 cursor-pointer transform hover:scale-105"
                   >
-                    <div className="relative p-8 bg-[#f1ee8e] transition-all duration-500">
+                    <div className="relative p-8  transition-all duration-500">
                       <div className="flex justify-center mb-4">
                         <div className="relative">
                           <div className="absolute inset-0 bg-yellow-400/20 rounded-2xl blur-xl scale-150 group-hover:scale-200 transition-all duration-700"></div>
@@ -260,7 +260,7 @@ const CompaniesPage: React.FC = () => {
                         )}
                       </div>
                     </div>
-                    <div className="relative p-8 bg-[#f1ee8e] transition-all duration-500">
+                    <div className="relative p-8  transition-all duration-500">
                       <p className="text-gray-600 mb-4 leading-relaxed text-sm line-clamp-3">
                         {company.aboutDescription || 'No company description.'}
                       </p>

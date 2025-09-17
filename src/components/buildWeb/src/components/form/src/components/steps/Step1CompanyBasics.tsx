@@ -55,7 +55,7 @@ const Step1CompanyBasics: React.FC<StepProps> = ({
       
       try {
         const response = await fetch(
-          https://14exr8c8g0.execute-api.ap-south-1.amazonaws.com/prod/drafts/check-name?name=${encodeURIComponent(name)},
+          `https://14exr8c8g0.execute-api.ap-south-1.amazonaws.com/prod/drafts/check-name?name=${name}`,
           {
             method: 'GET',
             headers: {
@@ -65,7 +65,7 @@ const Step1CompanyBasics: React.FC<StepProps> = ({
         );
         
         if (!response.ok) {
-          throw new Error(HTTP ${response.status});
+          throw new Error(`HTTP ${response.status}`);
         }
         
         const result = await response.json();
