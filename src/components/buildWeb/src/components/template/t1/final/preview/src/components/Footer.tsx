@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   Mail,
   Phone,
@@ -16,6 +16,7 @@ import { motion } from "motion/react";
 
 export default function Footer({ content }) {
   // Use the content prop directly
+  let { isSubscribed, setIsSubscribed } = useState(false);
   const footerData = content || {
     brand: {
       name: "Innovative Labs",
@@ -272,12 +273,12 @@ export default function Footer({ content }) {
 
             {/* Contact Info */}
             <div className='space-y-3 mb-6 text-sm'>
-              <div className='flex items-start justify-center md:justify-start space-x-3 text-gray-300'>
+              <div className={`flex items-start justify-center md:justify-start space-x-3 text-gray-300 ${isSubscribed ? '' : 'bg-gray-300'}`}>
                 <Mail className='w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0' />
                 <span>{footerData.contact.email}</span>
               </div>
 
-              <div className='flex items-start justify-center md:justify-start space-x-3 text-gray-300'>
+              <div className={`flex items-start justify-center md:justify-start space-x-3 text-gray-300 ${isSubscribed ? '' : 'bg-gray-300'}`}>
                 <Phone className='w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0' />
                 <span>{footerData.contact.phone}</span>
               </div>

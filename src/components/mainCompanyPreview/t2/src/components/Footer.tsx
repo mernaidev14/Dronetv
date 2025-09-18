@@ -1,7 +1,10 @@
 import { Facebook, Twitter, Linkedin, Instagram, Mail, Phone } from "lucide-react";
 import { motion } from "motion/react";
+import { useState } from "react";
 
 export default function Footer({ footerData }) {
+let { isSubscribed, setIsSubscribed } = useState(false);
+
   // Create a mapping from social media names to their icon components
   const iconMap = {
     Facebook: Facebook,
@@ -110,7 +113,7 @@ export default function Footer({ footerData }) {
                   transition={{ duration: 0.2 }}
                 >
                   <Mail className="h-5 w-5 text-primary" />
-                  <span className="text-gray-400">{footerContent.companyInfo.email}</span>
+                  <span className={`text-gray-400 ${isSubscribed ? '' : 'bg-gray-400'}`}>{footerContent.companyInfo.email}</span>
                 </motion.div>
                 <motion.div 
                   className="flex items-center space-x-3"
@@ -118,7 +121,7 @@ export default function Footer({ footerData }) {
                   transition={{ duration: 0.2 }}
                 >
                   <Phone className="h-5 w-5 text-primary" />
-                  <span className="text-gray-400">{footerContent.companyInfo.phone}</span>
+                  <span className={`text-gray-400 ${isSubscribed ? '' : 'bg-gray-400'}`}>{footerContent.companyInfo.phone}</span>
                 </motion.div>
               </div>
 

@@ -220,10 +220,8 @@ const CompaniesPage: React.FC = () => {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
               {currentCompanies.map((company, idx) => {
-                const totalServices = Array.isArray(company.sectors) ? company.sectors.length : 0;
-                const totalProducts = 0; // No products in this API currently
-               const publishedId = company.publishedId || 'unknown';
-               const userId = company.userId || 'unknown';
+                const totalServices = company.servicesCount || 0; // Assuming servicesCount exists
+                const totalProducts = company.productsCount; // No products in this API currently
                 return (
                   <div
                     key={company.companyName + idx}
@@ -262,7 +260,7 @@ const CompaniesPage: React.FC = () => {
                     </div>
                     <div className="relative p-8  transition-all duration-500">
                       <p className="text-gray-600 mb-4 leading-relaxed text-sm line-clamp-3">
-                        {company.aboutDescription || 'No company description.'}
+                        {company.companyDescription || 'No company description.'}
                       </p>
 
                       {/* Services & Products */}
