@@ -86,16 +86,16 @@ let { isSubscribed, setIsSubscribed } = useState(false);
                 transition={{ duration: 0.3 }}
               >
                 <motion.div 
-                  className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center mr-2"
+                  className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center mr-2" 
                   whileHover={{ 
                     rotate: 360,
                     boxShadow: "0 0 20px rgba(250, 204, 21, 0.4)"
                   }}
                   transition={{ duration: 0.6 }}
                 >
-                  {/* <span className="text-black font-bold text-lg">{footerContent.companyInfo.logoText}</span> */}
+                  {/* <span className="text-black font-bold text-lg">{footerContent.companyInfo.logoUrl}</span> */}
                    <img
-                      src={footerContent.companyInfo.logoText}
+                      src={footerContent.companyInfo.logoUrl}
                       alt="Logo"
                       className="w-full h-full object-contain rounded-lg"
                     />
@@ -113,7 +113,8 @@ let { isSubscribed, setIsSubscribed } = useState(false);
                   transition={{ duration: 0.2 }}
                 >
                   <Mail className="h-5 w-5 text-primary" />
-                  <span className={`text-gray-400 ${isSubscribed ? '' : 'bg-gray-400'}`}>{footerContent.companyInfo.email}</span>
+                  
+                  <span className={`text-gray-400 ${isSubscribed ? '' : 'bg-gray-400'} select-none`}>{footerContent.companyInfo.email}</span>
                 </motion.div>
                 <motion.div 
                   className="flex items-center space-x-3"
@@ -121,7 +122,7 @@ let { isSubscribed, setIsSubscribed } = useState(false);
                   transition={{ duration: 0.2 }}
                 >
                   <Phone className="h-5 w-5 text-primary" />
-                  <span className={`text-gray-400 ${isSubscribed ? '' : 'bg-gray-400'}`}>{footerContent.companyInfo.phone}</span>
+                  <span className={`text-gray-400 ${isSubscribed ? '' : 'bg-gray-400'} select-none`} >{footerContent.companyInfo.phone}</span>
                 </motion.div>
               </div>
 

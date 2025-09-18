@@ -44,7 +44,7 @@ export default function Header({headerData}) {
               transition={{ duration: 0.6 }}
             >
              <img
-                  src={headerData.logoLetter}
+                  src={headerData.logoUrl}
                   alt="Logo"
                   className="w-full h-full object-contain"
                 />

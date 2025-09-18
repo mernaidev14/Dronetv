@@ -18,130 +18,7 @@ import { useState } from "react";
 export default function Footer({ content }) {
   let { isSubscribed, setIsSubscribed } = useState(false);
   // Use the content prop directly
-  const footerData = content || {
-    brand: {
-      name: "Innovative Labs",
-      description: "Innovative solutions for modern businesses. Transform your operations with our expert guidance and cutting-edge technology.",
-      logoUrl: ""
-    },
-    newsletter: {
-      title: "Stay Updated",
-      placeholder: "Enter your email"
-    },
-    contact: {
-      email: "hello@innovativelabs.com",
-      phone: "+1 (555) 123-4567",
-      address: "San Francisco, CA 94105"
-    },
-    sections: [
-      {
-        title: "Company",
-        links: [
-          {
-            id: 1.0,
-            text: "About Us",
-            href: "#about"
-          },
-          {
-            id: 2.0,
-            text: "Our Team",
-            href: "#team"
-          },
-          {
-            id: 3.0,
-            text: "Careers",
-            href: "#careers"
-          },
-          {
-            id: 4.0,
-            text: "News & Press",
-            href: "#news"
-          }
-        ],
-        id: 1.0
-      },
-      {
-        title: "Services",
-        links: [
-          {
-            id: 1.0,
-            text: "Consulting",
-            href: "#consulting"
-          },
-          {
-            id: 2.0,
-            text: "Development",
-            href: "#development"
-          },
-          {
-            id: 3.0,
-            text: "Support & Maintenance",
-            href: "#support"
-          },
-          {
-            id: 4.0,
-            text: "Training",
-            href: "#training"
-          }
-        ],
-        id: 2.0
-      }
-    ],
-    socialMedia: [
-      {
-        name: "Facebook",
-        icon: "Facebook",
-        hoverColor: "hover:bg-blue-600",
-        id: 1.0,
-        href: "#"
-      },
-      {
-        name: "GitHub",
-        icon: "Github",
-        hoverColor: "hover:bg-gray-700",
-        id: 2.0,
-        href: "#"
-      },
-      {
-        name: "LinkedIn",
-        icon: "Linkedin",
-        hoverColor: "hover:bg-blue-600",
-        id: 3.0,
-        href: "#"
-      },
-      {
-        name: "Instagram",
-        icon: "Instagram",
-        hoverColor: "hover:bg-pink-600",
-        id: 4.0,
-        href: "#"
-      }
-    ],
-    legalLinks: [
-      {
-        id: 1.0,
-        text: "Privacy Policy",
-        href: "#privacy"
-      },
-      {
-        id: 2.0,
-        text: "Terms of Service",
-        href: "#terms"
-      },
-      {
-        id: 3.0,
-        text: "Status",
-        href: "#status"
-      },
-      {
-        id: 4.0,
-        text: "Sitemap",
-        href: "#sitemap"
-      }
-    ],
-    copyright: "© 2024 Innovative Labs. All rights reserved."
-  };
-
+  const footerData = content 
   const getSocialIcon = (iconName) => {
     const icons = {
       Facebook: Facebook,
@@ -274,12 +151,12 @@ export default function Footer({ content }) {
 
             {/* Contact Info */}
             <div className='space-y-3 mb-6 text-sm'>
-              <div className={` flex items-start justify-center md:justify-start space-x-3 text-gray-300 ${isSubscribed ? '' : 'bg-gray-300'}`}>
+              <div className={` flex items-start justify-center md:justify-start space-x-3 text-gray-300 ${isSubscribed ? '' : 'bg-gray-300'} select-none`}>
                 <Mail className='w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0' />
                 <span>{footerData.contact.email}</span>
               </div>
 
-              <div className={`flex items-start justify-center md:justify-start space-x-3 text-gray-300 ${isSubscribed ? '' : 'bg-gray-300'}`}>
+              <div className={`flex items-start justify-center md:justify-start space-x-3 text-gray-300 ${isSubscribed ? '' : 'bg-gray-300'} select-none`}>
                 <Phone className='w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0' />
                 <span>{footerData.contact.phone}</span>
               </div>
