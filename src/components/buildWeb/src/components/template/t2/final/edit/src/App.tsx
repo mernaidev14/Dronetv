@@ -46,6 +46,9 @@ export default function App() {
         <Header 
           headerData={finaleDataReview.content.header}
           onStateChange={useCallback((state) => collectComponentState('header', state), [collectComponentState])}
+          publishedId={finaleDataReview.publishedId}
+          userId={finaleDataReview.userId}
+          templateSelection={finaleDataReview.templateSelection}
         />
         <main>
           <Hero 
@@ -103,6 +106,9 @@ export default function App() {
         <Footer
           footerData={finaleDataReview.content.footer} 
           onStateChange={useCallback((state) => collectComponentState('footer', state), [collectComponentState])}
+          userId={finaleDataReview.userId}
+          publishedId={finaleDataReview.publishedId}
+          templateSelection={finaleDataReview.templateSelection}
         />
       </div>
     </ThemeProvider>

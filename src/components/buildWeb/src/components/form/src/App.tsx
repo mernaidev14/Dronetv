@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState } from "react";
 import { FormData } from "./types/form";
 import { useLocation,useNavigate } from "react-router-dom";
 import Step1CompanyCategory from "./components/steps/Step1CompanyCategory";
@@ -128,14 +128,38 @@ const initialFormData: FormData = {
 };
 
 function App() {
+const [companyNameStatus, setCompanyNameStatus] = useState<null | { available: boolean; suggestions?: string[]; message: string }>(null);
+const [isCheckingName, setIsCheckingName] = useState(false);
+
   const [currentStep, setCurrentStep] = useState(1);
  
   const [formData, setFormData] = useState<FormData>(initialFormData);
   const { draftDetails, setAIGenData, AIGenData } = useTemplate();
     
   const navigate = useNavigate(); // Use the useNavigate hook
-  
-    const API = "https://3l8nvxqw1a.execute-api.ap-south-1.amazonaws.com/prod/api/draft";
+
+//function to check company name availability
+
+const checkCompanyName = async (name: string) => {
+  if (!name || name.length < 2) {
+    setCompanyNameStatus(null);
+    return;
+  }
+  setIsCheckingName(true);
+  try {
+    const res = await fetch(`https://14exr8c8g0.execute-api.ap-south-1.amazonaws.com/prod/drafts/check-name?name=${encodeURIComponent(name)}`);
+    const data = await res.json();
+    setCompanyNameStatus(data);
+    
+  } catch (err) {
+    setCompanyNameStatus({ available: false, message: "Error checking name" });
+  } finally {
+    setIsCheckingName(false);
+  }
+};
+
+
+  const API = "https://3l8nvxqw1a.execute-api.ap-south-1.amazonaws.com/prod/api/draft";
   //  const Dummyapi = "https://3l8nvxqw1a.execute-api.ap-south-1.amazonaws.com/prod/api/draft/alok-12345/draft-alok-aerospace-2025-002?template=template-2";
 
   console.log("draftDetails:",draftDetails);
@@ -173,7 +197,7 @@ function App() {
   // Get templateId from navigation state
   const location = useLocation();
   const templateId = location.state?.templateId;
-  console.log(templateId);
+  // console.log(templateId);
   initialFormData.templateSelection = templateId || "";
   // console.log("templateSelection: ", initialFormData.templateSelection);
 
@@ -220,7 +244,12 @@ function App() {
 
     switch (currentStep) {
       case 1:
-        return <Step1CompanyCategory {...stepProps} />;
+        return <Step1CompanyCategory 
+        {...stepProps} 
+         checkCompanyName={checkCompanyName}
+        companyNameStatus={companyNameStatus}
+        isCheckingName={isCheckingName}
+        />;
       case 2:
         return <Step3SectorsServed {...stepProps} />;
       case 3:

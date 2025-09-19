@@ -14,7 +14,7 @@ export default function Footer({ onStateChange, footerData, footerLogo, userId, 
   // Merged all state into a single object
   const [footerContent, setFooterContent] = useState({
     companyInfo: {
-      logoSrc: footerLogo?.logo || logo,
+      logoText: footerLogo?.logo || logo,
       companyName: footerLogo?.name || "Company",
       description: "We help businesses transform and grow with innovative solutions, expert guidance, and proven strategies that deliver exceptional results.",
       email: "hello@company.com",
@@ -228,7 +228,7 @@ export default function Footer({ onStateChange, footerData, footerLogo, userId, 
     // Show immediate local preview
     const reader = new FileReader();
     reader.onloadend = () => {
-      updateCompanyInfo("logoSrc", reader.result as string);
+      updateCompanyInfo("logoText", reader.result as string);
     };
     reader.readAsDataURL(file);
   };
@@ -249,7 +249,7 @@ export default function Footer({ onStateChange, footerData, footerLogo, userId, 
         const formData = new FormData();
         formData.append('file', pendingLogoFile);
         formData.append('sectionName', 'footer');
-        formData.append('imageField', 'logoSrc');
+        formData.append('imageField', 'logoText');
         formData.append('templateSelection', templateSelection);
 
         const uploadResponse = await fetch(`https://o66ziwsye5.execute-api.ap-south-1.amazonaws.com/prod/upload-image/${userId}/${publishedId}`, {
@@ -260,7 +260,7 @@ export default function Footer({ onStateChange, footerData, footerLogo, userId, 
         if (uploadResponse.ok) {
           const uploadData = await uploadResponse.json();
           // Replace local preview with S3 URL
-          updateCompanyInfo("logoSrc", uploadData.imageUrl);
+          updateCompanyInfo("logoText", uploadData.imageUrl);
           setPendingLogoFile(null); // Clear pending file
           console.log('Logo uploaded to S3:', uploadData.imageUrl);
         } else {
@@ -374,7 +374,7 @@ export default function Footer({ onStateChange, footerData, footerLogo, userId, 
                   {isEditing ? (
                     <div className="relative w-full h-full">
                       <img
-                        src={footerContent.companyInfo.logoSrc}
+                        src={footerContent.companyInfo.logoText}
                         alt="Logo"
                         className="w-full h-full object-contain"
                       />
@@ -389,7 +389,7 @@ export default function Footer({ onStateChange, footerData, footerLogo, userId, 
                     </div>
                   ) : (
                     <img
-                      src={footerContent.companyInfo.logoSrc}
+                      src={footerContent.companyInfo.logoText}
                       alt="Logo"
                       className="w-full h-full object-contain"
                     />

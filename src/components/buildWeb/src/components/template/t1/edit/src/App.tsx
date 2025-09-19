@@ -115,7 +115,10 @@ export default function App() {
       <Publish />
       <Footer 
       onStateChange={useCallback((state) => collectComponentState("footer", state), [collectComponentState])}
-       content={AIGenData.content.footer}
+       content={AIGenData.content.company}
+       publishedId={AIGenData.publishedId}
+      userId={AIGenData.userId}
+      templateSelection={AIGenData.templateSelection}
       />
     </div>
   );

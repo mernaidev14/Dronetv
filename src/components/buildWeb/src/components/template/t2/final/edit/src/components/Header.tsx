@@ -1,21 +1,26 @@
 import { Button } from "./ui/button";
-import { Menu, X } from "lucide-react";
-import { useState, useEffect } from "react";
+import { Menu, X, Edit2, Save, Upload } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { ThemeToggle } from "./ThemeToggle";
 import { useTheme } from "./ThemeProvider";
+import { toast } from "react-toastify";
 
-export default function Header({headerData,onStateChange}) {
+export default function Header({headerData,onStateChange,publishedId,userId,templateSelection}) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { theme } = useTheme();
   const [isEditing, setIsEditing] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [pendingLogoFile, setPendingLogoFile] = useState(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [content, setContent] = useState(headerData);
+  
   // In each component, add:
-useEffect(() => {
-  if (onStateChange) {
-    onStateChange(content);
-  }
-}, [content, onStateChange]);
+  useEffect(() => {
+    if (onStateChange) {
+      onStateChange(content);
+    }
+  }, [content, onStateChange]);
 
   const updateContent = (field: string, value: string) => {
     setContent((prev) => ({ ...prev, [field]: value }));
@@ -45,6 +50,84 @@ useEffect(() => {
       ...prev,
       navItems: prev.navItems.filter((item) => item.id !== id),
     }));
+  };
+
+  // Logo upload functionality
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type and size
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select an image file');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) { // 5MB limit
+      toast.error('File size must be less than 5MB');
+      return;
+    }
+
+    // Store the file for upload on Save
+    setPendingLogoFile(file);
+    
+    // Show immediate local preview
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setContent(prev => ({ ...prev, logoUrl: reader.result as string }));
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Save button handler with S3 upload
+  const handleSave = async () => {
+    try {
+      setIsUploading(true);
+
+      // If there's a pending logo, upload it first
+      if (pendingLogoFile) {
+        if (!userId || !publishedId || !templateSelection) {
+          console.error('Missing required props:', { userId, publishedId, templateSelection });
+          toast.error('Missing user information. Please refresh and try again.');
+          return;
+        }
+        
+        const formData = new FormData();
+        formData.append('file', pendingLogoFile);
+        formData.append('sectionName', 'header');
+        formData.append('imageField', 'logoUrl');
+        formData.append('templateSelection', templateSelection);
+
+        const uploadResponse = await fetch(`https://o66ziwsye5.execute-api.ap-south-1.amazonaws.com/prod/upload-image/${userId}/${publishedId}`, {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (uploadResponse.ok) {
+          const uploadData = await uploadResponse.json();
+          // Replace local preview with S3 URL
+          setContent(prev => ({ ...prev, logoUrl: uploadData.imageUrl }));
+          setPendingLogoFile(null); // Clear pending file
+          console.log('Logo uploaded to S3:', uploadData.imageUrl);
+        } else {
+          const errorData = await uploadResponse.json();
+          console.error('Logo upload failed:', errorData);
+          toast.error(`Logo upload failed: ${errorData.message || 'Unknown error'}`);
+          return; // Don't exit edit mode
+        }
+      }
+      
+      // Exit edit mode
+      setIsEditing(false);
+      toast.success('Header section saved with S3 URLs ready for publish');
+
+    } catch (error) {
+      console.error('Error saving header section:', error);
+      toast.error('Error saving changes. Please try again.');
+      // Keep in edit mode so user can retry
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const menuVariants = {
@@ -77,24 +160,54 @@ useEffect(() => {
           {/* Logo */}
           <div className="flex items-center">
             <motion.div
-              className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center mr-2 shadow-md"
+              className="relative w-8 h-8 bg-primary rounded-lg flex items-center justify-center mr-2 shadow-md overflow-hidden"
               whileHover={{ rotate: 360 }}
               transition={{ duration: 0.6 }}
             >
               {isEditing ? (
-                <input
-                  type="text"
-                  value={content.logoLetter}
-                  onChange={(e) =>
-                    updateContent("logoLetter", e.target.value.slice(0, 1))
-                  }
-                  className="w-6 max-w-[32px] text-center bg-transparent border-b border-black font-bold text-lg outline-none"
-                />
+                <div className="relative w-full h-full">
+                  {content.logoUrl && content.logoUrl.startsWith('data:') || content.logoUrl && content.logoUrl.startsWith('http') ? (
+                    <img
+                      src={content.logoUrl}
+                      alt="Logo"
+                      className="w-full h-full object-contain"
+                    />
+                  ) : (
+                    <span className="text-black font-bold text-lg">
+                      {content.logoUrl}
+                    </span>
+                  )}
+                  <div className="absolute inset-0 bg-black bg-opacity-50 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      className="text-white text-xs p-1 bg-blue-500 rounded"
+                    >
+                      <Upload size={12} />
+                    </button>
+                  </div>
+                </div>
               ) : (
-                <span className="text-black font-bold text-lg">
-                  {content.logoLetter}
-                </span>
+                <>
+                  {content.logoUrl && (content.logoUrl.startsWith('data:') || content.logoUrl.startsWith('http')) ? (
+                    <img
+                      src={content.logoUrl}
+                      alt="Logo"
+                      className="w-full h-full object-contain"
+                    />
+                  ) : (
+                    <span className="text-black font-bold text-lg">
+                      {content.logoUrl}
+                    </span>
+                  )}
+                </>
               )}
+              <input
+                type="file"
+                ref={fileInputRef}
+                accept="image/*"
+                onChange={handleLogoUpload}
+                className="hidden"
+              />
             </motion.div>
             {isEditing ? (
               <input
@@ -187,17 +300,30 @@ useEffect(() => {
             <ThemeToggle />
 
             {/* Edit/Save Buttons */}
-         {isEditing ? (
-            <motion.button 
-            whileTap={{scale:0.9}}
-            whileHover={{y:-1,scaleX:1.1}}
-            onClick={() => setIsEditing(false)} className="bg-green-600 cursor-pointer hover:font-semibold hover:shadow-2xl shadow-xl text-white px-4 py-2 rounded">Save</motion.button>
-          ) : (
-            <motion.button 
-            whileTap={{scale:0.9}}
-            whileHover={{y:-1,scaleX:1.1}}
-            onClick={() => setIsEditing(true)} className="bg-yellow-500 text-black px-4 py-2 rounded cursor-pointer  hover:shadow-2xl shadow-xl hover:font-semibold">Edit</motion.button>
-          )}
+            {isEditing ? (
+              <motion.button 
+                whileTap={{scale:0.9}}
+                whileHover={{y:-1,scaleX:1.1}}
+                onClick={handleSave}
+                disabled={isUploading}
+                className={`${
+                  isUploading 
+                    ? 'bg-gray-400 cursor-not-allowed' 
+                    : 'bg-green-600 hover:font-semibold'
+                } text-white px-4 py-2 rounded cursor-pointer hover:shadow-2xl shadow-xl`}
+              >
+                {isUploading ? 'Uploading...' : <><Save size={16} className="inline mr-1" /> Save</>}
+              </motion.button>
+            ) : (
+              <motion.button 
+                whileTap={{scale:0.9}}
+                whileHover={{y:-1,scaleX:1.1}}
+                onClick={() => setIsEditing(true)} 
+                className="bg-yellow-500 text-black px-4 py-2 rounded cursor-pointer hover:shadow-2xl shadow-xl hover:font-semibold"
+              >
+                <Edit2 size={16} className="inline mr-1" /> Edit
+              </motion.button>
+            )}
           </div>
 
           {/* Mobile menu button */}

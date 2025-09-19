@@ -13,7 +13,7 @@ export default function Header({ headerData, onStateChange, userId, publishedId,
 
   // Combined state
   const [headerState, setHeaderState] = useState({
-    logoSrc: logo,
+    logoSrc: headerData?.logo ,
     companyName: headerData?.name || "Your Company",
     navItems: [
       "Home",

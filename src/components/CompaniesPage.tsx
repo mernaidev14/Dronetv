@@ -220,16 +220,14 @@ const CompaniesPage: React.FC = () => {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
               {currentCompanies.map((company, idx) => {
-                const totalServices = Array.isArray(company.sectors) ? company.sectors.length : 0;
-                const totalProducts = 0; // No products in this API currently
-               const publishedId = company.publishedId || 'unknown';
-               const userId = company.userId || 'unknown';
+                const totalServices = company.servicesCount || 0; // Assuming servicesCount exists
+                const totalProducts = company.productsCount; // No products in this API currently
                 return (
                   <div
                     key={company.companyName + idx}
-                    className="group bg-white rounded-3xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-700 cursor-pointer transform hover:scale-105"
+                    className="group  bg-[#f1ee8e] rounded-3xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-700 cursor-pointer transform hover:scale-105"
                   >
-                    <div className="relative p-8 bg-[#f1ee8e] transition-all duration-500">
+                    <div className="relative p-8  transition-all duration-500">
                       <div className="flex justify-center mb-4">
                         <div className="relative">
                           <div className="absolute inset-0 bg-yellow-400/20 rounded-2xl blur-xl scale-150 group-hover:scale-200 transition-all duration-700"></div>
@@ -260,9 +258,9 @@ const CompaniesPage: React.FC = () => {
                         )}
                       </div>
                     </div>
-                    <div className="relative p-8 bg-[#f1ee8e] transition-all duration-500">
+                    <div className="relative p-8  transition-all duration-500">
                       <p className="text-gray-600 mb-4 leading-relaxed text-sm line-clamp-3">
-                        {company.aboutDescription || 'No company description.'}
+                        {company.companyDescription || 'No company description.'}
                       </p>
 
                       {/* Services & Products */}
@@ -288,9 +286,9 @@ const CompaniesPage: React.FC = () => {
                           // }}
                           onClick={() => {
                             if (!company.isTemplate2 ) {
-                              navigate(`/companies/preview/1/${company.companyName}/${company.publishedId}/${company.userId}`);
+                              navigate(`/company/${company.urlSlug}`);
                             } else if (company.isTemplate2) {
-                              navigate(`/companies/preview/2/${company.companyName}/${company.publishedId}/${company.userId}`);
+                              navigate(`/companies/${company.urlSlug}`);
                             }
                           }}
                           className="group/btn bg-gradient-to-r from-yellow-400 to-yellow-600 text-black px-4 py-2 rounded-xl font-semibold text-sm hover:from-yellow-500 hover:to-yellow-700 transition-all duration-300 transform hover:scale-105 flex items-center gap-2 shadow-lg"

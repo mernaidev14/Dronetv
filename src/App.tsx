@@ -114,8 +114,8 @@ const AppContent = () => {
           <Route path='/admin/companies/preview/2/:publishedId/:userId' element={<DashboardPreview2 />} />
 
           {/* main preview routes */}
-          <Route path='/companies/preview/1/:companyName/:publishedId/:userId' element={<MainCompPreviewT1 />} />
-          <Route path='/companies/preview/2/:companyName/:publishedId/:userId' element={<MainCompPreviewT2 />} />
+          <Route path='/company/:urlSlug' element={<MainCompPreviewT1 />} />
+          <Route path='/companies/:urlSlug' element={<MainCompPreviewT2 />} />
         </Routes>
         {!hideFooter && <Footer />}
         <ScrollingFooter />
