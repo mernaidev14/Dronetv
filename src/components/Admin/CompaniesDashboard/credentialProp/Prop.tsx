@@ -298,19 +298,41 @@ const CredentialsModal: React.FC<CredentialsModalProps> = ({
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <p className="text-sm text-gray-600">Primary Services</p>
-                    <p className="font-medium">{data.formData?.businessDetails?.primaryServices?.join(', ') || 'None specified'}</p>
+                   <p className="font-medium">
+  {Array.isArray(data.formData?.businessDetails?.primaryServices)
+    ? data.formData.businessDetails.primaryServices.map((s: any) => s.title || '').filter(Boolean).join(', ')
+    : 'None specified'}
+</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-600">Products</p>
-                    <p className="font-medium">{data.formData?.businessDetails?.products?.join(', ') || 'None specified'}</p>
+                <p className="font-medium">
+  {Array.isArray(data.formData?.businessDetails?.products)
+    ? data.formData.businessDetails.products.map((p: any) => p.title || '').filter(Boolean).join(', ')
+    : 'None specified'}
+</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-600">Sectors Served</p>
-                    <p className="font-medium">{data.formData?.businessDetails?.sectorsServed?.join(', ') || 'None specified'}</p>
+    <p className="font-medium">
+  {data.formData?.businessDetails?.sectorsServed
+    ? Object.entries(data.formData.businessDetails.sectorsServed)
+        .map(([sector, arr]) =>
+          Array.isArray(arr) && arr.length > 0
+            ? `${sector}: ${arr.join(', ')}`
+            : sector
+        )
+        .join('; ')
+    : 'None specified'}
+</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-600">Specializations</p>
-                    <p className="font-medium">{data.formData?.businessDetails?.specializations?.join(', ') || 'None specified'}</p>
+                   <p className="font-medium">
+  {Array.isArray(data.formData?.businessDetails?.specializations)
+    ? data.formData.businessDetails.specializations.join(', ')
+    : 'None specified'}
+</p>
                   </div>
                 </div>
               </div>
@@ -330,7 +352,11 @@ const CredentialsModal: React.FC<CredentialsModalProps> = ({
                   </div>
                   <div>
                     <p className="text-sm text-gray-600">Certifications</p>
-                    <p className="font-medium">{data.formData?.technicalInfo?.certifications?.join(', ') || 'None specified'}</p>
+                   <p className="font-medium">
+  {Array.isArray(data.formData?.technicalInfo?.certifications)
+    ? data.formData.technicalInfo.certifications.join(', ')
+    : 'None specified'}
+</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-600">Equipment Details</p>

@@ -317,23 +317,28 @@ const CompanyCard: React.FC<CompanyCardProps> = ({
   };
 
   // Status badge styling based on status
-  const getStatusBadge = (needsAdminAction: boolean) => {
-    if (needsAdminAction) {
+  const getStatusBadge = (reviewStatus: string) => {
+    if (reviewStatus === "active") {
       return {
         bg: 'bg-yellow-100',
         text: 'text-yellow-800',
         label: 'Needs Review'
       };
-    }
-    
-    return {
-      bg: 'bg-green-100',
-      text: 'text-green-800',
-      label: 'Reviewed'
-    };
+    } else if (reviewStatus === "rejected") {
+      return {
+        bg: 'bg-red-100',
+        text: 'text-red-800',
+        label: 'Rejected'
+      };
+    } else if (reviewStatus === "approved") {
+      return {
+        bg: 'bg-green-100',
+        text: 'text-green-800',
+        label: 'approved'
+      };
   };
-
-  const statusStyle = getStatusBadge(company.needsAdminAction);
+  }
+  const statusStyle = getStatusBadge(company.reviewStatus);
 
   return (
     <div className='bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden border-l-8 border-gradient-to-b from-blue-500 to-purple-600 group'>
